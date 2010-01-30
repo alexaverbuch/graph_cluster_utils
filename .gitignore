@@ -2,8 +2,6 @@
 *~
 *.class
 .* 
-*.graph
-*.ptn
 !.gitignore 
 
 # Directories
