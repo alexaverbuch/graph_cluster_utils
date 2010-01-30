@@ -1,0 +1,11 @@
+# Files
+*~
+*.class
+.* 
+*.graph
+*.ptn
+!.gitignore 
+
+# Directories
+target/
+var/
