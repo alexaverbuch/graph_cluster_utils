@@ -35,23 +35,30 @@ public class DiDiCPartitioner {
 	private IndexService transIndexService = null;
 
 	public static void main(String[] args) {
-
 		try {
 
 			// Create NeoFromFile and assign DB location
-			NeoFromFile neoCreator = new NeoFromFile("var/test-DiDiC");
+			NeoFromFile neoCreator1 = new NeoFromFile("var/test-DiDiC");
 
 			// To generate coloured/partitioned neo4j graph
 			// * Assign input Chaco graph file & input partitioning file
-			neoCreator.generateNeo("graphs/test-DiDiC.graph",
+			neoCreator1.generateNeo("graphs/test-DiDiC.graph",
 					"partitionings/test-DiDiC.2.ptn");
 
 			DiDiCPartitioner didic = new DiDiCPartitioner(2, "var/test-DiDiC");
 
-			didic.do_DiDiC(10);
+			didic.do_DiDiC(150);
 
-			neoCreator.generateChaco("graphs/test-DiDiC-gen.graph",
+			neoCreator1.generateChaco("graphs/test-DiDiC-gen.graph",
 					NeoFromFile.ChacoType.UNWEIGHTED,
+					"partitionings/test-DiDiC-gen.2.ptn");
+
+			// Create NeoFromFile and assign DB location
+			NeoFromFile neoCreator2 = new NeoFromFile("var/test-DiDiC-gen");
+
+			// To generate coloured/partitioned neo4j graph
+			// * Assign input Chaco graph file & input partitioning file
+			neoCreator2.generateNeo("graphs/test-DiDiC-gen.graph",
 					"partitionings/test-DiDiC-gen.2.ptn");
 
 		} catch (FileNotFoundException e) {
@@ -99,9 +106,7 @@ public class DiDiCPartitioner {
 					}
 				}
 
-				update_cluster_allocation(timeStep);
-
-				// TODO: adaptToGraphChanges <- not sure what this pseudo means
+				tx.success();
 
 			} catch (Exception ex) {
 				System.err.printf("<ERR: DiDiC Outer Loop Aborted>");
@@ -109,6 +114,9 @@ public class DiDiCPartitioner {
 				tx.finish();
 			}
 
+			update_cluster_allocation(timeStep);
+
+			// TODO: adaptToGraphChanges <- not sure what this pseudo means
 		}
 
 		// PRINTOUT
@@ -372,12 +380,18 @@ public class DiDiCPartitioner {
 		int maxC = 0;
 		double maxW = 0.0;
 
+		String temp = "";
+
 		for (int c = 0; c < wC.size(); c++) {
+			temp = temp + " " + wC.get(c).toString();
 			if (wC.get(c) > maxW) {
 				maxW = wC.get(c);
 				maxC = c;
 			}
 		}
+
+		// TODO: keep for later debugging
+		// System.err.println(temp);
 
 		return maxC;
 	}

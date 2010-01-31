@@ -4,6 +4,7 @@
 .* 
 *.graph
 *.ptn
+*.svg
 !.gitignore 
 !test-DiDiC.2.ptn
 !test-DiDiC.graph
