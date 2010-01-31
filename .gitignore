@@ -2,7 +2,11 @@
 *~
 *.class
 .* 
+*.graph
+*.ptn
 !.gitignore 
+!test-DiDiC.2.ptn
+!test-DiDiC.graph
 
 # Directories
 target/
