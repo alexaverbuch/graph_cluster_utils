@@ -5,8 +5,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Random;
 
+import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.index.IndexService;
 import org.neo4j.index.lucene.LuceneIndexService;
@@ -16,15 +18,13 @@ import graph_gen_utils.NeoFromFile;
 
 public class DiDiCPartitioner {
 
-	private static final int FOST_ITERS = 11;
-	private static final int FOSB_ITERS = 11;
-	private static final int B = 10;
-	private static final int MY_CLUSTER_VAL = 100;
+	private static final int FOST_ITERS = 11; // Primary Diffusion
+	private static final int FOSB_ITERS = 11; // Secondary Diffusion ('drain')
+	private static final int B = 10; // ...
+	private static final int MY_CLUSTER_VAL = 100; // Default Init Val
 
-	// private static final int ALPHA_e = 1/max{deg(u),deg(v)};
-
-	private HashMap<String,ArrayList<Double>> w = null;
-	private HashMap<String,ArrayList<Double>> l = null;
+	private HashMap<String, ArrayList<Double>> w = null; // Load Vec 1
+	private HashMap<String, ArrayList<Double>> l = null; // Load Vec 2 ('drain')
 
 	private int clusterCount;
 	private String databaseDir;
@@ -54,9 +54,9 @@ public class DiDiCPartitioner {
 		super();
 		this.clusterCount = clusterCount;
 		this.databaseDir = databaseDir;
-		
-		w = new HashMap<String,ArrayList<Double>>();
-		l = new HashMap<String,ArrayList<Double>>();
+
+		w = new HashMap<String, ArrayList<Double>>();
+		l = new HashMap<String, ArrayList<Double>>();
 	}
 
 	public void do_DiDiC(int timeSteps) {
@@ -65,16 +65,34 @@ public class DiDiCPartitioner {
 		init_cluster_allocation();
 
 		init_load_vectors();
-		
+
 		for (int i = 0; i < timeSteps; i++) {
-			
-			// TODO: for each node, for fair "node load balancing" 
-			for (int j = 0; j < clusterCount; j++) {
-				
+
+			Transaction tx = transNeo.beginTx();
+
+			try {
+				for (Node node : transNeo.getAllNodes()) {
+					if (node.getId() != 0) {
+
+						// For Every "Cluster System"
+						for (int c = 0; c < clusterCount; c++) {
+							// FOS/T Primary Diffusion Algorithm
+							do_FOST(node, c);
+						}
+
+					}
+				}
+
+				tx.success();
+
+			} catch (Exception ex) {
+				System.err.printf("<ERR: DiDiC Outer Loop Aborted>");
+			} finally {
+				tx.finish();
 			}
-			
+
 		}
-		
+
 		closeTransServices();
 	}
 
@@ -90,8 +108,8 @@ public class DiDiCPartitioner {
 
 		try {
 			for (Node node : transNeo.getAllNodes()) {
-
 				if (node.getId() != 0) {
+
 					try {
 						if (node.hasProperty("color") == false)
 							node.setProperty("color", rand
@@ -106,8 +124,8 @@ public class DiDiCPartitioner {
 						System.err.printf("[Could not colour node: %d]", node
 								.getId());
 					}
+
 				}
-				
 			}
 
 			tx.success();
@@ -131,34 +149,34 @@ public class DiDiCPartitioner {
 		Transaction tx = transNeo.beginTx();
 
 		try {
-			
-			for (Node node : transNeo.getAllNodes()) {
 
+			for (Node node : transNeo.getAllNodes()) {
 				if (node.getId() != 0) {
+
 					int nodeColor = (Integer) node.getProperty("color");
 					String nodeName = (String) node.getProperty("name");
-					
-					ArrayList<Double> nodeW = new ArrayList<Double>();					
+
+					ArrayList<Double> nodeW = new ArrayList<Double>();
 					for (int i = 0; i < clusterCount; i++) {
 						if (nodeColor == i) {
 							nodeW.add(new Double(100));
 							continue;
 						}
-						nodeW.add(new Double(0));	
-					} 					
+						nodeW.add(new Double(0));
+					}
 					w.put(nodeName, nodeW);
-					
-					ArrayList<Double> nodeL = new ArrayList<Double>();					
+
+					ArrayList<Double> nodeL = new ArrayList<Double>();
 					for (int i = 0; i < clusterCount; i++) {
 						if (nodeColor == i) {
 							nodeL.add(new Double(100));
 							continue;
 						}
-						nodeL.add(new Double(0));	
-					} 					
+						nodeL.add(new Double(0));
+					}
 					l.put(nodeName, nodeL);
+
 				}
-				
 			}
 
 		} catch (Exception ex) {
@@ -170,22 +188,41 @@ public class DiDiCPartitioner {
 		// PRINTOUT
 		System.out.printf("%dms%n", System.currentTimeMillis() - time);
 	}
-	
-	private void do_FOST() {
+
+	private void do_FOST(Node v, int c) {
 		long time = System.currentTimeMillis();
 
 		// PRINTOUT
-		System.out.printf("FOS/T (%d Iterations)...",FOST_ITERS);
+		System.out.printf("FOS/T [FOST_ITERS=%d,FOSB_ITERS=%d]...", FOST_ITERS,
+				FOSB_ITERS);
 
 		Transaction tx = transNeo.beginTx();
 
 		try {
-			
-			for (Node node : transNeo.getAllNodes()) {
 
-				if (node.getId() != 0) {
+			for (int fost_iter = 0; fost_iter < FOST_ITERS; fost_iter++) {
+
+				// FOS/B (Secondary/Drain) Diffusion Algorithm
+				do_FOSB();
+
+				ArrayList<Double> lV = l.get(v.getProperty("name"));
+				ArrayList<Double> wV = w.get(v.getProperty("name"));
+
+				// FOS/T Diffusion
+				for (Relationship e : v.getRelationships(Direction.OUTGOING)) {
+
+					Node u = e.getEndNode();
+					ArrayList<Double> wU = w.get(u.getProperty("name"));
+
+					double wVwUDiff = wV.get(c) - wU.get(c);
+
+					double wVCNew = wV.get(c) - alpha_e(u, v) * weight_e(e)
+							* wVwUDiff;
+
+					wV.set(c, wVCNew);
 				}
-				
+
+				wV.set(c, wV.get(c) + lV.get(c));
 			}
 
 		} catch (Exception ex) {
@@ -196,8 +233,48 @@ public class DiDiCPartitioner {
 
 		// PRINTOUT
 		System.out.printf("%dms%n", System.currentTimeMillis() - time);
-	}	
-	
+	}
+
+	private void do_FOSB() {
+		// TODO: implement
+	}
+
+	// alpha_e = 1/max{deg(u),deg(v)};
+	private double alpha_e(Node u, Node v) {
+		int uDeg = 0;
+		int vDeg = 0;
+
+		Transaction tx = transNeo.beginTx();
+
+		try {
+			for (Relationship e : v.getRelationships(Direction.OUTGOING)) {
+				vDeg++;
+			}
+
+			for (Relationship e : u.getRelationships(Direction.OUTGOING)) {
+				uDeg++;
+			}
+		} catch (Exception ex) {
+			System.err.printf("<ERR: do_FOST>");
+		} finally {
+			tx.finish();
+		}
+
+		int max = Math.max(uDeg, vDeg);
+
+		if (max == 0)
+			return 1;
+
+		return 1.0 / (double) max;
+	}
+
+	private int weight_e(Relationship e) {
+		if (e.hasProperty("weight"))
+			return (Integer) e.getProperty("weight");
+		else
+			return 1;
+	}
+
 	private void openTransServices() {
 		long time = System.currentTimeMillis();
 
