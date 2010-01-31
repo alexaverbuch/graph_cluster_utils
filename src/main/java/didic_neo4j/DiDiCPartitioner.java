@@ -83,7 +83,9 @@ public class DiDiCPartitioner {
 					}
 				}
 
-				tx.success();
+				update_cluster_allocation();
+
+				// TODO: adaptToGraphChanges <- not sure what this pseudo means
 
 			} catch (Exception ex) {
 				System.err.printf("<ERR: DiDiC Outer Loop Aborted>");
@@ -190,23 +192,29 @@ public class DiDiCPartitioner {
 	}
 
 	private void do_FOST(Node v, int c) {
+
 		long time = System.currentTimeMillis();
 
 		// PRINTOUT
-		System.out.printf("FOS/T [FOST_ITERS=%d,FOSB_ITERS=%d]...", FOST_ITERS,
+		System.out.printf("FOS/T [FOST_ITERS=%d,FOSB_ITERS=%d] ", FOST_ITERS,
 				FOSB_ITERS);
 
 		Transaction tx = transNeo.beginTx();
 
 		try {
 
+			String vName = (String) v.getProperty("name");
+
+			// PRINTOUT
+			System.out.printf("@ Node %s...", vName);
+
 			for (int fost_iter = 0; fost_iter < FOST_ITERS; fost_iter++) {
 
 				// FOS/B (Secondary/Drain) Diffusion Algorithm
-				do_FOSB();
+				do_FOSB(v, c);
 
-				ArrayList<Double> lV = l.get(v.getProperty("name"));
-				ArrayList<Double> wV = w.get(v.getProperty("name"));
+				ArrayList<Double> lV = l.get(vName);
+				ArrayList<Double> wV = w.get(vName);
 
 				// FOS/T Diffusion
 				for (Relationship e : v.getRelationships(Direction.OUTGOING)) {
@@ -235,8 +243,39 @@ public class DiDiCPartitioner {
 		System.out.printf("%dms%n", System.currentTimeMillis() - time);
 	}
 
-	private void do_FOSB() {
-		// TODO: implement
+	private void do_FOSB(Node v, int c) {
+		Transaction tx = transNeo.beginTx();
+
+		try {
+
+			String vName = (String) v.getProperty("name");
+
+			for (int fosb_iter = 0; fosb_iter < FOSB_ITERS; fosb_iter++) {
+
+				ArrayList<Double> lV = l.get(vName);
+
+				// FOS/B Diffusion
+				for (Relationship e : v.getRelationships(Direction.OUTGOING)) {
+
+					Node u = e.getEndNode();
+					ArrayList<Double> lU = l.get(u.getProperty("name"));
+
+					double lVlUDiff = (lV.get(c) / (double) benefit(v, c))
+							- (lU.get(c) / (double) benefit(u, c));
+
+					double lVCNew = lV.get(c) - alpha_e(u, v) * weight_e(e)
+							* lVlUDiff;
+
+					lV.set(c, lVCNew);
+				}
+			}
+
+		} catch (Exception ex) {
+			System.err.printf("<ERR: do_FOST>");
+		} finally {
+			tx.finish();
+		}
+
 	}
 
 	// alpha_e = 1/max{deg(u),deg(v)};
@@ -255,7 +294,7 @@ public class DiDiCPartitioner {
 				uDeg++;
 			}
 		} catch (Exception ex) {
-			System.err.printf("<ERR: do_FOST>");
+			System.err.printf("<ERR: alpha_e>");
 		} finally {
 			tx.finish();
 		}
@@ -273,6 +312,29 @@ public class DiDiCPartitioner {
 			return (Integer) e.getProperty("weight");
 		else
 			return 1;
+	}
+
+	private int benefit(Node v, int c) {
+		int benefit = 1;
+
+		Transaction tx = transNeo.beginTx();
+
+		try {
+			int myC = (Integer) v.getProperty("color");
+			if (myC == c) {
+				benefit = B;
+			}
+		} catch (Exception ex) {
+			System.err.printf("<ERR: benefit>");
+		} finally {
+			tx.finish();
+		}
+
+		return benefit;
+	}
+
+	private void update_cluster_allocation() {
+		// TODO: implement
 	}
 
 	private void openTransServices() {
