@@ -11,8 +11,7 @@ To use:
 
 	// To generate coloured/partitioned neo4j graph
 	// * Assign input Chaco graph file & input Partitioning file 
-	neoCreator1.generateNeo("graphs/test-DiDiC.graph",
-			"partitionings/test-DiDiC.2.ptn");
+	neoCreator1.generateNeo("graphs/test-DiDiC.graph","partitionings/test-DiDiC.2.ptn");
 
 	// Create DiDiCPartitioner, which implements the DiDiC algorithm
 	DiDiCPartitioner didic = new DiDiCPartitioner(2, "var/test-DiDiC");
