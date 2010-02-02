@@ -34,100 +34,86 @@ public class DiDiCPartitioner {
 	private GraphDatabaseService transNeo = null;
 	private IndexService transIndexService = null;
 
+	private static final String IN_GRAPH = "test-DiDiC";
+	private static final String NEO_NAME = "test-DiDiC";
+
 	public static void main(String[] args) {
-		// test_DiDiC_small_no_init(2);
-		// test_DiDiC_small_init(2);
-		test_DiDiC_add20_init(2);
+		test_DiDiC_no_init(2);
+//		test_DiDiC_init(2);
 	}
 
-	public static void test_DiDiC_small_no_init(int clusterCount) {
+	private static void test_DiDiC_no_init(int clusterCount) {
 		try {
 
+			String clusterCountStr = Integer.toString(clusterCount);
+			String inNeo = String.format("var/%s", NEO_NAME);
+			String inGraph = String.format("graphs/%s.graph", IN_GRAPH);
+			String inPtn = String.format("partitionings/%s.%s.ptn", IN_GRAPH,
+					clusterCount);
+
 			// Create NeoFromFile and assign DB location
-			NeoFromFile neoCreator1 = new NeoFromFile("var/test-DiDiC");
+			NeoFromFile neoCreator = new NeoFromFile(inNeo);
 
 			// To generate coloured/partitioned neo4j graph
 			// * Assign input Chaco graph file & input partitioning file
-			neoCreator1.generateNeo("graphs/test-DiDiC.graph",
-					"partitionings/test-DiDiC.2.ptn");
+			neoCreator.generateNeo(inGraph, inPtn);
 
-			DiDiCPartitioner didic = new DiDiCPartitioner(clusterCount,
-					"var/test-DiDiC");
+			DiDiCPartitioner didic = new DiDiCPartitioner(clusterCount, inNeo);
 			didic.do_DiDiC(150, false);
 
-			neoCreator1.generateChaco("graphs/test-DiDiC-gen.graph",
-					NeoFromFile.ChacoType.UNWEIGHTED,
-					"partitionings/test-DiDiC-gen.2.ptn");
-
-			// Create NeoFromFile and assign DB location
-			NeoFromFile neoCreator2 = new NeoFromFile("var/test-DiDiC-gen");
-
-			// To generate coloured/partitioned neo4j graph
-			// * Assign input Chaco graph file & input partitioning file
-			neoCreator2.generateNeo("graphs/test-DiDiC-gen.graph",
-					"partitionings/test-DiDiC-gen.2.ptn");
+			write_chaco_and_ptn("FINAL", clusterCount);
 
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		}
 	}
 
-	public static void test_DiDiC_small_init(int clusterCount) {
+	private static void test_DiDiC_init(int clusterCount) {
 		try {
 
+			String inNeo = String.format("var/%s", NEO_NAME);
+			String inGraph = String.format("graphs/%s.graph", IN_GRAPH);
+
 			// Create NeoFromFile and assign DB location
-			NeoFromFile neoCreator1 = new NeoFromFile("var/test-DiDiC");
+			NeoFromFile neoCreator = new NeoFromFile(inNeo);
 
 			// To generate coloured/partitioned neo4j graph
 			// * Assign input Chaco graph file & input partitioning file
-			neoCreator1.generateNeo("graphs/test-DiDiC.graph");
+			neoCreator.generateNeo(inGraph);
 
-			DiDiCPartitioner didic = new DiDiCPartitioner(clusterCount,
-					"var/test-DiDiC");
+			DiDiCPartitioner didic = new DiDiCPartitioner(clusterCount, inNeo);
 			didic.do_DiDiC(150, true);
 
-			neoCreator1.generateChaco("graphs/test-DiDiC-gen.graph",
-					NeoFromFile.ChacoType.UNWEIGHTED,
-					"partitionings/test-DiDiC-gen.2.ptn");
-
-			// Create NeoFromFile and assign DB location
-			NeoFromFile neoCreator2 = new NeoFromFile("var/test-DiDiC-gen");
-
-			// To generate coloured/partitioned neo4j graph
-			// * Assign input Chaco graph file & input partitioning file
-			neoCreator2.generateNeo("graphs/test-DiDiC-gen.graph",
-					"partitionings/test-DiDiC-gen.2.ptn");
+			write_chaco_and_ptn("FINAL", clusterCount);
 
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		}
 	}
 
-	public static void test_DiDiC_add20_init(int clusterCount) {
+	private static void write_chaco_and_ptn(String version, int clusterCount) {
 		try {
 
+			String clusterCountStr = Integer.toString(clusterCount);
+			String inNeo = String.format("var/%s", NEO_NAME, version);
+			String outNeo = String.format("var/%s-gen-%s", NEO_NAME, version);
+			String outGraph = String.format("graphs/%s-gen-%s.graph", IN_GRAPH,
+					version);
+			String outPtn = String.format("partitionings/%s-gen-%s.%s.ptn",
+					IN_GRAPH, version, clusterCountStr);
+
 			// Create NeoFromFile and assign DB location
-			NeoFromFile neoCreator1 = new NeoFromFile("var/test-DiDiC");
+			NeoFromFile neoCreatorIn = new NeoFromFile(inNeo);
+
+			neoCreatorIn.generateChaco(outGraph,
+					NeoFromFile.ChacoType.UNWEIGHTED, outPtn);
+
+			// Create NeoFromFile and assign DB location
+			NeoFromFile neoCreatorOut = new NeoFromFile(outNeo);
 
 			// To generate coloured/partitioned neo4j graph
 			// * Assign input Chaco graph file & input partitioning file
-			neoCreator1.generateNeo("graphs/add20.graph");
-
-			DiDiCPartitioner didic = new DiDiCPartitioner(clusterCount,
-					"var/test-DiDiC");
-			didic.do_DiDiC(150, true);
-
-			neoCreator1.generateChaco("graphs/add20-gen.graph",
-					NeoFromFile.ChacoType.UNWEIGHTED,
-					"partitionings/add20-gen.2.ptn");
-
-			// Create NeoFromFile and assign DB location
-			NeoFromFile neoCreator2 = new NeoFromFile("var/test-DiDiC-gen");
-
-			// To generate coloured/partitioned neo4j graph
-			// * Assign input Chaco graph file & input partitioning file
-			neoCreator2.generateNeo("graphs/add20-gen.graph",
-					"partitionings/add20-gen.2.ptn");
+			neoCreatorOut.generateNeo(outGraph, outPtn);
 
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
@@ -193,21 +179,29 @@ public class DiDiCPartitioner {
 			}
 
 			// PRINTOUT
-			System.out.printf("%dms%n", System.currentTimeMillis() - timeStepTime);
-			
+			System.out.printf("%dms%n", System.currentTimeMillis()
+					- timeStepTime);
+
 			update_cluster_allocation(timeStep);
 
-			// This is where insertions/deletions to Neo4j instance may occur
-			// TODO: adaptToGraphChanges()
+			// TODO: perform insertions/deletions to Neo4j instance
+			// adaptToGraphChanges()
+			
+			// FIXME: for debugging purposes only!
+			if (timeStep % 50 == 0) {
+				closeTransServices();
+				DiDiCPartitioner.write_chaco_and_ptn(Integer.toString(timeStep), clusterCount);
+				openTransServices();
+			}
 		}
 
 		// PRINTOUT
 		System.out.printf("DiDiC Complete - Time Taken: %dms%n", System
 				.currentTimeMillis()
 				- time);
-		System.out.println("*********DiDiC***********\n");
 
 		closeTransServices();
+		System.out.println("*********DiDiC***********\n");
 	}
 
 	private void init_cluster_allocation() {
