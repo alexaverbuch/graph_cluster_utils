@@ -8,6 +8,8 @@
 !.gitignore 
 !test-DiDiC.2.ptn
 !test-DiDiC.graph
+!add20.graph
+!add20.2.ptn
 
 # Directories
 target/

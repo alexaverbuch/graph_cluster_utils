@@ -35,6 +35,12 @@ public class DiDiCPartitioner {
 	private IndexService transIndexService = null;
 
 	public static void main(String[] args) {
+		// test_DiDiC_small_no_init(2);
+		// test_DiDiC_small_init(2);
+		test_DiDiC_add20_init(2);
+	}
+
+	public static void test_DiDiC_small_no_init(int clusterCount) {
 		try {
 
 			// Create NeoFromFile and assign DB location
@@ -45,9 +51,9 @@ public class DiDiCPartitioner {
 			neoCreator1.generateNeo("graphs/test-DiDiC.graph",
 					"partitionings/test-DiDiC.2.ptn");
 
-			DiDiCPartitioner didic = new DiDiCPartitioner(2, "var/test-DiDiC");
-
-			didic.do_DiDiC(150);
+			DiDiCPartitioner didic = new DiDiCPartitioner(clusterCount,
+					"var/test-DiDiC");
+			didic.do_DiDiC(150, false);
 
 			neoCreator1.generateChaco("graphs/test-DiDiC-gen.graph",
 					NeoFromFile.ChacoType.UNWEIGHTED,
@@ -64,7 +70,68 @@ public class DiDiCPartitioner {
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		}
+	}
 
+	public static void test_DiDiC_small_init(int clusterCount) {
+		try {
+
+			// Create NeoFromFile and assign DB location
+			NeoFromFile neoCreator1 = new NeoFromFile("var/test-DiDiC");
+
+			// To generate coloured/partitioned neo4j graph
+			// * Assign input Chaco graph file & input partitioning file
+			neoCreator1.generateNeo("graphs/test-DiDiC.graph");
+
+			DiDiCPartitioner didic = new DiDiCPartitioner(clusterCount,
+					"var/test-DiDiC");
+			didic.do_DiDiC(150, true);
+
+			neoCreator1.generateChaco("graphs/test-DiDiC-gen.graph",
+					NeoFromFile.ChacoType.UNWEIGHTED,
+					"partitionings/test-DiDiC-gen.2.ptn");
+
+			// Create NeoFromFile and assign DB location
+			NeoFromFile neoCreator2 = new NeoFromFile("var/test-DiDiC-gen");
+
+			// To generate coloured/partitioned neo4j graph
+			// * Assign input Chaco graph file & input partitioning file
+			neoCreator2.generateNeo("graphs/test-DiDiC-gen.graph",
+					"partitionings/test-DiDiC-gen.2.ptn");
+
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public static void test_DiDiC_add20_init(int clusterCount) {
+		try {
+
+			// Create NeoFromFile and assign DB location
+			NeoFromFile neoCreator1 = new NeoFromFile("var/test-DiDiC");
+
+			// To generate coloured/partitioned neo4j graph
+			// * Assign input Chaco graph file & input partitioning file
+			neoCreator1.generateNeo("graphs/add20.graph");
+
+			DiDiCPartitioner didic = new DiDiCPartitioner(clusterCount,
+					"var/test-DiDiC");
+			didic.do_DiDiC(150, true);
+
+			neoCreator1.generateChaco("graphs/add20-gen.graph",
+					NeoFromFile.ChacoType.UNWEIGHTED,
+					"partitionings/add20-gen.2.ptn");
+
+			// Create NeoFromFile and assign DB location
+			NeoFromFile neoCreator2 = new NeoFromFile("var/test-DiDiC-gen");
+
+			// To generate coloured/partitioned neo4j graph
+			// * Assign input Chaco graph file & input partitioning file
+			neoCreator2.generateNeo("graphs/add20-gen.graph",
+					"partitionings/add20-gen.2.ptn");
+
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		}
 	}
 
 	public DiDiCPartitioner(int clusterCount, String databaseDir) {
@@ -76,31 +143,42 @@ public class DiDiCPartitioner {
 		l = new HashMap<String, ArrayList<Double>>();
 	}
 
-	public void do_DiDiC(int maxTimeSteps) {
+	public void do_DiDiC(int maxTimeSteps, boolean initClusters) {
+		// PRINTOUT
+		System.out.println("\n*********DiDiC***********");
+
 		openTransServices();
 
-		init_cluster_allocation();
+		if (initClusters)
+			init_cluster_allocation();
 
 		init_load_vectors();
 
 		long time = System.currentTimeMillis();
 
 		// PRINTOUT
-		System.out.printf("DiDiC [FOST_ITERS=%d,FOSB_ITERS=%d]%n", FOST_ITERS,
-				FOSB_ITERS);
+		System.out
+				.printf(
+						"DiDiC [FOST_ITERS=%d, FOSB_ITERS=%d, MAX_CLUSTERS=%d, TIME_STEPS=%d]%n",
+						FOST_ITERS, FOSB_ITERS, this.clusterCount, maxTimeSteps);
 
 		for (int timeStep = 0; timeStep < maxTimeSteps; timeStep++) {
+
+			long timeStepTime = System.currentTimeMillis();
+
+			// PRINTOUT
+			System.out.printf("\tFOS/T [TimeStep:%d, All Nodes]...", timeStep);
 
 			Transaction tx = transNeo.beginTx();
 
 			try {
-				for (Node node : transNeo.getAllNodes()) {
-					if (node.getId() != 0) {
+				for (Node v : transNeo.getAllNodes()) {
+					if (v.getId() != 0) {
 
 						// For Every "Cluster System"
 						for (int c = 0; c < clusterCount; c++) {
 							// FOS/T Primary Diffusion Algorithm
-							do_FOST(node, c);
+							do_FOST(v, c);
 						}
 
 					}
@@ -114,13 +192,20 @@ public class DiDiCPartitioner {
 				tx.finish();
 			}
 
+			// PRINTOUT
+			System.out.printf("%dms%n", System.currentTimeMillis() - timeStepTime);
+			
 			update_cluster_allocation(timeStep);
 
-			// TODO: adaptToGraphChanges <- not sure what this pseudo means
+			// This is where insertions/deletions to Neo4j instance may occur
+			// TODO: adaptToGraphChanges()
 		}
 
 		// PRINTOUT
-		System.out.printf("%dms%n", System.currentTimeMillis() - time);
+		System.out.printf("DiDiC Complete - Time Taken: %dms%n", System
+				.currentTimeMillis()
+				- time);
+		System.out.println("*********DiDiC***********\n");
 
 		closeTransServices();
 	}
@@ -139,20 +224,7 @@ public class DiDiCPartitioner {
 			for (Node node : transNeo.getAllNodes()) {
 				if (node.getId() != 0) {
 
-					try {
-						if (node.hasProperty("color") == false)
-							node.setProperty("color", rand
-									.nextInt(clusterCount));
-						else {
-							int nodeColor = (Integer) node.getProperty("color");
-							if (nodeColor >= clusterCount)
-								node.setProperty("color", rand
-										.nextInt(clusterCount));
-						}
-					} catch (Exception e) {
-						System.err.printf("[Could not colour node: %d]", node
-								.getId());
-					}
+					node.setProperty("color", rand.nextInt(clusterCount));
 
 				}
 			}
@@ -218,17 +290,51 @@ public class DiDiCPartitioner {
 		System.out.printf("%dms%n", System.currentTimeMillis() - time);
 	}
 
-	private void do_FOST(Node v, int c) {
-
+	private void update_cluster_allocation(int timeStep) {
 		long time = System.currentTimeMillis();
+
+		// PRINTOUT
+		System.out.printf("\tUpdating Cluster Allocation [TimeStep:%d]...",
+				timeStep);
 
 		Transaction tx = transNeo.beginTx();
 
 		try {
+
+			for (Entry<String, ArrayList<Double>> wC : w.entrySet()) {
+				String vName = wC.getKey();
+
+				Node v = transIndexService.getNodes("name", vName).iterator()
+						.next();
+
+				// Integer vNewColor = allocate_cluster_basic(wC.getValue());
+				Integer vNewColor = allocate_cluster_intdeg(v, wC.getValue());
+
+				v.setProperty("color", vNewColor);
+			}
+
+			tx.success();
+
+		} catch (Exception ex) {
+			System.err.printf("<ERR: update_cluster_allocation>");
+		} finally {
+			tx.finish();
+		}
+
+		// PRINTOUT
+		System.out.printf("%dms%n", System.currentTimeMillis() - time);
+	}
+
+	// MUST call from inside Transaction
+	private void do_FOST(Node v, int c) {
+
+		// long time = System.currentTimeMillis();
+
+		try {
 			String vName = (String) v.getProperty("name");
 
-			// PRINTOUT
-			System.out.printf("FOS/T [Node:%s, Cluster:%d]...", vName, c);
+			// // PRINTOUT
+			// System.out.printf("FOS/T [Node:%s, Cluster:%d]...", vName, c);
 
 			for (int fost_iter = 0; fost_iter < FOST_ITERS; fost_iter++) {
 
@@ -258,17 +364,14 @@ public class DiDiCPartitioner {
 		} catch (Exception ex) {
 			System.err.printf("<ERR: do_FOST [Cluster:%d]>", c);
 		} finally {
-			tx.finish();
-
 			// PRINTOUT
-			System.out.printf("%dms%n", System.currentTimeMillis() - time);
+			// System.out.printf("%dms%n", System.currentTimeMillis() - time);
 		}
 
 	}
 
+	// MUST call from inside Transaction
 	private void do_FOSB(Node v, int c) {
-		Transaction tx = transNeo.beginTx();
-
 		try {
 
 			String vName = (String) v.getProperty("name");
@@ -296,41 +399,8 @@ public class DiDiCPartitioner {
 		} catch (Exception ex) {
 			System.err.printf("<ERR: do_FOSB [Cluster:%d]>", c);
 		} finally {
-			tx.finish();
 		}
 
-	}
-
-	private void update_cluster_allocation(int timeStep) {
-		long time = System.currentTimeMillis();
-
-		// PRINTOUT
-		System.out.printf("Updating Cluster Allocation [TimeStep:%d]...",
-				timeStep);
-
-		Transaction tx = transNeo.beginTx();
-
-		try {
-
-			for (Entry<String, ArrayList<Double>> wC : w.entrySet()) {
-				String vName = wC.getKey();
-				Integer vNewColor = allocate_cluster(wC.getValue());
-
-				Node v = transIndexService.getNodes("name", vName).iterator()
-						.next();
-				v.setProperty("color", vNewColor);
-			}
-
-			tx.success();
-
-		} catch (Exception ex) {
-			System.err.printf("<ERR: update_cluster_allocation>");
-		} finally {
-			tx.finish();
-		}
-
-		// PRINTOUT
-		System.out.printf("%dms%n", System.currentTimeMillis() - time);
 	}
 
 	// MUST call from inside Transaction
@@ -375,25 +445,72 @@ public class DiDiCPartitioner {
 		return benefit;
 	}
 
-	// MUST call from inside Transaction
-	private int allocate_cluster(ArrayList<Double> wC) {
+	// Assign to cluster:
+	// * Associated with highest load value
+	private int allocate_cluster_basic(ArrayList<Double> wC) {
 		int maxC = 0;
 		double maxW = 0.0;
 
-		String temp = "";
-
 		for (int c = 0; c < wC.size(); c++) {
-			temp = temp + " " + wC.get(c).toString();
 			if (wC.get(c) > maxW) {
 				maxW = wC.get(c);
 				maxC = c;
 			}
 		}
 
-		// TODO: keep for later debugging
-		// System.err.println(temp);
+		return maxC;
+	}
+
+	// Assign to cluster:
+	// * Associated with highest load value
+	// AND
+	// * Internal Degree of v is greater than zero
+	private int allocate_cluster_intdeg(Node v, ArrayList<Double> wC) {
+		// TODO: here now
+		int maxC = 0;
+		double maxW = 0.0;
+
+		for (int c = 0; c < wC.size(); c++) {
+			if ((wC.get(c) > maxW) && (int_deg_not_zero(v, c))) {
+				maxW = wC.get(c);
+				maxC = c;
+			}
+		}
 
 		return maxC;
+	}
+
+	// MUST call from inside Transaction
+	// v has at least 1 edge to its own cluster
+	private boolean int_deg_not_zero(Node v, int c) {
+		for (Relationship e : v.getRelationships(Direction.OUTGOING)) {
+
+			Node u = e.getEndNode();
+			int uColor = (Integer) u.getProperty("color");
+
+			if (c == uColor)
+				return true;
+
+		}
+
+		return false;
+	}
+
+	// MUST call from inside Transaction
+	// Number of edges v has to its own cluster
+	private int int_deg(Node v, int c) {
+		int intDeg = 0;
+		for (Relationship e : v.getRelationships(Direction.OUTGOING)) {
+
+			Node u = e.getEndNode();
+			int uColor = (Integer) u.getProperty("color");
+
+			if (c == uColor)
+				intDeg++;
+
+		}
+
+		return intDeg;
 	}
 
 	private void openTransServices() {
