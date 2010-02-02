@@ -39,8 +39,8 @@ public class DiDiCPartitioner {
 	private IndexService transIndexService = null;
 
 	public static void main(String[] args) {
-		test_DiDiC_no_init(2);
-		// test_DiDiC_init(2);
+//		test_DiDiC_no_init(2);
+		 test_DiDiC_init(2);
 	}
 
 	private static void test_DiDiC_no_init(int clusterCount) {
