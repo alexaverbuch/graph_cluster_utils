@@ -11,13 +11,13 @@ To use:
 
 	// To generate coloured/partitioned neo4j graph
 	// * Assign input Chaco graph file & input Partitioning file 
-	neoCreator1.generateNeo("graphs/test-DiDiC.graph","partitionings/test-DiDiC.2.ptn");
+	neoCreator.generateNeo("graphs/test-DiDiC.graph");
 
 	// Create DiDiCPartitioner, which implements the DiDiC algorithm
-	DiDiCPartitioner didic = new DiDiCPartitioner(2, "var/test-DiDiC");
+	DiDiCPartitioner didic = new DiDiCPartitioner(MAX_PARTITIONS, "var/test-DiDiC");
 
 	// Magic happens here...
-	didic.do_DiDiC(150);
+	didic.do_DiDiC(NUMBER_OF_ITERATIONS);
 
 To visualize the results for verification I recommend using NeoClipse, the Neo4j Eclipse plugin.
 Screen captures from NeoClipse can be found in this repository in the /images folder.
