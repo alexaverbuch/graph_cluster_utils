@@ -3,7 +3,6 @@ package didic_neo4j;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.Random;
 import java.util.Map.Entry;
 
@@ -20,6 +19,11 @@ import graph_gen_utils.NeoFromFile;
 
 public class DiDiCPartitioner {
 
+	// Debugging Related
+	private static final String IN_GRAPH = "add20";
+	private static final int DUMP_PERIOD = 1;
+
+	// DiDiC Related
 	private static final int FOST_ITERS = 11; // Primary Diffusion
 	private static final int FOSB_ITERS = 11; // Secondary Diffusion ('drain')
 	private static final int B = 10; // ...
@@ -34,19 +38,15 @@ public class DiDiCPartitioner {
 	private GraphDatabaseService transNeo = null;
 	private IndexService transIndexService = null;
 
-	private static final String IN_GRAPH = "test-DiDiC";
-	private static final String NEO_NAME = "test-DiDiC";
-
 	public static void main(String[] args) {
 		test_DiDiC_no_init(2);
-//		test_DiDiC_init(2);
+		// test_DiDiC_init(2);
 	}
 
 	private static void test_DiDiC_no_init(int clusterCount) {
 		try {
 
-			String clusterCountStr = Integer.toString(clusterCount);
-			String inNeo = String.format("var/%s", NEO_NAME);
+			String inNeo = String.format("var/%s-DiDiC", IN_GRAPH);
 			String inGraph = String.format("graphs/%s.graph", IN_GRAPH);
 			String inPtn = String.format("partitionings/%s.%s.ptn", IN_GRAPH,
 					clusterCount);
@@ -71,7 +71,7 @@ public class DiDiCPartitioner {
 	private static void test_DiDiC_init(int clusterCount) {
 		try {
 
-			String inNeo = String.format("var/%s", NEO_NAME);
+			String inNeo = String.format("var/%s-DiDiC", IN_GRAPH);
 			String inGraph = String.format("graphs/%s.graph", IN_GRAPH);
 
 			// Create NeoFromFile and assign DB location
@@ -95,8 +95,9 @@ public class DiDiCPartitioner {
 		try {
 
 			String clusterCountStr = Integer.toString(clusterCount);
-			String inNeo = String.format("var/%s", NEO_NAME, version);
-			String outNeo = String.format("var/%s-gen-%s", NEO_NAME, version);
+			String inNeo = String.format("var/%s-DiDiC", IN_GRAPH);
+			String outNeo = String.format("var/%s-DiDiC-gen-%s", IN_GRAPH,
+					version);
 			String outGraph = String.format("graphs/%s-gen-%s.graph", IN_GRAPH,
 					version);
 			String outPtn = String.format("partitionings/%s-gen-%s.%s.ptn",
@@ -186,11 +187,12 @@ public class DiDiCPartitioner {
 
 			// TODO: perform insertions/deletions to Neo4j instance
 			// adaptToGraphChanges()
-			
+
 			// FIXME: for debugging purposes only!
-			if (timeStep % 50 == 0) {
+			if (timeStep % DUMP_PERIOD == 0) {
 				closeTransServices();
-				DiDiCPartitioner.write_chaco_and_ptn(Integer.toString(timeStep), clusterCount);
+				DiDiCPartitioner.write_chaco_and_ptn(
+						Integer.toString(timeStep), clusterCount);
 				openTransServices();
 			}
 		}
@@ -460,7 +462,6 @@ public class DiDiCPartitioner {
 	// AND
 	// * Internal Degree of v is greater than zero
 	private int allocate_cluster_intdeg(Node v, ArrayList<Double> wC) {
-		// TODO: here now
 		int maxC = 0;
 		double maxW = 0.0;
 
