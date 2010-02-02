@@ -20,7 +20,7 @@ To use:
 	didic.do_DiDiC(NUMBER_OF_ITERATIONS);
 
 To visualize the results for verification I recommend using NeoClipse, the Neo4j Eclipse plugin.
-Screen captures from NeoClipse can be found in this repository in the /images folder.
+Screen captures from NeoClipse can be found in this repository in the /results folder.
 
 [1] Joachim Gehweiler and Henning Meyerhenke. A Distributed Diffusive Heuristic for Clustering a Virtual P2P Supercomputer, University of Paderborn, 2010.
 
