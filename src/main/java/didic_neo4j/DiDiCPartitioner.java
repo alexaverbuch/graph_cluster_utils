@@ -22,6 +22,7 @@ public class DiDiCPartitioner {
 	// Debugging Related
 	private static final String IN_GRAPH = "add20";
 	private static final int DUMP_PERIOD = 1;
+	private static final int CLUSTER_COUNT = 2;
 
 	// DiDiC Related
 	private static final int FOST_ITERS = 11; // Primary Diffusion
@@ -39,17 +40,17 @@ public class DiDiCPartitioner {
 	private IndexService transIndexService = null;
 
 	public static void main(String[] args) {
-//		test_DiDiC_no_init(2);
-		 test_DiDiC_init(2);
+		// test_DiDiC_no_init);
+		test_DiDiC_init();
 	}
 
-	private static void test_DiDiC_no_init(int clusterCount) {
+	private static void test_DiDiC_no_init() {
 		try {
 
 			String inNeo = String.format("var/%s-DiDiC", IN_GRAPH);
 			String inGraph = String.format("graphs/%s.graph", IN_GRAPH);
 			String inPtn = String.format("partitionings/%s.%s.ptn", IN_GRAPH,
-					clusterCount);
+					CLUSTER_COUNT);
 
 			// Create NeoFromFile and assign DB location
 			NeoFromFile neoCreator = new NeoFromFile(inNeo);
@@ -58,17 +59,17 @@ public class DiDiCPartitioner {
 			// * Assign input Chaco graph file & input partitioning file
 			neoCreator.generateNeo(inGraph, inPtn);
 
-			DiDiCPartitioner didic = new DiDiCPartitioner(clusterCount, inNeo);
+			DiDiCPartitioner didic = new DiDiCPartitioner(CLUSTER_COUNT, inNeo);
 			didic.do_DiDiC(150, false);
 
-			write_chaco_and_ptn("FINAL", clusterCount);
+			snapshot_chaco_and_ptn("FINAL", CLUSTER_COUNT);
 
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		}
 	}
 
-	private static void test_DiDiC_init(int clusterCount) {
+	private static void test_DiDiC_init() {
 		try {
 
 			String inNeo = String.format("var/%s-DiDiC", IN_GRAPH);
@@ -81,17 +82,17 @@ public class DiDiCPartitioner {
 			// * Assign input Chaco graph file & input partitioning file
 			neoCreator.generateNeo(inGraph);
 
-			DiDiCPartitioner didic = new DiDiCPartitioner(clusterCount, inNeo);
+			DiDiCPartitioner didic = new DiDiCPartitioner(CLUSTER_COUNT, inNeo);
 			didic.do_DiDiC(150, true);
 
-			write_chaco_and_ptn("FINAL", clusterCount);
+			snapshot_chaco_and_ptn("FINAL", CLUSTER_COUNT);
 
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		}
 	}
 
-	private static void write_chaco_and_ptn(String version, int clusterCount) {
+	private static void snapshot_chaco_and_ptn(String version, int clusterCount) {
 		try {
 
 			String clusterCountStr = Integer.toString(clusterCount);
@@ -117,6 +118,24 @@ public class DiDiCPartitioner {
 			neoCreatorOut.generateNeo(outGraph, outPtn);
 
 		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		}
+	}
+
+	private static void snapshot_metrics(String version, int clusterCount) {
+		try {
+
+			String clusterCountStr = Integer.toString(clusterCount);
+			String inNeo = String.format("var/%s-DiDiC", IN_GRAPH);
+			String outMetrics = String.format("metrics/%s-DiDiC-%s.%s.ptn",
+					IN_GRAPH, version, clusterCountStr);
+
+			// Create NeoFromFile and assign DB location
+			NeoFromFile neoCreator = new NeoFromFile(inNeo);
+
+			neoCreator.generateMetrics(outMetrics);
+
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
@@ -188,11 +207,11 @@ public class DiDiCPartitioner {
 			// TODO: perform insertions/deletions to Neo4j instance
 			// adaptToGraphChanges()
 
-			// FIXME: for debugging purposes only!
+			// FIXME: For debugging purposes only! Remove later!
 			if (timeStep % DUMP_PERIOD == 0) {
 				closeTransServices();
-				DiDiCPartitioner.write_chaco_and_ptn(
-						Integer.toString(timeStep), clusterCount);
+				DiDiCPartitioner.snapshot_metrics(Integer.toString(timeStep),
+						clusterCount);
 				openTransServices();
 			}
 		}
@@ -303,8 +322,9 @@ public class DiDiCPartitioner {
 				Node v = transIndexService.getNodes("name", vName).iterator()
 						.next();
 
-				// Integer vNewColor = allocate_cluster_basic(wC.getValue());
-				Integer vNewColor = allocate_cluster_intdeg(v, wC.getValue());
+				Integer vNewColor = allocate_cluster_basic(wC.getValue());
+				// Integer vNewColor = allocate_cluster_intdeg(v,
+				// wC.getValue());
 
 				v.setProperty("color", vNewColor);
 			}
