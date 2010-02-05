@@ -21,14 +21,17 @@ public class DiDiCPartitioner {
 
 	// Debugging Related
 	private static final String IN_GRAPH = "add20";
-	private static final int DUMP_PERIOD = 1;
+	private static final int DUMP_PERIOD = 2;
 	private static final int CLUSTER_COUNT = 2;
 
 	// DiDiC Related
 	private static final int FOST_ITERS = 11; // Primary Diffusion
 	private static final int FOSB_ITERS = 11; // Secondary Diffusion ('drain')
-	private static final int B = 10; // ...
+	private static final int B = 10; // Benefit, used by FOS/B
 	private static final int MY_CLUSTER_VAL = 100; // Default Init Val
+
+	// Experimental DiDiC Related
+	private static final int ALG_SWITCH_POINT = 100;
 
 	private HashMap<String, ArrayList<Double>> w = null; // Load Vec 1
 	private HashMap<String, ArrayList<Double>> l = null; // Load Vec 2 ('drain')
@@ -40,8 +43,8 @@ public class DiDiCPartitioner {
 	private IndexService transIndexService = null;
 
 	public static void main(String[] args) {
-		// test_DiDiC_no_init);
-		test_DiDiC_init();
+		test_DiDiC_no_init();
+//		test_DiDiC_init();
 	}
 
 	private static void test_DiDiC_no_init() {
@@ -49,7 +52,7 @@ public class DiDiCPartitioner {
 
 			String inNeo = String.format("var/%s-DiDiC", IN_GRAPH);
 			String inGraph = String.format("graphs/%s.graph", IN_GRAPH);
-			String inPtn = String.format("partitionings/%s.%s.ptn", IN_GRAPH,
+			String inPtn = String.format("partitionings/%s-RANDOM.%s.ptn", IN_GRAPH,
 					CLUSTER_COUNT);
 
 			// Create NeoFromFile and assign DB location
@@ -61,8 +64,6 @@ public class DiDiCPartitioner {
 
 			DiDiCPartitioner didic = new DiDiCPartitioner(CLUSTER_COUNT, inNeo);
 			didic.do_DiDiC(150, false);
-
-			snapshot_chaco_and_ptn("FINAL", CLUSTER_COUNT);
 
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
@@ -155,8 +156,12 @@ public class DiDiCPartitioner {
 
 		openTransServices();
 
-		if (initClusters)
+		if (initClusters) {
 			init_cluster_allocation();
+			closeTransServices();
+			DiDiCPartitioner.snapshot_chaco_and_ptn("INIT", clusterCount);
+			openTransServices();
+		}
 
 		init_load_vectors();
 
@@ -322,9 +327,9 @@ public class DiDiCPartitioner {
 				Node v = transIndexService.getNodes("name", vName).iterator()
 						.next();
 
-				Integer vNewColor = allocate_cluster_basic(wC.getValue());
-				// Integer vNewColor = allocate_cluster_intdeg(v,
-				// wC.getValue());
+				// Integer vNewColor = allocate_cluster_basic(wC.getValue());
+				Integer vNewColor = allocate_cluster_intdeg(v, wC.getValue(),
+						timeStep);
 
 				v.setProperty("color", vNewColor);
 			}
@@ -481,16 +486,28 @@ public class DiDiCPartitioner {
 	// * Associated with highest load value
 	// AND
 	// * Internal Degree of v is greater than zero
-	private int allocate_cluster_intdeg(Node v, ArrayList<Double> wC) {
-		int maxC = 0;
+	private int allocate_cluster_intdeg(Node v, ArrayList<Double> wC,
+			int timeStep) {
+
+		int maxC = (Integer) v.getProperty("color");
 		double maxW = 0.0;
 
-		for (int c = 0; c < wC.size(); c++) {
-			if ((wC.get(c) > maxW) && (int_deg_not_zero(v, c))) {
-				maxW = wC.get(c);
-				maxC = c;
+		// Choose cluster with largest load vector
+		if (timeStep < ALG_SWITCH_POINT)
+			for (int c = 0; c < wC.size(); c++) {
+				if (wC.get(c) > maxW) {
+					maxW = wC.get(c);
+					maxC = c;
+				}
 			}
-		}
+		// Optimization to exclude clusters with no connections
+		else
+			for (int c = 0; c < wC.size(); c++) {
+				if ((wC.get(c) > maxW) && (int_deg_not_zero(v, c))) {
+					maxW = wC.get(c);
+					maxC = c;
+				}
+			}
 
 		return maxC;
 	}
