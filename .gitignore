@@ -1,15 +1,22 @@
 # Files
-*~
-*.class
 .* 
+*~
+
+*.class
 *.graph
 *.ptn
 *.svg
+
 !.gitignore 
-!test-DiDiC.2.ptn
+
+!add20-IN-BAL.2.ptn
+!add20-IN-RAND.2.ptn
+!add20-OUT-BEST.2.ptn
+!test-DiDiC-IN-BAL.2.ptn
+!test-DiDiC-OUT.2.ptn
+
 !test-DiDiC.graph
 !add20.graph
-!add20.2.ptn
 
 # Directories
 target/

@@ -20,18 +20,22 @@ import graph_gen_utils.NeoFromFile;
 public class DiDiCPartitioner {
 
 	// Debugging Related
-	private static final String IN_GRAPH = "add20";
-	private static final int DUMP_PERIOD = 2;
+	// private static final String IN_GRAPH = "add20";
+	// private static final String IN_PTN = "add20-RAND";
+	private static final String IN_GRAPH = "test-DiDiC";
+	private static final String IN_PTN = "test-DiDiC-BAL";
+	private static final int DUMP_PERIOD = 5;
 	private static final int CLUSTER_COUNT = 2;
 
 	// DiDiC Related
 	private static final int FOST_ITERS = 11; // Primary Diffusion
 	private static final int FOSB_ITERS = 11; // Secondary Diffusion ('drain')
-	private static final int B = 10; // Benefit, used by FOS/B
+	private static final int B_LOW = 1; // Benefit, used by FOS/B
+	private static final int B_HIGH = 10; // Benefit, used by FOS/B
 	private static final int MY_CLUSTER_VAL = 100; // Default Init Val
 
 	// Experimental DiDiC Related
-	private static final int ALG_SWITCH_POINT = 100;
+	private static final int ALG_SWITCH_POINT = -1;
 
 	private HashMap<String, ArrayList<Double>> w = null; // Load Vec 1
 	private HashMap<String, ArrayList<Double>> l = null; // Load Vec 2 ('drain')
@@ -44,15 +48,15 @@ public class DiDiCPartitioner {
 
 	public static void main(String[] args) {
 		test_DiDiC_no_init();
-//		test_DiDiC_init();
+		// test_DiDiC_init();
 	}
 
 	private static void test_DiDiC_no_init() {
 		try {
 
-			String inNeo = String.format("var/%s-DiDiC", IN_GRAPH);
+			String inNeo = String.format("var/%s", IN_GRAPH);
 			String inGraph = String.format("graphs/%s.graph", IN_GRAPH);
-			String inPtn = String.format("partitionings/%s-RANDOM.%s.ptn", IN_GRAPH,
+			String inPtn = String.format("partitionings/%s.%s.ptn", IN_PTN,
 					CLUSTER_COUNT);
 
 			// Create NeoFromFile and assign DB location
@@ -65,6 +69,8 @@ public class DiDiCPartitioner {
 			DiDiCPartitioner didic = new DiDiCPartitioner(CLUSTER_COUNT, inNeo);
 			didic.do_DiDiC(150, false);
 
+			snapshot_chaco_and_ptn("FINAL", CLUSTER_COUNT);
+
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		}
@@ -73,7 +79,7 @@ public class DiDiCPartitioner {
 	private static void test_DiDiC_init() {
 		try {
 
-			String inNeo = String.format("var/%s-DiDiC", IN_GRAPH);
+			String inNeo = String.format("var/%s", IN_GRAPH);
 			String inGraph = String.format("graphs/%s.graph", IN_GRAPH);
 
 			// Create NeoFromFile and assign DB location
@@ -95,14 +101,12 @@ public class DiDiCPartitioner {
 
 	private static void snapshot_chaco_and_ptn(String version, int clusterCount) {
 		try {
-
 			String clusterCountStr = Integer.toString(clusterCount);
-			String inNeo = String.format("var/%s-DiDiC", IN_GRAPH);
-			String outNeo = String.format("var/%s-DiDiC-gen-%s", IN_GRAPH,
+			String inNeo = String.format("var/%s", IN_GRAPH);
+
+			String outGraph = String.format("graphs/%s-%s.graph", IN_GRAPH,
 					version);
-			String outGraph = String.format("graphs/%s-gen-%s.graph", IN_GRAPH,
-					version);
-			String outPtn = String.format("partitionings/%s-gen-%s.%s.ptn",
+			String outPtn = String.format("partitionings/%s-%s.%s.ptn",
 					IN_GRAPH, version, clusterCountStr);
 
 			// Create NeoFromFile and assign DB location
@@ -111,14 +115,7 @@ public class DiDiCPartitioner {
 			neoCreatorIn.generateChaco(outGraph,
 					NeoFromFile.ChacoType.UNWEIGHTED, outPtn);
 
-			// Create NeoFromFile and assign DB location
-			NeoFromFile neoCreatorOut = new NeoFromFile(outNeo);
-
-			// To generate coloured/partitioned neo4j graph
-			// * Assign input Chaco graph file & input partitioning file
-			neoCreatorOut.generateNeo(outGraph, outPtn);
-
-		} catch (FileNotFoundException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
@@ -127,9 +124,9 @@ public class DiDiCPartitioner {
 		try {
 
 			String clusterCountStr = Integer.toString(clusterCount);
-			String inNeo = String.format("var/%s-DiDiC", IN_GRAPH);
-			String outMetrics = String.format("metrics/%s-DiDiC-%s.%s.ptn",
-					IN_GRAPH, version, clusterCountStr);
+			String inNeo = String.format("var/%s", IN_GRAPH);
+			String outMetrics = String.format("metrics/%s-%s.%s.met", IN_GRAPH,
+					version, clusterCountStr);
 
 			// Create NeoFromFile and assign DB location
 			NeoFromFile neoCreator = new NeoFromFile(inNeo);
@@ -157,9 +154,10 @@ public class DiDiCPartitioner {
 		openTransServices();
 
 		if (initClusters) {
-			init_cluster_allocation();
+			// init_cluster_alloc_random();
+			init_cluster_alloc_balanced();
 			closeTransServices();
-			DiDiCPartitioner.snapshot_chaco_and_ptn("INIT", clusterCount);
+			DiDiCPartitioner.snapshot_chaco_and_ptn("BAL", clusterCount);
 			openTransServices();
 		}
 
@@ -183,16 +181,20 @@ public class DiDiCPartitioner {
 			Transaction tx = transNeo.beginTx();
 
 			try {
-				for (Node v : transNeo.getAllNodes()) {
-					if (v.getId() != 0) {
+				// For Every "Cluster System"
+				for (int c = 0; c < clusterCount; c++) {
 
-						// For Every "Cluster System"
-						for (int c = 0; c < clusterCount; c++) {
+					// For Every Node
+					for (Node v : transNeo.getAllNodes()) {
+						if (v.getId() != 0) {
+
 							// FOS/T Primary Diffusion Algorithm
 							do_FOST(v, c);
+
 						}
 
 					}
+
 				}
 
 				tx.success();
@@ -221,6 +223,11 @@ public class DiDiCPartitioner {
 			}
 		}
 
+		// FIXME: For debugging purposes only! Remove later!
+		closeTransServices();
+		DiDiCPartitioner.snapshot_metrics("FINAL", clusterCount);
+		openTransServices();
+
 		// PRINTOUT
 		System.out.printf("DiDiC Complete - Time Taken: %dms%n", System
 				.currentTimeMillis()
@@ -230,7 +237,7 @@ public class DiDiCPartitioner {
 		System.out.println("*********DiDiC***********\n");
 	}
 
-	private void init_cluster_allocation() {
+	private void init_cluster_alloc_random() {
 		long time = System.currentTimeMillis();
 
 		// PRINTOUT
@@ -245,6 +252,39 @@ public class DiDiCPartitioner {
 				if (node.getId() != 0) {
 
 					node.setProperty("color", rand.nextInt(clusterCount));
+
+				}
+			}
+
+			tx.success();
+
+		} catch (Exception ex) {
+			System.err.printf("<ERR: Cluster Allocation Aborted>");
+		} finally {
+			tx.finish();
+		}
+
+		// PRINTOUT
+		System.out.printf("%dms%n", System.currentTimeMillis() - time);
+	}
+
+	private void init_cluster_alloc_balanced() {
+		long time = System.currentTimeMillis();
+
+		// PRINTOUT
+		System.out.printf("Initialising Cluster-Allocation...");
+
+		Integer c = 0;
+		Transaction tx = transNeo.beginTx();
+
+		try {
+			for (Node node : transNeo.getAllNodes()) {
+				if (node.getId() != 0) {
+
+					node.setProperty("color", c++);
+
+					if (c >= clusterCount)
+						c = 0;
 
 				}
 			}
@@ -278,23 +318,21 @@ public class DiDiCPartitioner {
 					String vName = (String) v.getProperty("name");
 
 					ArrayList<Double> wV = new ArrayList<Double>();
+					ArrayList<Double> lV = new ArrayList<Double>();
+
 					for (int i = 0; i < clusterCount; i++) {
+
 						if (vColor == i) {
 							wV.add(new Double(MY_CLUSTER_VAL));
-							continue;
-						}
-						wV.add(new Double(0));
-					}
-					w.put(vName, wV);
-
-					ArrayList<Double> lV = new ArrayList<Double>();
-					for (int i = 0; i < clusterCount; i++) {
-						if (vColor == i) {
 							lV.add(new Double(MY_CLUSTER_VAL));
 							continue;
 						}
+
+						wV.add(new Double(0));
 						lV.add(new Double(0));
 					}
+
+					w.put(vName, wV);
 					l.put(vName, lV);
 
 				}
@@ -327,9 +365,10 @@ public class DiDiCPartitioner {
 				Node v = transIndexService.getNodes("name", vName).iterator()
 						.next();
 
+				Integer vNewColor = allocate_cluster(v, wC.getValue(), timeStep);
 				// Integer vNewColor = allocate_cluster_basic(wC.getValue());
-				Integer vNewColor = allocate_cluster_intdeg(v, wC.getValue(),
-						timeStep);
+				// Integer vNewColor = allocate_cluster_intdeg(v, wC.getValue(),
+				// timeStep);
 
 				v.setProperty("color", vNewColor);
 			}
@@ -354,39 +393,36 @@ public class DiDiCPartitioner {
 		try {
 			String vName = (String) v.getProperty("name");
 
-			// // PRINTOUT
-			// System.out.printf("FOS/T [Node:%s, Cluster:%d]...", vName, c);
+			ArrayList<Double> lV = l.get(vName);
+			ArrayList<Double> wV = w.get(vName);
+
+			double wVC = wV.get(c);
+
+			int vDeg = in_deg(v);
 
 			for (int fost_iter = 0; fost_iter < FOST_ITERS; fost_iter++) {
 
 				// FOS/B (Secondary/Drain) Diffusion Algorithm
 				do_FOSB(v, c);
 
-				ArrayList<Double> lV = l.get(vName);
-				ArrayList<Double> wV = w.get(vName);
-
-				// FOS/T Diffusion
+				// FOS/T Primary Diffusion Algorithm
 				for (Relationship e : v.getRelationships(Direction.OUTGOING)) {
 
 					Node u = e.getEndNode();
 					ArrayList<Double> wU = w.get(u.getProperty("name"));
 
-					double wVwUDiff = wV.get(c) - wU.get(c);
+					double wVwUDiff = wVC - wU.get(c);
 
-					double wVCNew = wV.get(c) - alpha_e(u, v) * weight_e(e)
-							* wVwUDiff;
-
-					wV.set(c, wVCNew);
+					wVC = wVC - alpha_e(u, vDeg) * weight_e(e) * wVwUDiff;
 				}
 
-				wV.set(c, wV.get(c) + lV.get(c));
+				wVC = wVC + lV.get(c);
+
+				wV.set(c, wVC);
 			}
 
 		} catch (Exception ex) {
 			System.err.printf("<ERR: do_FOST [Cluster:%d]>", c);
-		} finally {
-			// PRINTOUT
-			// System.out.printf("%dms%n", System.currentTimeMillis() - time);
 		}
 
 	}
@@ -397,25 +433,28 @@ public class DiDiCPartitioner {
 
 			String vName = (String) v.getProperty("name");
 
+			ArrayList<Double> lV = l.get(vName);
+
+			double lVC = lV.get(c);
+			int vDeg = in_deg(v);
+			double bV = benefit(v, c);
+
 			for (int fosb_iter = 0; fosb_iter < FOSB_ITERS; fosb_iter++) {
 
-				ArrayList<Double> lV = l.get(vName);
-
-				// FOS/B Diffusion
+				// FOS/B Diffusion Algorithm
 				for (Relationship e : v.getRelationships(Direction.OUTGOING)) {
 
 					Node u = e.getEndNode();
 					ArrayList<Double> lU = l.get(u.getProperty("name"));
 
-					double lVlUDiff = (lV.get(c) / (double) benefit(v, c))
-							- (lU.get(c) / (double) benefit(u, c));
+					double lVlUDiff = (lVC / bV) - (lU.get(c) / benefit(u, c));
 
-					double lVCNew = lV.get(c) - alpha_e(u, v) * weight_e(e)
-							* lVlUDiff;
-
-					lV.set(c, lVCNew);
+					lVC = lVC - alpha_e(u, vDeg) * weight_e(e) * lVlUDiff;
 				}
+
 			}
+
+			lV.set(c, lVC);
 
 		} catch (Exception ex) {
 			System.err.printf("<ERR: do_FOSB [Cluster:%d]>", c);
@@ -440,30 +479,51 @@ public class DiDiCPartitioner {
 
 		int max = Math.max(uDeg, vDeg);
 
-		if (max == 0)
-			return 1.0;
-
 		return 1.0 / (double) max;
 	}
 
 	// MUST call from inside Transaction
-	private int weight_e(Relationship e) {
-		if (e.hasProperty("weight"))
-			return (Integer) e.getProperty("weight");
-		else
-			return 1;
+	// Optimized version. Find vDeg once only
+	private double alpha_e(Node u, int vDeg) {
+		// alpha_e = 1/max{deg(u),deg(v)};
+		int uDeg = 0;
+
+		for (Relationship e : u.getRelationships(Direction.OUTGOING)) {
+			uDeg++;
+		}
+
+		double max = Math.max(uDeg, vDeg);
+
+		return 1.0 / max;
 	}
 
 	// MUST call from inside Transaction
-	private int benefit(Node v, int c) {
-		int benefit = 1;
+	private double weight_e(Relationship e) {
+		if (e.hasProperty("weight"))
+			return (Double) e.getProperty("weight");
+		else
+			return 1.0;
+	}
 
-		int myC = (Integer) v.getProperty("color");
-		if (myC == c) {
-			benefit = B;
-		}
+	// MUST call from inside Transaction
+	private double benefit(Node v, int c) {
 
-		return benefit;
+		if ((Integer) v.getProperty("color") == c)
+			return B_HIGH;
+		else
+			return B_LOW;
+	}
+
+	// MUST call from inside Transaction
+	// Switch between algorithms depending on time-step
+	private int allocate_cluster(Node v, ArrayList<Double> wC, int timeStep) {
+		// Choose cluster with largest load vector
+		if ((timeStep < ALG_SWITCH_POINT) || (ALG_SWITCH_POINT == -1))
+			return allocate_cluster_basic(wC);
+
+		// Optimization to exclude clusters with no connections
+		else
+			return allocate_cluster_intdeg(v, wC, timeStep);
 	}
 
 	// Assign to cluster:
@@ -482,6 +542,7 @@ public class DiDiCPartitioner {
 		return maxC;
 	}
 
+	// Optimization to exclude clusters with no connections
 	// Assign to cluster:
 	// * Associated with highest load value
 	// AND
@@ -492,28 +553,18 @@ public class DiDiCPartitioner {
 		int maxC = (Integer) v.getProperty("color");
 		double maxW = 0.0;
 
-		// Choose cluster with largest load vector
-		if (timeStep < ALG_SWITCH_POINT)
-			for (int c = 0; c < wC.size(); c++) {
-				if (wC.get(c) > maxW) {
-					maxW = wC.get(c);
-					maxC = c;
-				}
+		for (int c = 0; c < wC.size(); c++) {
+			if ((wC.get(c) > maxW) && (int_deg_not_zero(v, c))) {
+				maxW = wC.get(c);
+				maxC = c;
 			}
-		// Optimization to exclude clusters with no connections
-		else
-			for (int c = 0; c < wC.size(); c++) {
-				if ((wC.get(c) > maxW) && (int_deg_not_zero(v, c))) {
-					maxW = wC.get(c);
-					maxC = c;
-				}
-			}
+		}
 
 		return maxC;
 	}
 
 	// MUST call from inside Transaction
-	// v has at least 1 edge to its own cluster
+	// v has at least 1 edge to given cluster
 	private boolean int_deg_not_zero(Node v, int c) {
 		for (Relationship e : v.getRelationships(Direction.OUTGOING)) {
 
@@ -529,20 +580,14 @@ public class DiDiCPartitioner {
 	}
 
 	// MUST call from inside Transaction
-	// Number of edges v has to its own cluster
-	private int int_deg(Node v, int c) {
-		int intDeg = 0;
+	private int in_deg(Node v) {
+		int vDeg = 0;
+
 		for (Relationship e : v.getRelationships(Direction.OUTGOING)) {
-
-			Node u = e.getEndNode();
-			int uColor = (Integer) u.getProperty("color");
-
-			if (c == uColor)
-				intDeg++;
-
+			vDeg++;
 		}
 
-		return intDeg;
+		return vDeg;
 	}
 
 	private void openTransServices() {
