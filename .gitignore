@@ -5,6 +5,7 @@
 *.class
 *.graph
 *.ptn
+*.met
 *.svg
 
 !.gitignore 
@@ -13,7 +14,7 @@
 !add20-IN-RAND.2.ptn
 !add20-OUT-BEST.2.ptn
 !test-DiDiC-IN-BAL.2.ptn
-!test-DiDiC-OUT.2.ptn
+!test-DiDiC-OUT-BEST.2.ptn
 
 !test-DiDiC.graph
 !add20.graph

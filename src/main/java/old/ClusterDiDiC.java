@@ -1,4 +1,4 @@
-package didic_neo4j;
+package old;
 
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
@@ -17,13 +17,13 @@ import org.neo4j.kernel.EmbeddedGraphDatabase;
 
 import graph_gen_utils.NeoFromFile;
 
-public class DiDiCPartitioner {
+public class ClusterDiDiC {
 
 	// Debugging Related
-	// private static final String IN_GRAPH = "add20";
-	// private static final String IN_PTN = "add20-RAND";
-	private static final String IN_GRAPH = "test-DiDiC";
-	private static final String IN_PTN = "test-DiDiC-BAL";
+	private static final String IN_GRAPH = "add20";
+	private static final String IN_PTN = "add20-IN-RAND";
+	// private static final String IN_GRAPH = "test-DiDiC";
+	// private static final String IN_PTN = "test-DiDiC-BAL";
 	private static final int DUMP_PERIOD = 5;
 	private static final int CLUSTER_COUNT = 2;
 
@@ -66,7 +66,7 @@ public class DiDiCPartitioner {
 			// * Assign input Chaco graph file & input partitioning file
 			neoCreator.generateNeo(inGraph, inPtn);
 
-			DiDiCPartitioner didic = new DiDiCPartitioner(CLUSTER_COUNT, inNeo);
+			ClusterDiDiC didic = new ClusterDiDiC(CLUSTER_COUNT, inNeo);
 			didic.do_DiDiC(150, false);
 
 			snapshot_chaco_and_ptn("FINAL", CLUSTER_COUNT);
@@ -89,7 +89,7 @@ public class DiDiCPartitioner {
 			// * Assign input Chaco graph file & input partitioning file
 			neoCreator.generateNeo(inGraph);
 
-			DiDiCPartitioner didic = new DiDiCPartitioner(CLUSTER_COUNT, inNeo);
+			ClusterDiDiC didic = new ClusterDiDiC(CLUSTER_COUNT, inNeo);
 			didic.do_DiDiC(150, true);
 
 			snapshot_chaco_and_ptn("FINAL", CLUSTER_COUNT);
@@ -138,7 +138,7 @@ public class DiDiCPartitioner {
 		}
 	}
 
-	public DiDiCPartitioner(int clusterCount, String databaseDir) {
+	public ClusterDiDiC(int clusterCount, String databaseDir) {
 		super();
 		this.clusterCount = clusterCount;
 		this.databaseDir = databaseDir;
@@ -156,10 +156,11 @@ public class DiDiCPartitioner {
 		if (initClusters) {
 			// init_cluster_alloc_random();
 			init_cluster_alloc_balanced();
-			closeTransServices();
-			DiDiCPartitioner.snapshot_chaco_and_ptn("BAL", clusterCount);
-			openTransServices();
 		}
+
+		closeTransServices();
+		ClusterDiDiC.snapshot_metrics("INIT", clusterCount);
+		openTransServices();
 
 		init_load_vectors();
 
@@ -217,7 +218,7 @@ public class DiDiCPartitioner {
 			// FIXME: For debugging purposes only! Remove later!
 			if (timeStep % DUMP_PERIOD == 0) {
 				closeTransServices();
-				DiDiCPartitioner.snapshot_metrics(Integer.toString(timeStep),
+				ClusterDiDiC.snapshot_metrics(Integer.toString(timeStep),
 						clusterCount);
 				openTransServices();
 			}
@@ -225,13 +226,16 @@ public class DiDiCPartitioner {
 
 		// FIXME: For debugging purposes only! Remove later!
 		closeTransServices();
-		DiDiCPartitioner.snapshot_metrics("FINAL", clusterCount);
+		ClusterDiDiC.snapshot_metrics("FINAL", clusterCount);
 		openTransServices();
 
 		// PRINTOUT
-		System.out.printf("DiDiC Complete - Time Taken: %dms%n", System
-				.currentTimeMillis()
-				- time);
+		long ms_total = System.currentTimeMillis() - time;
+		long ms = ms_total % 1000;
+		long s = (ms_total / 1000) % 60;
+		long m = (ms_total / 1000) / 60;
+		System.out.printf("DiDiC Complete - Time Taken: %d(m):%d(s):%d(ms)%n",
+				m, s, ms);
 
 		closeTransServices();
 		System.out.println("*********DiDiC***********\n");
@@ -365,10 +369,11 @@ public class DiDiCPartitioner {
 				Node v = transIndexService.getNodes("name", vName).iterator()
 						.next();
 
-				Integer vNewColor = allocate_cluster(v, wC.getValue(), timeStep);
-				// Integer vNewColor = allocate_cluster_basic(wC.getValue());
-				// Integer vNewColor = allocate_cluster_intdeg(v, wC.getValue(),
+				// Integer vNewColor = allocate_cluster(v, wC.getValue(),
 				// timeStep);
+				// Integer vNewColor = allocate_cluster_basic(wC.getValue());
+				Integer vNewColor = allocate_cluster_intdeg(v, wC.getValue(),
+						timeStep);
 
 				v.setProperty("color", vNewColor);
 			}
