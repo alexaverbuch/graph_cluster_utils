@@ -111,13 +111,18 @@ public class ClusterAlgDiDiC {
 
 			} catch (Exception ex) {
 				System.err.printf("<ERR: DiDiC Outer Loop Aborted>");
+				System.err.println(ex.toString());
 			} finally {
 				tx.finish();
 			}
 
 			// PRINTOUT
-			System.out.printf("%dms%n", System.currentTimeMillis()
-					- timeStepTime);
+			long ms_total = System.currentTimeMillis() - timeStepTime;
+			long ms = ms_total % 1000;
+			long s = (ms_total / 1000) % 60;
+			long m = (ms_total / 1000) / 60;
+			System.out.printf("DiDiC Complete - Time Taken: %d(m):%d(s):%d(ms)%n",
+					m, s, ms);
 
 			update_cluster_allocation(timeStep);
 
@@ -135,7 +140,6 @@ public class ClusterAlgDiDiC {
 			}
 
 			if (supervisor.is_periodic_snapshot(timeStep)) {
-				// TODO: take a periodic snapshot here
 				closeTransServices();
 
 				supervisor.do_periodic_snapshot(timeStep, clusterCount,
@@ -190,6 +194,7 @@ public class ClusterAlgDiDiC {
 
 		} catch (Exception ex) {
 			System.err.printf("<ERR: Cluster Allocation Aborted>");
+			System.err.println(ex.toString());
 		} finally {
 			tx.finish();
 		}
@@ -223,6 +228,7 @@ public class ClusterAlgDiDiC {
 
 		} catch (Exception ex) {
 			System.err.printf("<ERR: Cluster Allocation Aborted>");
+			System.err.println(ex.toString());
 		} finally {
 			tx.finish();
 		}
@@ -270,6 +276,7 @@ public class ClusterAlgDiDiC {
 
 		} catch (Exception ex) {
 			System.err.printf("<ERR: Load Vectors May Not Be Initialised>");
+			System.err.println(ex.toString());
 		} finally {
 			tx.finish();
 		}
@@ -307,6 +314,7 @@ public class ClusterAlgDiDiC {
 
 		} catch (Exception ex) {
 			System.err.printf("<ERR: update_cluster_allocation>");
+			System.err.println(ex.toString());
 		} finally {
 			tx.finish();
 		}
@@ -318,78 +326,66 @@ public class ClusterAlgDiDiC {
 	// MUST call from inside Transaction
 	private void do_FOST(Node v, int c) {
 
-		// long time = System.currentTimeMillis();
+		String vName = (String) v.getProperty("name");
 
-		try {
-			String vName = (String) v.getProperty("name");
+		ArrayList<Double> lV = l.get(vName);
+		ArrayList<Double> wV = w.get(vName);
 
-			ArrayList<Double> lV = l.get(vName);
-			ArrayList<Double> wV = w.get(vName);
+		double wVC = wV.get(c);
 
-			double wVC = wV.get(c);
+		int vDeg = in_deg(v);
 
-			int vDeg = in_deg(v);
+		for (int fost_iter = 0; fost_iter < FOST_ITERS; fost_iter++) {
 
-			for (int fost_iter = 0; fost_iter < FOST_ITERS; fost_iter++) {
+			// FOS/B (Secondary/Drain) Diffusion Algorithm
+			do_FOSB(v, c);
 
-				// FOS/B (Secondary/Drain) Diffusion Algorithm
-				do_FOSB(v, c);
+			// FOS/T Primary Diffusion Algorithm
+			for (Relationship e : v.getRelationships(Direction.OUTGOING)) {
 
-				// FOS/T Primary Diffusion Algorithm
-				for (Relationship e : v.getRelationships(Direction.OUTGOING)) {
+				Node u = e.getEndNode();
+				ArrayList<Double> wU = w.get(u.getProperty("name"));
 
-					Node u = e.getEndNode();
-					ArrayList<Double> wU = w.get(u.getProperty("name"));
+				double wVwUDiff = wVC - wU.get(c);
 
-					double wVwUDiff = wVC - wU.get(c);
-
-					wVC = wVC - alpha_e(u, vDeg) * weight_e(e) * wVwUDiff;
-				}
-
-				wVC = wVC + lV.get(c);
-
-				wV.set(c, wVC);
+				wVC = wVC - alpha_e(u, vDeg) * weight_e(e) * wVwUDiff;
 			}
 
-		} catch (Exception ex) {
-			System.err.printf("<ERR: do_FOST [Cluster:%d]>", c);
+			wVC = wVC + lV.get(c);
+
+			wV.set(c, wVC);
 		}
 
 	}
 
 	// MUST call from inside Transaction
 	private void do_FOSB(Node v, int c) {
-		try {
+		String vName = (String) v.getProperty("name");
 
-			String vName = (String) v.getProperty("name");
+		ArrayList<Double> lV = l.get(vName);
 
-			ArrayList<Double> lV = l.get(vName);
+		double lVC = lV.get(c);
+		int vDeg = in_deg(v);
+		double bV = benefit(v, c);
 
-			double lVC = lV.get(c);
-			int vDeg = in_deg(v);
-			double bV = benefit(v, c);
+		for (int fosb_iter = 0; fosb_iter < FOSB_ITERS; fosb_iter++) {
 
-			for (int fosb_iter = 0; fosb_iter < FOSB_ITERS; fosb_iter++) {
+			// FOS/B Diffusion Algorithm
+			for (Relationship e : v.getRelationships(Direction.OUTGOING)) {
+				
+				Node u = e.getEndNode();
 
-				// FOS/B Diffusion Algorithm
-				for (Relationship e : v.getRelationships(Direction.OUTGOING)) {
+				ArrayList<Double> lU = l.get(u.getProperty("name"));
 
-					Node u = e.getEndNode();
-					ArrayList<Double> lU = l.get(u.getProperty("name"));
+				double lVlUDiff = (lVC / bV) - (lU.get(c) / benefit(u, c));
 
-					double lVlUDiff = (lVC / bV) - (lU.get(c) / benefit(u, c));
-
-					lVC = lVC - alpha_e(u, vDeg) * weight_e(e) * lVlUDiff;
-				}
-
+				lVC = lVC - (alpha_e(u, vDeg) * weight_e(e) * lVlUDiff);
+				
 			}
 
-			lV.set(c, lVC);
-
-		} catch (Exception ex) {
-			System.err.printf("<ERR: do_FOSB [Cluster:%d]>", c);
-		} finally {
 		}
+
+		lV.set(c, lVC);
 
 	}
 
@@ -414,24 +410,23 @@ public class ClusterAlgDiDiC {
 
 	// MUST call from inside Transaction
 	// Optimized version. Find vDeg once only
-	private double alpha_e(Node u, int vDeg) {
+	private double alpha_e(Node u, double vDeg) {
 		// alpha_e = 1/max{deg(u),deg(v)};
-		int uDeg = 0;
+		double uDeg = 0;
 
 		for (Relationship e : u.getRelationships(Direction.OUTGOING)) {
 			uDeg++;
 		}
 
-		double max = Math.max(uDeg, vDeg);
-
-		return 1.0 / max;
+		return 1.0 / Math.max(uDeg, vDeg);
 	}
 
 	// MUST call from inside Transaction
 	private double weight_e(Relationship e) {
-		if (e.hasProperty("weight"))
-			return (Double) e.getProperty("weight");
-		else
+		if (e.hasProperty("weight")) {
+			int weight = (Integer) e.getProperty("weight");
+			return weight;
+		} else
 			return 1.0;
 	}
 
