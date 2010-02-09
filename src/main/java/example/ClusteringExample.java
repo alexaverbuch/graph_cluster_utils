@@ -101,7 +101,7 @@ public class ClusteringExample {
     String graphDir = "graphs/";
     String ptnDir = "partitionings/";
     String resultsDir =
-      "~/Dropbox/Neo_Thesis_Private/Results/add20 16 Opt Random/";
+      "/home/alex/Dropbox/Neo_Thesis_Private/Results/add20 16 Opt Random/";
     
     String inputGraphPath = String.format("%s%s.graph", graphDir, inputGraph);
     String inputPtnPath =
@@ -111,7 +111,7 @@ public class ClusteringExample {
     
     try {
       // neoGenerator.generateNeo(inputGraphPath, inputPtnPath);
-      neoGenerator.generateNeo(inputGraphPath);
+      neoGenerator.generateNeo(inputGraphPath, inputPtnPath);
     } catch (FileNotFoundException e) {
       e.printStackTrace();
     }
@@ -138,7 +138,7 @@ public class ClusteringExample {
     String graphDir = "graphs/";
     String ptnDir = "partitionings/";
     String resultsDir =
-      "~/Dropbox/Neo_Thesis_Private/Results/add20 16 Opt Balanced/";
+      "/home/alex/Dropbox/Neo_Thesis_Private/Results/add20 16 Opt Balanced/";
     
     String inputGraphPath = String.format("%s%s.graph", graphDir, inputGraph);
     String inputPtnPath =
@@ -148,7 +148,7 @@ public class ClusteringExample {
     
     try {
       // neoGenerator.generateNeo(inputGraphPath, inputPtnPath);
-      neoGenerator.generateNeo(inputGraphPath);
+      neoGenerator.generateNeo(inputGraphPath, inputPtnPath);
     } catch (FileNotFoundException e) {
       e.printStackTrace();
     }
