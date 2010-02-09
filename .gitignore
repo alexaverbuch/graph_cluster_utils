@@ -8,6 +8,8 @@
 *.met
 *.svg
 
+.classpath
+
 !.gitignore 
 
 !add20-IN-BAL.2.ptn
