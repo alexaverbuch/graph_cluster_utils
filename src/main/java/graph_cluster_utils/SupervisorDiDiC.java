@@ -38,11 +38,19 @@ public class SupervisorDiDiC extends Supervisor {
 	public void do_initial_snapshot(int clusterCount, String databaseDir) {
 
 		try {
+			String outGraph = String.format("%s%s-OUT.graph", metDir,
+					graphName);
+			String outPtn = String.format("%s%s-OUT.%d.ptn", metDir,
+					graphName, clusterCount);
 			String outMetrics = String.format("%s%s-INIT.%d.met", metDir,
 					graphName, clusterCount);
 
 			// Create NeoFromFile and assign DB location
 			NeoFromFile neoCreator = new NeoFromFile(databaseDir);
+
+			// Write chaco & partitioning files
+			neoCreator.generateChaco(outGraph,
+					NeoFromFile.ChacoType.UNWEIGHTED, outPtn);
 
 			// Write graph metrics to file
 			neoCreator.generateMetrics(outMetrics);
@@ -87,18 +95,18 @@ public class SupervisorDiDiC extends Supervisor {
 	public void do_final_snapshot(int clusterCount, String databaseDir) {
 
 		try {
-			String outGraph = String.format("%s%s-FINAL.graph", graphDir,
-					graphName);
-			String outPtn = String.format("%s%s-OUT-FINAL.%d.ptn", ptnDir,
-					graphName, clusterCount);
+			// String outGraph = String.format("%s%s-FINAL.graph", graphDir,
+			// graphName);
+			// String outPtn = String.format("%s%s-OUT-FINAL.%d.ptn", ptnDir,
+			// graphName, clusterCount);
 			String outMetrics = String.format("%s%s-FINAL.%d.met", metDir,
 					graphName, clusterCount);
 
 			// Create NeoFromFile and assign DB location
 			NeoFromFile neoCreator = new NeoFromFile(databaseDir);
 
-			neoCreator.generateChaco(outGraph,
-					NeoFromFile.ChacoType.UNWEIGHTED, outPtn);
+			// neoCreator.generateChaco(outGraph,
+			// NeoFromFile.ChacoType.UNWEIGHTED, outPtn);
 
 			// Write graph metrics to file
 			neoCreator.generateMetrics(outMetrics);
