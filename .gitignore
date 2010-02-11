@@ -8,11 +8,13 @@
 *.met
 *.svg
 
+.classpath
+
 !.gitignore 
 
 !add20-IN-BAL.2.ptn
-!add20-IN-RAND.2.ptn
 !add20-IN-BAL.16.ptn
+!add20-IN-RAND.2.ptn
 !add20-IN-RAND.16.ptn
 !add20-OUT-BEST.2.ptn
 !test-DiDiC-IN-BAL.2.ptn

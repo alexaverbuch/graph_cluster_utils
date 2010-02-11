@@ -8,16 +8,16 @@ public class SupervisorDiDiC extends Supervisor {
 	private String graphName = "";
 	private String graphDir = "";
 	private String ptnDir = "";
-	private String metDir = "";
+	private String resultsDir = "";
 
 	public SupervisorDiDiC(int snapshotPeriod, String graphName,
-			String graphDir, String ptnDir, String metDir) {
+			String graphDir, String ptnDir, String resultsDir) {
 		super();
 		this.snapshotPeriod = snapshotPeriod;
 		this.graphName = graphName;
 		this.graphDir = graphDir;
 		this.ptnDir = ptnDir;
-		this.metDir = metDir;
+		this.resultsDir = resultsDir;
 	}
 
 	@Override
@@ -38,11 +38,15 @@ public class SupervisorDiDiC extends Supervisor {
 	public void do_initial_snapshot(int clusterCount, String databaseDir) {
 
 		try {
+<<<<<<< HEAD
 			String outGraph = String.format("%s%s-OUT.graph", metDir,
 					graphName);
 			String outPtn = String.format("%s%s-OUT.%d.ptn", metDir,
 					graphName, clusterCount);
 			String outMetrics = String.format("%s%s-INIT.%d.met", metDir,
+=======
+			String outMetrics = String.format("%s%s-INIT.%d.met", resultsDir,
+>>>>>>> c741250d53be22cc8b2ae8b020909133964117bc
 					graphName, clusterCount);
 
 			// Create NeoFromFile and assign DB location
@@ -71,7 +75,7 @@ public class SupervisorDiDiC extends Supervisor {
 			String databaseDir) {
 
 		try {
-			String outMetrics = String.format("%s%s-%d.%d.met", metDir,
+			String outMetrics = String.format("%s%s-%d.%d.met", resultsDir,
 					graphName, timeStep, clusterCount);
 
 			// Create NeoFromFile and assign DB location
@@ -95,11 +99,19 @@ public class SupervisorDiDiC extends Supervisor {
 	public void do_final_snapshot(int clusterCount, String databaseDir) {
 
 		try {
+<<<<<<< HEAD
 			// String outGraph = String.format("%s%s-FINAL.graph", graphDir,
 			// graphName);
 			// String outPtn = String.format("%s%s-OUT-FINAL.%d.ptn", ptnDir,
 			// graphName, clusterCount);
 			String outMetrics = String.format("%s%s-FINAL.%d.met", metDir,
+=======
+			String outGraph = String.format("%s%s-FINAL.graph", graphDir,
+					graphName);
+			String outPtn = String.format("%s%s-OUT-FINAL.%d.ptn", ptnDir,
+					graphName, clusterCount);
+			String outMetrics = String.format("%s%s-FINAL.%d.met", resultsDir,
+>>>>>>> c741250d53be22cc8b2ae8b020909133964117bc
 					graphName, clusterCount);
 
 			// Create NeoFromFile and assign DB location
