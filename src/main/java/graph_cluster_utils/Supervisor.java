@@ -10,9 +10,9 @@ public abstract class Supervisor {
 	public abstract void do_initial_snapshot(int clusterCount,
 			String databaseDir);
 
-	public abstract boolean is_periodic_snapshot(int timeStep);
+	public abstract boolean is_periodic_snapshot(long timeStep);
 
-	public abstract void do_periodic_snapshot(int timeStep, int clusterCount,
+	public abstract void do_periodic_snapshot(long timeStep, int clusterCount,
 			String databaseDir);
 
 	public abstract boolean is_final_snapshot();

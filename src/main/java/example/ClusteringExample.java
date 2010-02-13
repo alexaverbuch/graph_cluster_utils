@@ -16,8 +16,43 @@ public class ClusteringExample {
 	public static void main(String[] args) {
 		// do_didic_add20_16_base_random();
 		// do_didic_add20_16_base_balanced();
-		do_didic_add20_16_opt_random();
-		do_didic_add20_16_opt_balanced();
+		// do_didic_add20_16_opt_random();
+		// do_didic_add20_16_opt_balanced();
+		do_didic_test_2_base_balanced();
+	}
+
+	private static void do_didic_test_2_base_balanced() {
+		int clusterCount = 2;
+
+		String inputGraph = "test-DiDiC";
+		String inputPtn = "test-DiDiC-IN-BAL";
+
+		String databaseDir = String.format("var/%s-2-balanced", inputGraph);
+
+		String graphDir = "graphs/";
+		String ptnDir = "partitionings/";
+		String metDir = "/home/alex/Dropbox/Neo_Thesis_Private/Results/test-DiDiC 2 Base Balanced/";
+
+		String inputGraphPath = String.format("%s%s.graph", graphDir,
+				inputGraph);
+		String inputPtnPath = String.format("%s%s.%d.ptn", ptnDir, inputPtn,
+				clusterCount);
+
+		NeoFromFile neoGenerator = new NeoFromFile(databaseDir);
+
+		try {
+			neoGenerator.writeNeo(inputGraphPath, inputPtnPath);
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		}
+
+		ClusterAlgDiDiC didic = new ClusterAlgDiDiC();
+
+		Supervisor didicSupervisor = new SupervisorDiDiC(SNAPSHOT_PERIOD,
+				inputGraph, graphDir, ptnDir, metDir);
+
+		didic.do_DiDiC(databaseDir, MAX_ITERATIONS, clusterCount,
+				ClusterAlgDiDiC.AllocType.BASE, didicSupervisor);
 	}
 
 	private static void do_didic_add20_16_base_random() {
@@ -30,7 +65,7 @@ public class ClusteringExample {
 
 		String graphDir = "graphs/";
 		String ptnDir = "partitionings/";
-		String metDir = "metrics/add20 16 Base Random/";
+		String metDir = "/home/alex/Dropbox/Neo_Thesis_Private/Results/add20 16 Base Random/";
 
 		String inputGraphPath = String.format("%s%s.graph", graphDir,
 				inputGraph);
@@ -64,7 +99,7 @@ public class ClusteringExample {
 
 		String graphDir = "graphs/";
 		String ptnDir = "partitionings/";
-		String metDir = "metrics/add20 16 Base Balanced/";
+		String metDir = "/home/alex/Dropbox/Neo_Thesis_Private/Results/add20 16 Base Balanced/";
 
 		String inputGraphPath = String.format("%s%s.graph", graphDir,
 				inputGraph);

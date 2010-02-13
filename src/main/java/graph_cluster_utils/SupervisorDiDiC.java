@@ -64,12 +64,12 @@ public class SupervisorDiDiC extends Supervisor {
 	}
 
 	@Override
-	public boolean is_periodic_snapshot(int timeStep) {
+	public boolean is_periodic_snapshot(long timeStep) {
 		return (timeStep % snapshotPeriod) == 0;
 	}
 
 	@Override
-	public void do_periodic_snapshot(int timeStep, int clusterCount,
+	public void do_periodic_snapshot(long timeStep, int clusterCount,
 			String databaseDir) {
 
 		try {
@@ -90,7 +90,7 @@ public class SupervisorDiDiC extends Supervisor {
 			NeoFromFile neoCreator = new NeoFromFile(databaseDir);
 
 			// Write graph metrics to file
-			neoCreator.appendMetricsCSV(outMetrics);
+			neoCreator.appendMetricsCSV(outMetrics, timeStep);
 
 		} catch (Exception e) {
 			e.printStackTrace();
