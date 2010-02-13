@@ -3,7 +3,7 @@ package graph_cluster_utils;
 public abstract class Supervisor {
 	public abstract boolean is_dynamism(int timeStep);
 
-	public abstract void do_dynamism(String databaseDir);
+	public abstract void do_dynamism(String databaseDir); 
 
 	public abstract boolean is_initial_snapshot();
 

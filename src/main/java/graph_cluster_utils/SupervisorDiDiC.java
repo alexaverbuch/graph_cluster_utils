@@ -38,14 +38,24 @@ public class SupervisorDiDiC extends Supervisor {
 	public void do_initial_snapshot(int clusterCount, String databaseDir) {
 
 		try {
-			String outMetrics = String.format("%s%s-INIT.%d.met", resultsDir,
+
+			// String outMetrics = String.format("%s%s-INIT.%d.met", resultsDir,
+			// graphName, clusterCount);
+			//
+			// // Create NeoFromFile and assign DB location
+			// NeoFromFile neoCreator = new NeoFromFile(databaseDir);
+			//
+			// // Write graph metrics to file
+			// neoCreator.writeMetrics(outMetrics);
+
+			String outMetrics = String.format("%s%s.%d.met", resultsDir,
 					graphName, clusterCount);
 
 			// Create NeoFromFile and assign DB location
 			NeoFromFile neoCreator = new NeoFromFile(databaseDir);
 
 			// Write graph metrics to file
-			neoCreator.generateMetrics(outMetrics);
+			neoCreator.writeMetricsCSV(outMetrics);
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -63,14 +73,24 @@ public class SupervisorDiDiC extends Supervisor {
 			String databaseDir) {
 
 		try {
-			String outMetrics = String.format("%s%s-%d.%d.met", resultsDir,
-					graphName, timeStep, clusterCount);
+
+			// String outMetrics = String.format("%s%s-%d.%d.met", resultsDir,
+			// graphName, timeStep, clusterCount);
+			//
+			// // Create NeoFromFile and assign DB location
+			// NeoFromFile neoCreator = new NeoFromFile(databaseDir);
+			//
+			// // Write graph metrics to file
+			// neoCreator.writeMetrics(outMetrics);
+
+			String outMetrics = String.format("%s%s.%d.met", resultsDir,
+					graphName, clusterCount);
 
 			// Create NeoFromFile and assign DB location
 			NeoFromFile neoCreator = new NeoFromFile(databaseDir);
 
 			// Write graph metrics to file
-			neoCreator.generateMetrics(outMetrics);
+			neoCreator.appendMetricsCSV(outMetrics);
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -87,21 +107,32 @@ public class SupervisorDiDiC extends Supervisor {
 	public void do_final_snapshot(int clusterCount, String databaseDir) {
 
 		try {
-			// String outGraph = String.format("%s%s-FINAL.graph", graphDir,
-			// graphName);
-			// String outPtn = String.format("%s%s-OUT-FINAL.%d.ptn", ptnDir,
+
+			// // String outGraph = String.format("%s%s-FINAL.graph", graphDir,
+			// // graphName);
+			// // String outPtn = String.format("%s%s-OUT-FINAL.%d.ptn", ptnDir,
+			// // graphName, clusterCount);
+			// String outMetrics = String.format("%s%s-FINAL.%d.met",
+			// resultsDir,
 			// graphName, clusterCount);
-			String outMetrics = String.format("%s%s-FINAL.%d.met", resultsDir,
+			//
+			// // Create NeoFromFile and assign DB location
+			// NeoFromFile neoCreator = new NeoFromFile(databaseDir);
+			//
+			// // neoCreator.generateChaco(outGraph,
+			// // NeoFromFile.ChacoType.UNWEIGHTED, outPtn);
+			//
+			// // Write graph metrics to file
+			// neoCreator.writeMetrics(outMetrics);
+
+			String outMetrics = String.format("%s%s.%d.met", resultsDir,
 					graphName, clusterCount);
 
 			// Create NeoFromFile and assign DB location
 			NeoFromFile neoCreator = new NeoFromFile(databaseDir);
 
-			// neoCreator.generateChaco(outGraph,
-			// NeoFromFile.ChacoType.UNWEIGHTED, outPtn);
-
 			// Write graph metrics to file
-			neoCreator.generateMetrics(outMetrics);
+			neoCreator.appendMetricsCSV(outMetrics);
 
 		} catch (Exception e) {
 			e.printStackTrace();
