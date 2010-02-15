@@ -2,7 +2,6 @@ package graph_cluster_algorithms;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Random;
 import java.util.Map.Entry;
 
 import org.neo4j.graphdb.Direction;
@@ -18,35 +17,24 @@ import graph_cluster_utils.Supervisor;
 
 public class ClusterAlgDiDiC {
 
-	// DiDiC Related
-	private static final int FOST_ITERS = 11; // Primary Diffusion
-	private static final int FOSB_ITERS = 11; // Secondary Diffusion ('drain')
-	private static final int B_LOW = 1; // Benefit, used by FOS/B
-	private static final int B_HIGH = 10; // Benefit, used by FOS/B
-	private static final int MY_CLUSTER_VAL = 100; // Default Init Val
-
-	// Experimental DiDiC Related
-	private static final int ALG_SWITCH_POINT = -1;
-
 	private HashMap<String, ArrayList<Double>> w = null; // Load Vec 1
 	private HashMap<String, ArrayList<Double>> l = null; // Load Vec 2 ('drain')
 
-	private int clusterCount;
+	// private int clusterCount;
 	private String databaseDir;
+	AlgConfDiDiC config = null;
 
 	private GraphDatabaseService transNeo = null;
 	private IndexService transIndexService = null;
 
-	public enum AllocType {
-		BASE, OPT, HYBRID
-	}
-
-	public void start(String databaseDir, int maxTimeSteps,
-			int clusterCount, AllocType allocType, Supervisor supervisor) {
-		this.databaseDir = databaseDir;
-		this.clusterCount = clusterCount;
+	public void start(String databaseDir, AlgConfDiDiC confDiDiC,
+			Supervisor supervisor) {
+		// public void start(String databaseDir, int maxTimeSteps,
+		// int clusterCount, AllocType allocType, Supervisor supervisor) {
 		w = new HashMap<String, ArrayList<Double>>();
 		l = new HashMap<String, ArrayList<Double>>();
+		this.databaseDir = databaseDir;
+		this.config = confDiDiC;
 
 		// PRINTOUT
 		System.out.println("\n*********DiDiC***********");
@@ -57,7 +45,8 @@ public class ClusterAlgDiDiC {
 
 		if (supervisor.is_initial_snapshot()) {
 			closeTransServices();
-			supervisor.do_initial_snapshot(clusterCount, databaseDir);
+			supervisor.do_initial_snapshot(config.getClusterCount(),
+					databaseDir);
 			openTransServices();
 		}
 
@@ -67,9 +56,10 @@ public class ClusterAlgDiDiC {
 		System.out
 				.printf(
 						"DiDiC [FOST_ITERS=%d, FOSB_ITERS=%d, MAX_CLUSTERS=%d, TIME_STEPS=%d]%n",
-						FOST_ITERS, FOSB_ITERS, this.clusterCount, maxTimeSteps);
+						config.getFOSTIterations(), config.getFOSBIterations(),
+						config.getClusterCount(), config.getMaxIterations());
 
-		for (int timeStep = 0; timeStep < maxTimeSteps; timeStep++) {
+		for (int timeStep = 0; timeStep < config.getMaxIterations(); timeStep++) {
 
 			long timeStepTime = System.currentTimeMillis();
 
@@ -80,7 +70,7 @@ public class ClusterAlgDiDiC {
 
 			try {
 				// For Every "Cluster System"
-				for (int c = 0; c < clusterCount; c++) {
+				for (int c = 0; c < config.getClusterCount(); c++) {
 
 					// For Every Node
 					for (Node v : transNeo.getAllNodes()) {
@@ -113,7 +103,7 @@ public class ClusterAlgDiDiC {
 					"DiDiC Complete - Time Taken: %d(m):%d(s):%d(ms)%n", m, s,
 					ms);
 
-			update_cluster_allocation(timeStep, allocType);
+			update_cluster_allocation(timeStep, config.getAllocType());
 
 			if (supervisor.is_dynamism(timeStep)) {
 				closeTransServices();
@@ -131,8 +121,8 @@ public class ClusterAlgDiDiC {
 			if (supervisor.is_periodic_snapshot(timeStep)) {
 				closeTransServices();
 
-				supervisor.do_periodic_snapshot(timeStep, clusterCount,
-						databaseDir);
+				supervisor.do_periodic_snapshot(timeStep, config
+						.getClusterCount(), databaseDir);
 
 				openTransServices();
 			}
@@ -143,7 +133,7 @@ public class ClusterAlgDiDiC {
 			// TODO: take a final snapshot here
 			closeTransServices();
 
-			supervisor.do_final_snapshot(clusterCount, databaseDir);
+			supervisor.do_final_snapshot(config.getClusterCount(), databaseDir);
 
 			openTransServices();
 		}
@@ -179,11 +169,11 @@ public class ClusterAlgDiDiC {
 					ArrayList<Double> wV = new ArrayList<Double>();
 					ArrayList<Double> lV = new ArrayList<Double>();
 
-					for (int i = 0; i < clusterCount; i++) {
+					for (int i = 0; i < config.getClusterCount(); i++) {
 
 						if (vColor == i) {
-							wV.add(new Double(MY_CLUSTER_VAL));
-							lV.add(new Double(MY_CLUSTER_VAL));
+							wV.add(new Double(config.getDefClusterVal()));
+							lV.add(new Double(config.getDefClusterVal()));
 							continue;
 						}
 
@@ -208,7 +198,8 @@ public class ClusterAlgDiDiC {
 		System.out.printf("%dms%n", System.currentTimeMillis() - time);
 	}
 
-	private void update_cluster_allocation(int timeStep, AllocType allocType) {
+	private void update_cluster_allocation(int timeStep,
+			AlgConfDiDiC.AllocType allocType) {
 		long time = System.currentTimeMillis();
 
 		// PRINTOUT
@@ -271,7 +262,7 @@ public class ClusterAlgDiDiC {
 
 		int vDeg = in_deg(v);
 
-		for (int fost_iter = 0; fost_iter < FOST_ITERS; fost_iter++) {
+		for (int fost_iter = 0; fost_iter < config.getFOSTIterations(); fost_iter++) {
 
 			// FOS/B (Secondary/Drain) Diffusion Algorithm
 			do_FOSB(v, c);
@@ -304,7 +295,7 @@ public class ClusterAlgDiDiC {
 		int vDeg = in_deg(v);
 		double bV = benefit(v, c);
 
-		for (int fosb_iter = 0; fosb_iter < FOSB_ITERS; fosb_iter++) {
+		for (int fosb_iter = 0; fosb_iter < config.getFOSBIterations(); fosb_iter++) {
 
 			// FOS/B Diffusion Algorithm
 			for (Relationship e : v.getRelationships(Direction.OUTGOING)) {
@@ -370,16 +361,17 @@ public class ClusterAlgDiDiC {
 	private double benefit(Node v, int c) {
 
 		if ((Integer) v.getProperty("color") == c)
-			return B_HIGH;
+			return config.getBenefitHigh();
 		else
-			return B_LOW;
+			return config.getBenefitLow();
 	}
 
 	// MUST call from inside Transaction
 	// Switch between algorithms depending on time-step
 	private int allocate_cluster(Node v, ArrayList<Double> wC, int timeStep) {
 		// Choose cluster with largest load vector
-		if ((timeStep < ALG_SWITCH_POINT) || (ALG_SWITCH_POINT == -1))
+		if ((timeStep < config.getHybridSwitchPoint())
+				|| (config.getHybridSwitchPoint() == -1))
 			return allocate_cluster_basic(wC);
 
 		// Optimization to exclude clusters with no connections
