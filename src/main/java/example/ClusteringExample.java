@@ -18,7 +18,8 @@ public class ClusteringExample {
 		// do_didic_add20_16_base_balanced();
 		// do_didic_add20_16_opt_random();
 		// do_didic_add20_16_opt_balanced();
-		do_didic_test_2_base_balanced();
+		// do_didic_test_2_base_balanced();
+		do_didic_add20_2_opt_balanced();
 	}
 
 	private static void do_didic_test_2_base_balanced() {
@@ -31,7 +32,7 @@ public class ClusteringExample {
 
 		String graphDir = "graphs/";
 		String ptnDir = "partitionings/";
-		String metDir = "/home/alex/Dropbox/Neo_Thesis_Private/Results/test-DiDiC 2 Base Balanced/";
+		String metDir = "/home/alex/Dropbox/Neo_Thesis_Private/Results/test-DiDiC 2 Base Balanced T11 B11/";
 
 		String inputGraphPath = String.format("%s%s.graph", graphDir,
 				inputGraph);
@@ -191,4 +192,37 @@ public class ClusteringExample {
 				ClusterAlgDiDiC.AllocType.OPT, didicSupervisor);
 	}
 
+	private static void do_didic_add20_2_opt_balanced() {
+		int clusterCount = 2;
+
+		String inputGraph = "add20";
+		String inputPtn = "add20-IN-BAL";
+
+		String databaseDir = String.format("var/%s-2-balanced", inputGraph);
+
+		String graphDir = "graphs/";
+		String ptnDir = "partitionings/";
+		String resultsDir = "/home/alex/Dropbox/Neo_Thesis_Private/Results/test/";
+
+		String inputGraphPath = String.format("%s%s.graph", graphDir,
+				inputGraph);
+		String inputPtnPath = String.format("%s%s.%d.ptn", ptnDir, inputPtn,
+				clusterCount);
+
+		NeoFromFile neoGenerator = new NeoFromFile(databaseDir);
+
+		try {
+			neoGenerator.writeNeo(inputGraphPath, inputPtnPath);
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		}
+
+		ClusterAlgDiDiC didic = new ClusterAlgDiDiC();
+
+		Supervisor didicSupervisor = new SupervisorDiDiC(SNAPSHOT_PERIOD,
+				inputGraph, graphDir, ptnDir, resultsDir);
+
+		didic.start(databaseDir, MAX_ITERATIONS, clusterCount,
+				ClusterAlgDiDiC.AllocType.OPT, didicSupervisor);
+	}
 }
