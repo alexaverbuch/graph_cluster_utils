@@ -41,7 +41,7 @@ public class ClusterAlgDiDiC {
 		BASE, OPT, HYBRID
 	}
 
-	public void do_DiDiC(String databaseDir, int maxTimeSteps,
+	public void start(String databaseDir, int maxTimeSteps,
 			int clusterCount, AllocType allocType, Supervisor supervisor) {
 		this.databaseDir = databaseDir;
 		this.clusterCount = clusterCount;

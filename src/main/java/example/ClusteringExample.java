@@ -51,7 +51,7 @@ public class ClusteringExample {
 		Supervisor didicSupervisor = new SupervisorDiDiC(SNAPSHOT_PERIOD,
 				inputGraph, graphDir, ptnDir, metDir);
 
-		didic.do_DiDiC(databaseDir, MAX_ITERATIONS, clusterCount,
+		didic.start(databaseDir, MAX_ITERATIONS, clusterCount,
 				ClusterAlgDiDiC.AllocType.BASE, didicSupervisor);
 	}
 
@@ -85,7 +85,7 @@ public class ClusteringExample {
 		Supervisor didicSupervisor = new SupervisorDiDiC(SNAPSHOT_PERIOD,
 				inputGraph, graphDir, ptnDir, metDir);
 
-		didic.do_DiDiC(databaseDir, MAX_ITERATIONS, clusterCount,
+		didic.start(databaseDir, MAX_ITERATIONS, clusterCount,
 				ClusterAlgDiDiC.AllocType.BASE, didicSupervisor);
 	}
 
@@ -119,7 +119,7 @@ public class ClusteringExample {
 		Supervisor didicSupervisor = new SupervisorDiDiC(SNAPSHOT_PERIOD,
 				inputGraph, graphDir, ptnDir, metDir);
 
-		didic.do_DiDiC(databaseDir, MAX_ITERATIONS, clusterCount,
+		didic.start(databaseDir, MAX_ITERATIONS, clusterCount,
 				ClusterAlgDiDiC.AllocType.BASE, didicSupervisor);
 	}
 
@@ -153,7 +153,7 @@ public class ClusteringExample {
 		Supervisor didicSupervisor = new SupervisorDiDiC(SNAPSHOT_PERIOD,
 				inputGraph, graphDir, ptnDir, resultsDir);
 
-		didic.do_DiDiC(databaseDir, MAX_ITERATIONS, clusterCount,
+		didic.start(databaseDir, MAX_ITERATIONS, clusterCount,
 				ClusterAlgDiDiC.AllocType.OPT, didicSupervisor);
 	}
 
@@ -187,7 +187,7 @@ public class ClusteringExample {
 		Supervisor didicSupervisor = new SupervisorDiDiC(SNAPSHOT_PERIOD,
 				inputGraph, graphDir, ptnDir, resultsDir);
 
-		didic.do_DiDiC(databaseDir, MAX_ITERATIONS, clusterCount,
+		didic.start(databaseDir, MAX_ITERATIONS, clusterCount,
 				ClusterAlgDiDiC.AllocType.OPT, didicSupervisor);
 	}
 
