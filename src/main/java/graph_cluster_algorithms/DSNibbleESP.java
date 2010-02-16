@@ -8,7 +8,8 @@ public class DSNibbleESP {
 
 	private HashMap<Long, Long> S = new HashMap<Long, Long>(); // Current Set
 	private HashMap<Long, Long> B = new HashMap<Long, Long>(); // Boundary Set
-	private HashMap<Long, Long> D = new HashMap<Long, Long>(); // New Set Diff
+	private Long volume = new Long(0);
+	private Long cost = new Long(0);
 
 	public HashMap<Long, Long> getS() {
 		return S;
@@ -18,25 +19,24 @@ public class DSNibbleESP {
 		return B;
 	}
 
+	public Long getVolume() {
+		return volume;
+	}
+
+	public Long getCost() {
+		return cost;
+	}
+
 	// Degree of node y
 	public int degY(Node y) {
 		// TODO
 		return 0;
 	}
-	
-	public double probXtoY(Node x, Node y) {
+
+	public Node getNextX(Node prevX) {
 		// TODO
-		// IF {x,y} In E RETURN (1/2)d(x)
-		// IF x==y RETURN 1/2
-		// ELSE RETURN 0
-		return 0.0;
-	}
-	
-	public double probYinS(Node y) {
-		// TODO
-		// ForAll y In S
-		// -> SUM (1/2)( edgesYtoS(x)/degY(x) + yInS(x) )
-		return 0.0;
+		// Select next X with probability probXtoY()
+		return null;
 	}
 
 	public void addYtoS(Node y) {
@@ -59,35 +59,61 @@ public class DSNibbleESP {
 		// TODO
 		if (S.containsKey(y.getId()))
 			return 1;
-		else 
+		else
 			return 0;
 	}
 
+	// Uniform random value from [0,probXinS]
+	public double getZ(Node x) {
+		// TODO
+		return 0.0;
+	}
+
+	// Conductance(St) = B(St) / volume(St)
+	public double getConductance() {
+		// TODO
+		return 0.0;
+	}
+	
+	// Populate D, set difference between current St-1 & St
+	// -> Iterate over B, lookup probYinS, compare with Z
+	// -> Meanwhile compute volume(S) & cost(S0,...,St)
+	public HashMap<Long, Long> computeDVolumeCost(double Z) {
+		// TODO
+		// Populate D
+		// Compute Volume
+		// Compute Cost
+		HashMap<Long, Long> D = new HashMap<Long, Long>(); // New Set Diff
+		return D;
+	}
+	
+	public void applyDToS(HashMap<Long, Long> D) {
+		// TODO
+		// Add/remove vertices in D to/from S
+	}
+	
 	// Call when y added/removed from S
 	// ForAll z-neighbourOf-y (incl y) in B
 	// -> Update edgesZtoS
 	// -> Determine if zInB by examining edgesZtoB & zInS
 	// -> Add/remove z
-	private void updateB(Node y, boolean added) {
+	public void updateB() {
 		// TODO
 	}
 
-	// Uniform random value from [0,probXinS]
-	private double getZ(Node x) {
+	private double probYinS(Node y) {
 		// TODO
+		// ForAll y In S
+		// -> SUM (1/2)( edgesYtoS(x)/degY(x) + yInS(x) )
 		return 0.0;
 	}
 
-	// Populate D, set difference between current St-1 & St
-	// -> Iterate over B, lookup probYinS, compare with Z
-	// -> Meanwhile compute volume(S) & cost(S0,...,St)
-	private void populateD() {
+	private double probXtoY(Node x, Node y) {
 		// TODO
-	}
-
-	// Conductance(St) = B(St) / volume(St)
-	private double conductance() {
-		// TODO
+		// IF {x,y} In E RETURN (1/2)d(x)
+		// IF x==y RETURN 1/2
+		// ELSE RETURN 0
 		return 0.0;
 	}
+
 }
