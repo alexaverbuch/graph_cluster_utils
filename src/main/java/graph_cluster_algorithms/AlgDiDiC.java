@@ -13,21 +13,21 @@ import org.neo4j.index.IndexService;
 import org.neo4j.index.lucene.LuceneIndexService;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 
-import graph_cluster_utils.Supervisor;
+import graph_cluster_supervisor.Supervisor;
 
-public class ClusterAlgDiDiC {
+public class AlgDiDiC {
 
 	private HashMap<String, ArrayList<Double>> w = null; // Load Vec 1
 	private HashMap<String, ArrayList<Double>> l = null; // Load Vec 2 ('drain')
 
 	// private int clusterCount;
 	private String databaseDir;
-	AlgConfDiDiC config = null;
+	ConfDiDiC config = null;
 
 	private GraphDatabaseService transNeo = null;
 	private IndexService transIndexService = null;
 
-	public void start(String databaseDir, AlgConfDiDiC confDiDiC,
+	public void start(String databaseDir, ConfDiDiC confDiDiC,
 			Supervisor supervisor) {
 		// public void start(String databaseDir, int maxTimeSteps,
 		// int clusterCount, AllocType allocType, Supervisor supervisor) {
@@ -199,7 +199,7 @@ public class ClusterAlgDiDiC {
 	}
 
 	private void update_cluster_allocation(int timeStep,
-			AlgConfDiDiC.AllocType allocType) {
+			ConfDiDiC.AllocType allocType) {
 		long time = System.currentTimeMillis();
 
 		// PRINTOUT

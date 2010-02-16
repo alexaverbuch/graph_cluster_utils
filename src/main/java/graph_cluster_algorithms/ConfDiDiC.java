@@ -1,6 +1,6 @@
 package graph_cluster_algorithms;
 
-public class AlgConfDiDiC {
+public class ConfDiDiC {
 
 	// DiDiC Related Constants
 	private int FOSTIterations = 11; // Primary Diffusion
@@ -20,7 +20,7 @@ public class AlgConfDiDiC {
 	private AllocType allocType = AllocType.BASE;
 	private int hybridSwitchPoint = -1;
 
-	public AlgConfDiDiC(int clusterCount) {
+	public ConfDiDiC(int clusterCount) {
 		this.FOSTIterations = 11;
 		this.FOSBIterations = 11;
 		this.benefitLow = 1;

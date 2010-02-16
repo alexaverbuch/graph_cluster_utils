@@ -1,9 +1,9 @@
 package example;
 
-import graph_cluster_algorithms.AlgConfDiDiC;
-import graph_cluster_algorithms.ClusterAlgDiDiC;
-import graph_cluster_utils.Supervisor;
-import graph_cluster_utils.SupervisorDiDiC;
+import graph_cluster_algorithms.ConfDiDiC;
+import graph_cluster_algorithms.AlgDiDiC;
+import graph_cluster_supervisor.Supervisor;
+import graph_cluster_supervisor.SupervisorDiDiC;
 import graph_gen_utils.NeoFromFile;
 
 import java.io.FileNotFoundException;
@@ -47,13 +47,13 @@ public class ClusteringExample {
 			e.printStackTrace();
 		}
 
-		ClusterAlgDiDiC didic = new ClusterAlgDiDiC();
+		AlgDiDiC didic = new AlgDiDiC();
 
 		Supervisor didicSupervisor = new SupervisorDiDiC(SNAPSHOT_PERIOD,
 				inputGraph, graphDir, ptnDir, metDir);
 
-		AlgConfDiDiC config = new AlgConfDiDiC(clusterCount);
-		config.setAllocType(AlgConfDiDiC.AllocType.BASE);
+		ConfDiDiC config = new ConfDiDiC(clusterCount);
+		config.setAllocType(ConfDiDiC.AllocType.BASE);
 		config.setMaxIterations(MAX_ITERATIONS);
 		config.setFOSTIterations(5);
 		config.setFOSBIterations(5);
@@ -86,13 +86,13 @@ public class ClusteringExample {
 			e.printStackTrace();
 		}
 
-		ClusterAlgDiDiC didic = new ClusterAlgDiDiC();
+		AlgDiDiC didic = new AlgDiDiC();
 
 		Supervisor didicSupervisor = new SupervisorDiDiC(SNAPSHOT_PERIOD,
 				inputGraph, graphDir, ptnDir, metDir);
 
-		AlgConfDiDiC config = new AlgConfDiDiC(clusterCount);
-		config.setAllocType(AlgConfDiDiC.AllocType.BASE);
+		ConfDiDiC config = new ConfDiDiC(clusterCount);
+		config.setAllocType(ConfDiDiC.AllocType.BASE);
 		config.setMaxIterations(MAX_ITERATIONS);
 
 		didic.start(databaseDir, config, didicSupervisor);
@@ -123,13 +123,13 @@ public class ClusteringExample {
 			e.printStackTrace();
 		}
 
-		ClusterAlgDiDiC didic = new ClusterAlgDiDiC();
+		AlgDiDiC didic = new AlgDiDiC();
 
 		Supervisor didicSupervisor = new SupervisorDiDiC(SNAPSHOT_PERIOD,
 				inputGraph, graphDir, ptnDir, metDir);
 
-		AlgConfDiDiC config = new AlgConfDiDiC(clusterCount);
-		config.setAllocType(AlgConfDiDiC.AllocType.BASE);
+		ConfDiDiC config = new ConfDiDiC(clusterCount);
+		config.setAllocType(ConfDiDiC.AllocType.BASE);
 		config.setMaxIterations(MAX_ITERATIONS);
 
 		didic.start(databaseDir, config, didicSupervisor);
@@ -160,13 +160,13 @@ public class ClusteringExample {
 			e.printStackTrace();
 		}
 
-		ClusterAlgDiDiC didic = new ClusterAlgDiDiC();
+		AlgDiDiC didic = new AlgDiDiC();
 
 		Supervisor didicSupervisor = new SupervisorDiDiC(SNAPSHOT_PERIOD,
 				inputGraph, graphDir, ptnDir, resultsDir);
 
-		AlgConfDiDiC config = new AlgConfDiDiC(clusterCount);
-		config.setAllocType(AlgConfDiDiC.AllocType.OPT);
+		ConfDiDiC config = new ConfDiDiC(clusterCount);
+		config.setAllocType(ConfDiDiC.AllocType.OPT);
 		config.setMaxIterations(MAX_ITERATIONS);
 
 		didic.start(databaseDir, config, didicSupervisor);
@@ -197,13 +197,13 @@ public class ClusteringExample {
 			e.printStackTrace();
 		}
 
-		ClusterAlgDiDiC didic = new ClusterAlgDiDiC();
+		AlgDiDiC didic = new AlgDiDiC();
 
 		Supervisor didicSupervisor = new SupervisorDiDiC(SNAPSHOT_PERIOD,
 				inputGraph, graphDir, ptnDir, resultsDir);
 
-		AlgConfDiDiC config = new AlgConfDiDiC(clusterCount);
-		config.setAllocType(AlgConfDiDiC.AllocType.OPT);
+		ConfDiDiC config = new ConfDiDiC(clusterCount);
+		config.setAllocType(ConfDiDiC.AllocType.OPT);
 		config.setMaxIterations(MAX_ITERATIONS);
 
 		didic.start(databaseDir, config, didicSupervisor);

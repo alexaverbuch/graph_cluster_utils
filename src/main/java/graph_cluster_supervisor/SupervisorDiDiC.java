@@ -1,4 +1,4 @@
-package graph_cluster_utils;
+package graph_cluster_supervisor;
 
 import graph_gen_utils.NeoFromFile;
 
