@@ -6,18 +6,9 @@ import org.neo4j.graphdb.Node;
 
 public class DSNibbleESP {
 
-	private Node Xt = null; // Current random-walk position @ time t
 	private HashMap<Long, Long> S = new HashMap<Long, Long>(); // Current Set
 	private HashMap<Long, Long> B = new HashMap<Long, Long>(); // Boundary Set
 	private HashMap<Long, Long> D = new HashMap<Long, Long>(); // New Set Diff
-
-	public Node getXt() {
-		return Xt;
-	}
-
-	public void setXt(Node xt) {
-		Xt = xt;
-	}
 
 	public HashMap<Long, Long> getS() {
 		return S;
@@ -27,8 +18,24 @@ public class DSNibbleESP {
 		return B;
 	}
 
-	public double probYinSet(Node y) {
+	// Degree of node y
+	public int degY(Node y) {
 		// TODO
+		return 0;
+	}
+	
+	public double probXtoY(Node x, Node y) {
+		// TODO
+		// IF {x,y} In E RETURN (1/2)d(x)
+		// IF x==y RETURN 1/2
+		// ELSE RETURN 0
+		return 0.0;
+	}
+	
+	public double probYinS(Node y) {
+		// TODO
+		// ForAll y In S
+		// -> SUM (1/2)( edgesYtoS(x)/degY(x) + yInS(x) )
 		return 0.0;
 	}
 
@@ -48,9 +55,12 @@ public class DSNibbleESP {
 		return 0;
 	}
 
-	public boolean yInS(Node y) {
+	public int yInS(Node y) {
 		// TODO
-		return S.containsKey(y.getId());
+		if (S.containsKey(y.getId()))
+			return 1;
+		else 
+			return 0;
 	}
 
 	// Call when y added/removed from S
@@ -63,7 +73,7 @@ public class DSNibbleESP {
 	}
 
 	// Uniform random value from [0,probXinS]
-	private double getZ() {
+	private double getZ(Node x) {
 		// TODO
 		return 0.0;
 	}
@@ -76,7 +86,7 @@ public class DSNibbleESP {
 	}
 
 	// Conductance(St) = B(St) / volume(St)
-	private double computeConductance() {
+	private double conductance() {
 		// TODO
 		return 0.0;
 	}
