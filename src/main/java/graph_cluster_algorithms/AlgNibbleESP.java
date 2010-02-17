@@ -37,10 +37,10 @@ public class AlgNibbleESP {
 		// TODO
 	}
 
+	// To get balanced cuts, evoCut is replaced by evoNibble
 	private void evoCut(Node v, double conductance) {
 		T = Math.floor(Math.pow(conductance, -1) / 100.0);
 		HashMap<Long, Long> S = genSample(v, Long.MAX_VALUE);
-		// TODO
 	}
 
 	private void evoNibble() {
