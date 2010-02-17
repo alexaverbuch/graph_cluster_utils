@@ -1,6 +1,5 @@
 package graph_cluster_algorithms;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -59,32 +58,31 @@ public class AlgNibbleESP {
 	// OUTPUT
 	// ----> St : Set sampled from volume-biased Evolving Set Process
 	private HashMap<Long, Long> genSample(Node x, long B) {
-		// TODO
 
-		DSNibbleESP sAndB = new DSNibbleESP(); // S, B, volume, conductance
+		DSNibbleESP sAndB = null; // S, B, volume, conductance
 		Node X = null; // Current random-walk position @ time t
 		Double Z = new Double(0);
-		HashMap<Long, Long> D = new HashMap<Long, Long>();
+		HashMap<Node, Boolean> D = new HashMap<Node, Boolean>();
 		Double conductance = new Double(0);
 
 		// Init
-		// ----> X = x0 = x
+		// -> X = x0 = x
 		X = x;
-		// ----> S = S0 = {x}
-		sAndB.getS().put(x.getId(), null);
+		// -> S = S0 = {x}
+		sAndB = new DSNibbleESP(X);
 
 		// ForEach Step t <= T
 		for (int t = 0; t < T; t++) {
 			// STAGE 1: compute St-1 to St difference
 			// -> X = Choose X with p(Xt-1,Xt)
-			X = sAndB.getNextX(X);
+			X = sAndB.getNextV(X);
 			// -> Compute probYinS(X)
 			// -> Select random threshold Z = getZ(X)
 			Z = sAndB.getZ(X);
 			// -> Define St = {y | probYinS(y,St-1) > Z}
 			// -> D = Set different between St & St-1
 			// -> Update volume(St) & cost(S0,...,St)
-			D = sAndB.computeDVolumeCost(Z);
+			D = sAndB.computeDVolumeCost(Z, transNeo);
 			// -> IF t==T OR cost()>B RETURN St = St-1 Diff D
 			if (sAndB.getCost() > B) {
 				// Add/remove vertices in D to S
@@ -93,22 +91,15 @@ public class AlgNibbleESP {
 			}
 			// STAGE 2: update S to St by adding/removing vertices in D to S
 			// -> Add/remove vertices in D to S
-			sAndB.applyDToS(D);
 			// -> Update B(St-1) to B(St)
-			sAndB.updateB();
+			sAndB.applyDToS(D);
 			// -> Compute conductance(St) = B(St) / volume(St)
 			// -> IF conductance(St) < thetaT RETURN St
 			if (sAndB.getConductance() < thetaT)
-				return sAndB.getS();				
+				break;
 		}
 
 		return sAndB.getS();
-	}
-
-	// Stopping Rule
-	private boolean t(double T, double B) {
-		// TODO
-		return false;
 	}
 
 	private void openTransServices() {
