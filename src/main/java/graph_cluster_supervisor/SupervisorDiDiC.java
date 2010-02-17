@@ -1,6 +1,7 @@
 package graph_cluster_supervisor;
 
 import graph_gen_utils.NeoFromFile;
+import graph_gen_utils.NeoFromFile.ChacoType;
 
 public class SupervisorDiDiC extends Supervisor {
 
@@ -39,23 +40,24 @@ public class SupervisorDiDiC extends Supervisor {
 
 		try {
 
-			// String outMetrics = String.format("%s%s-INIT.%d.met", resultsDir,
-			// graphName, clusterCount);
-			//
-			// // Create NeoFromFile and assign DB location
-			// NeoFromFile neoCreator = new NeoFromFile(databaseDir);
-			//
-			// // Write graph metrics to file
-			// neoCreator.writeMetrics(outMetrics);
-
 			String outMetrics = String.format("%s%s.%d.met", resultsDir,
 					graphName, clusterCount);
 
+			String outGraph = String.format("%s%s.graph", resultsDir,
+					graphName);
+			
+			String outPtn = String.format("%s%s.%d.ptn", resultsDir,
+					graphName, clusterCount);
+			
 			// Create NeoFromFile and assign DB location
 			NeoFromFile neoCreator = new NeoFromFile(databaseDir);
 
 			// Write graph metrics to file
 			neoCreator.writeMetricsCSV(outMetrics);
+			
+			// Write chaco file and initial partitioning to file
+			// .ptn file can be used in future simulations for consistency
+			neoCreator.writeChacoAndPtn(outGraph, ChacoType.UNWEIGHTED, outPtn);
 
 		} catch (Exception e) {
 			e.printStackTrace();
