@@ -32,6 +32,15 @@ public class DSNibbleESP {
 		return cost;
 	}
 
+	// Conductance(St) = sOutDeg(St) / volume(St)
+	public Double getConductance() {
+		return (double) this.outDeg / (double) this.volume;
+	}
+	
+	public Long getVolume(){
+		return this.volume;
+	}
+
 	// Select next starting vertex, v, with probability p(v,u)
 	// -> p(v,u) =
 	// ----> IF {v,u} In E RETURN (1/2)deg(v)
@@ -52,11 +61,6 @@ public class DSNibbleESP {
 			return previousV;
 
 		return neighbours.get(randIndex);
-	}
-
-	// Conductance(St) = sOutDeg(St) / volume(St)
-	public double getConductance() {
-		return (double) this.outDeg / (double) this.volume;
 	}
 
 	// Populate D, set difference between current St-1 & St

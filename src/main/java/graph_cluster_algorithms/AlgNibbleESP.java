@@ -1,20 +1,26 @@
 package graph_cluster_algorithms;
 
 import java.util.HashMap;
+import java.util.Random;
 
+import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Relationship;
 import org.neo4j.index.IndexService;
 import org.neo4j.index.lucene.LuceneIndexService;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
+import org.uncommons.maths.random.ExponentialGenerator;
+import org.uncommons.maths.random.MersenneTwisterRNG;
+import org.uncommons.maths.random.SeedException;
+import org.uncommons.maths.random.SeedGenerator;
 
 import graph_cluster_supervisor.Supervisor;
 
 public class AlgNibbleESP {
 
 	// ESP Related
-	private Double thetaT = new Double(0);
-	private Double T = new Double(0);
+	// private Double thetaT = new Double(0);
 
 	private String databaseDir;
 
@@ -38,13 +44,52 @@ public class AlgNibbleESP {
 	}
 
 	// To get balanced cuts, evoCut is replaced by evoNibble
+	// FIXME Not used. Only added for reference & consistency with paper
 	private void evoCut(Node v, double conductance) {
-		T = Math.floor(Math.pow(conductance, -1) / 100.0);
-		HashMap<Long, Long> S = genSample(v, Long.MAX_VALUE);
+
+		Double T = Math.floor(Math.pow(conductance, -1) / 100.0);
+		Double thetaT = new Double(0);
+		DSNibbleESP sAndB = genSample(v, T, Double.MAX_VALUE, thetaT);
+
 	}
 
-	private void evoNibble() {
+	private HashMap<Long, Long> evoNibble(double conductance) {
+		Long volumeG = getVolumeG();
+
+		// T = Floor(conductance^-1 / 100)
+		Double T = Math.floor(Math.pow(conductance, -1) / 100.0);
+
+		// thetaT = Sqrt(4.T^-1.log_2(volume(G)) )
+		Double log_2_volumeG = Math.log(volumeG) / Math.log(2);
+		Double thetaT = Math.sqrt(4.0 * Math.pow(T, -1) * log_2_volumeG);
+
 		// TODO
+		// Choose random vertex with probability P(X=x) = d(x)/volume(G)
+		Node v = getRandomNode();
+
+		// Choose random budget
+		// -> Let jMax = Ceiling(log_2(volumeG))
+		Double jMax = Math.ceil(log_2_volumeG);
+		// -> Let j be an integer in the range [0,jMax]
+		// -> Choose budget with probability P(J=j) = constB.2^-j
+		// ----> Where constB is a proportionality constant
+		Double constB = new Double(1);
+		Random rng = new MersenneTwisterRNG();
+		// NOTE exponential & mean = 1 is similar to constB.2^-j & constB = 1
+		ExponentialGenerator gen = new ExponentialGenerator(constB, rng);
+		Double j = gen.nextValue() * jMax;
+		// -> Let Bj = 8.y.2^j
+		// ----> Where y = 1 + 4.Sqrt(T.log_2(volumeG))
+		Double y = 1 + 4 * Math.sqrt(T * log_2_volumeG);
+		Double Bj = 8 * y * Math.pow(2, j);
+
+		DSNibbleESP sAndB = genSample(v, T, Bj, thetaT);
+
+		if ((sAndB.getConductance() > 3 * thetaT)
+				&& (sAndB.getVolume() < (3 / 4) * volumeG))
+			return sAndB.getS();
+
+		return null;
 	}
 
 	// Simulates volume-biased Evolving Set Process
@@ -57,7 +102,7 @@ public class AlgNibbleESP {
 	// ----> B>=0 : Budget
 	// OUTPUT
 	// ----> St : Set sampled from volume-biased Evolving Set Process
-	private HashMap<Long, Long> genSample(Node x, long B) {
+	private DSNibbleESP genSample(Node x, Double T, Double B, Double thetaT) {
 
 		DSNibbleESP sAndB = null; // S, B, volume, conductance
 		Node X = null; // Current random-walk position @ time t
@@ -99,7 +144,27 @@ public class AlgNibbleESP {
 				break;
 		}
 
-		return sAndB.getS();
+		return sAndB;
+	}
+
+	// Choose random vertex from remaining (unpartitioned) vertices
+	// Choose vertex with probability P(X=x) = d(x)/volume(G)
+	private Node getRandomNode() {
+		// TODO
+		return null;
+	}
+
+	private Long getVolumeG() {
+		Long volumeG = new Long(0);
+
+		for (Node v : transNeo.getAllNodes()) {
+			for (Relationship e : v.getRelationships(Direction.OUTGOING)) {
+				volumeG++;
+			}
+		}
+
+		// Assume undirected graph
+		return volumeG / 2;
 	}
 
 	private void openTransServices() {
