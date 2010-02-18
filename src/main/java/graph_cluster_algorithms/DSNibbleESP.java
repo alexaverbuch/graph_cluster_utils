@@ -57,7 +57,7 @@ public class DSNibbleESP {
 		int neighbourCount = neighbours.size();
 		int randIndex = rand.nextInt(neighbourCount * 2);
 
-		if (randIndex > neighbourCount)
+		if (randIndex >= neighbourCount)
 			return previousV;
 
 		return neighbours.get(randIndex);

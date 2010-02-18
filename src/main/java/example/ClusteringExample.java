@@ -19,7 +19,7 @@ public class ClusteringExample {
 	private static final int SNAPSHOT_PERIOD = 5;
 	private static final int MAX_ITERATIONS = 150;
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws Exception {
 //		do_didic_test_2_base_balanced_T5B5();
 		do_esp_test_single();
 	}
@@ -63,7 +63,7 @@ public class ClusteringExample {
 		didic.start(databaseDir, config, didicSupervisor);
 	}
 
-	private static void do_esp_test_single() {
+	private static void do_esp_test_single() throws Exception {
 		String inputGraph = "test-cluster";
 		// String inputPtn = "test-cluster-IN-BAL";
 
@@ -97,7 +97,7 @@ public class ClusteringExample {
 
 		ConfNibbleESP config = new ConfNibbleESP();
 		config.setP(0.5);
-		config.setTheta(0.5);
+		config.setTheta(0.01);
 		
 		esp.start(databaseDir, config, espSupervisor);
 	}
