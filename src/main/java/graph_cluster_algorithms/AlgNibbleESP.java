@@ -10,10 +10,9 @@ import org.neo4j.graphdb.Relationship;
 import org.neo4j.index.IndexService;
 import org.neo4j.index.lucene.LuceneIndexService;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
+
 import org.uncommons.maths.random.ExponentialGenerator;
 import org.uncommons.maths.random.MersenneTwisterRNG;
-import org.uncommons.maths.random.SeedException;
-import org.uncommons.maths.random.SeedGenerator;
 
 import graph_cluster_supervisor.Supervisor;
 
@@ -39,22 +38,34 @@ public class AlgNibbleESP {
 		// Set S0
 	}
 
-	private void evoPartition() {
+	// theta
+	private void evoPartition(Double theta, Double p) {
 		// TODO
+
+		// Set W(j) = W(0) = V
+		// Set j = 0
+		// Set conductance = theta/7
+
+		// [WHILE] j < 12.m.Ceil( lg(1/p) ) [AND] volumeWj >= (3/4)volumeV
+		// -> Set j = j+1
+		// -> D(j) = evoNibble(G[W(j-1)], conductance)
+		// -> W(j) = W(j-1) - D(j)
+
+		// Set D = D(1) U ... U D(j)
 	}
 
-	// To get balanced cuts, evoCut is replaced by evoNibble
-	// FIXME Not used. Only added for reference & consistency with paper
-	private void evoCut(Node v, double conductance) {
+	// // To get balanced cuts, evoCut is replaced by evoNibble
+	// // NOTE Not used. Only added for reference & consistency with paper
+	// private void evoCut(Node v, double conductance) {
+	//
+	// Double T = Math.floor(Math.pow(conductance, -1) / 100.0);
+	// Double thetaT = new Double(0);
+	// DSNibbleESP sAndB = genSample(v, T, Double.MAX_VALUE, thetaT);
+	//
+	// }
 
-		Double T = Math.floor(Math.pow(conductance, -1) / 100.0);
-		Double thetaT = new Double(0);
-		DSNibbleESP sAndB = genSample(v, T, Double.MAX_VALUE, thetaT);
-
-	}
-
-	private HashMap<Long, Long> evoNibble(double conductance) {
-		Long volumeG = getVolumeG();
+	private HashMap<Long, Long> evoNibble(Double conductance) {
+		Long volumeG = getVolumeG(-1);
 
 		// T = Floor(conductance^-1 / 100)
 		Double T = Math.floor(Math.pow(conductance, -1) / 100.0);
@@ -68,7 +79,7 @@ public class AlgNibbleESP {
 		Node v = getRandomNode();
 
 		// Choose random budget
-		// -> Let jMax = Ceiling(log_2(volumeG))
+		// -> Let jMax = Ceil(log_2(volumeG))
 		Double jMax = Math.ceil(log_2_volumeG);
 		// -> Let j be an integer in the range [0,jMax]
 		// -> Choose budget with probability P(J=j) = constB.2^-j
@@ -154,7 +165,10 @@ public class AlgNibbleESP {
 		return null;
 	}
 
-	private Long getVolumeG() {
+	// Only count nodes with "color" == color
+	private Long getVolumeG(Integer color) {
+		// TODO only count nodes with "color" == color
+		// TODO dont count external edges (e.g. to other colors)
 		Long volumeG = new Long(0);
 
 		for (Node v : transNeo.getAllNodes()) {
