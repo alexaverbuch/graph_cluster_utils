@@ -12,7 +12,7 @@ import org.neo4j.graphdb.Relationship;
 
 public class DSNibbleESP {
 
-	private HashMap<Long, Long> S = new HashMap<Long, Long>(); // Current Set
+	private ArrayList<Long> S = new ArrayList<Long>(); // Current Set
 	private HashMap<Long, Long> B = new HashMap<Long, Long>(); // Boundary Set
 	private Long volume = new Long(0);
 	private Long cost = new Long(0);
@@ -24,7 +24,7 @@ public class DSNibbleESP {
 		this.cost = this.volume;
 	}
 
-	public HashMap<Long, Long> getS() {
+	public ArrayList<Long> getS() {
 		return S;
 	}
 
@@ -36,8 +36,8 @@ public class DSNibbleESP {
 	public Double getConductance() {
 		return (double) this.outDeg / (double) this.volume;
 	}
-	
-	public Long getVolume(){
+
+	public Long getVolume() {
 		return this.volume;
 	}
 
@@ -78,19 +78,25 @@ public class DSNibbleESP {
 
 			// Lookup probNodeInS(v) & compare with Z
 			if (probNodeInS(v) > Z) {
-				// Populate D
-				D.put(v, true);
 
-				// Compute volume(St)
-				if (nodeInS(v) == false)
+				// Add to D only if not already in S
+				if (nodeInS(v) == false) {
+					// Populate D
+					D.put(v, true);
+					// Compute volume(St)
 					this.volume += deg(v);
-			} else {
-				// Populate D
-				D.put(v, false);
+				}
 
-				// Compute volume(St)
-				if (nodeInS(v) == true)
+			} else {
+
+				// Remove from D only if already in S
+				if (nodeInS(v) == true) {
+					// Populate D
+					D.put(v, false);
+					// Compute volume(St)
 					this.volume -= deg(v);
+				}
+
 			}
 
 		}
@@ -126,7 +132,7 @@ public class DSNibbleESP {
 	// -> Determine if nodeInB(u) by examining edgesFromNodeToB(u) & nodeInS(u)
 	// -> Add/remove u to/from B
 	private void updateB(Node v) {
-		// FIXME if correct, more efficient to just B(u)-- for neighboursOf v
+		// FIXME if correct, more efficient to just B(u)-- for neighboursOf v?
 
 		// ForAll u neighboursOf(v) (incl v)
 
@@ -136,38 +142,44 @@ public class DSNibbleESP {
 		for (Relationship ve : v.getRelationships(Direction.OUTGOING)) {
 			Node u = ve.getEndNode();
 
-			if (nodeInS(u) == true)
-				edgesFromVToS++;
-			else
-				edgesFromVToNotS++;
+			// NOTE Only consider vertices that have not been partitioned yet
+			if (u.getProperty("color") == new Integer(-1)) {
 
-			long edgesFromUToS = 0;
-			long edgesFromUToNotS = 0;
-
-			// Update edgesFromNodetoS(u)
-			for (Relationship ue : u.getRelationships(Direction.OUTGOING)) {
-				if (nodeInS(ue.getEndNode()) == true)
-					edgesFromUToS++;
+				if (nodeInS(u) == true)
+					edgesFromVToS++;
 				else
-					edgesFromUToNotS++;
+					edgesFromVToNotS++;
+
+				long edgesFromUToS = 0;
+				long edgesFromUToNotS = 0;
+
+				// Update edgesFromNodetoS(u)
+				for (Relationship ue : u.getRelationships(Direction.OUTGOING)) {
+					if (nodeInS(ue.getEndNode()) == true)
+						edgesFromUToS++;
+					else
+						edgesFromUToNotS++;
+				}
+
+				// Determine if nodeInB(u)
+				// By examining edgesFromNodeToS(u) & nodeInS(u)
+
+				// U is not in set S [AND] U has edges into set S --> U in set B
+				if ((edgesFromUToS > 0) && (nodeInS(u) == false)) {
+					B.put(u.getId(), edgesFromUToS);
+					continue;
+				}
+
+				// U is in set S [AND] U has edges out of set S --> U in set B
+				if ((edgesFromUToNotS > 0) && (nodeInS(u) == true)) {
+					B.put(u.getId(), edgesFromUToS);
+					continue;
+				}
+
+				B.remove(u.getId());
+
 			}
 
-			// Determine if nodeInB(u)
-			// By examining edgesFromNodeToS(u) & nodeInS(u)
-
-			// U is not in set S [AND] U has edges into set S --> U in set B
-			if ((edgesFromUToS > 0) && (nodeInS(u) == false)) {
-				B.put(u.getId(), edgesFromUToS);
-				continue;
-			}
-
-			// U is in set S [AND] U has edges out of set S --> U in set B
-			if ((edgesFromUToNotS > 0) && (nodeInS(u) == true)) {
-				B.put(u.getId(), edgesFromUToS);
-				continue;
-			}
-
-			B.remove(u.getId());
 		}
 
 		// Determine if nodeInB(v)
@@ -205,7 +217,7 @@ public class DSNibbleESP {
 		if (edgesFromNodeToS != null)
 			return edgesFromNodeToS;
 
-		if (S.containsKey(v.getId()))
+		if (S.contains(v.getId()))
 			return deg(v);
 
 		return 0;
@@ -224,29 +236,41 @@ public class DSNibbleESP {
 	private long deg(Node v) {
 		int deg = 0;
 
-		for (Relationship e : v.getRelationships(Direction.OUTGOING))
-			deg++;
+		for (Relationship e : v.getRelationships(Direction.OUTGOING)) {
+			// NOTE Only consider vertices that have not been partitioned yet
+			if (e.getEndNode().getProperty("color") == new Integer(-1)) {
+				deg++;
+			}
+		}
 
 		return deg;
 	}
 
 	// Check if node, v, is in set, S
 	private boolean nodeInS(Node v) {
-		return S.containsKey(v.getId());
+		return S.contains(v.getId());
 	}
 
 	// Add node, v, to set, S
 	// Update boundary, B
 	private void addNodetoS(Node v) {
-		S.put(v.getId(), null);
-		updateB(v);
+		if (S.contains(v.getId()) == false) {
+			S.add(v.getId());
+			updateB(v);
+		} else {
+			System.err.println("Node already in S!");
+		}
 	}
 
 	// Remove node, v, from set, S
 	// Update boundary, B
 	private void removeNodefromS(Node v) {
-		S.remove(v.getId());
-		updateB(v);
+		if (S.contains(v.getId()) == true) {
+			S.remove(v.getId());
+			updateB(v);
+		} else {
+			System.err.println("Node not in S!");
+		}
 	}
 
 }

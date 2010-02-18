@@ -8,7 +8,7 @@ public class ConfDiDiC {
 	private int benefitLow = 1; // Benefit, used by FOS/B
 	private int benefitHigh = 10; // Benefit, used by FOS/B
 	private int defClusterVal = 100; // Default Init Val
-	
+
 	// DiDiC Related General Variables
 	private int maxIterations = 150;
 	private int clusterCount = 2;
@@ -17,6 +17,7 @@ public class ConfDiDiC {
 	public enum AllocType {
 		BASE, OPT, HYBRID
 	}
+
 	private AllocType allocType = AllocType.BASE;
 	private int hybridSwitchPoint = -1;
 
@@ -26,12 +27,27 @@ public class ConfDiDiC {
 		this.benefitLow = 1;
 		this.benefitHigh = 10;
 		this.defClusterVal = 100;
-		
+
 		this.maxIterations = 150;
 		this.clusterCount = clusterCount;
-		
+
 		this.allocType = AllocType.BASE;
 		this.hybridSwitchPoint = -1;
+	}
+
+	public ConfDiDiC(int fOSTIterations, int fOSBIterations, int benefitLow,
+			int benefitHigh, int defClusterVal, int maxIterations,
+			int clusterCount, AllocType allocType, int hybridSwitchPoint) {
+		super();
+		FOSTIterations = fOSTIterations;
+		FOSBIterations = fOSBIterations;
+		this.benefitLow = benefitLow;
+		this.benefitHigh = benefitHigh;
+		this.defClusterVal = defClusterVal;
+		this.maxIterations = maxIterations;
+		this.clusterCount = clusterCount;
+		this.allocType = allocType;
+		this.hybridSwitchPoint = hybridSwitchPoint;
 	}
 
 	public int getFOSTIterations() {

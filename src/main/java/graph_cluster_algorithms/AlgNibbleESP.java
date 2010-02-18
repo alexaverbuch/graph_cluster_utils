@@ -1,5 +1,6 @@
 package graph_cluster_algorithms;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Random;
 
@@ -7,6 +8,7 @@ import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.Transaction;
 import org.neo4j.index.IndexService;
 import org.neo4j.index.lucene.LuceneIndexService;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
@@ -19,43 +21,83 @@ import graph_cluster_supervisor.Supervisor;
 public class AlgNibbleESP {
 
 	// ESP Related
-	// private Double thetaT = new Double(0);
-
 	private String databaseDir;
 
 	private GraphDatabaseService transNeo = null;
 	private IndexService transIndexService = null;
 
+	private Supervisor supervisor = null;
+
 	public void start(String databaseDir, ConfNibbleESP config,
 			Supervisor supervisor) {
 		this.databaseDir = databaseDir;
-		// TODO
+		this.supervisor = supervisor;
+
+		this.supervisor.do_initial_snapshot(-1, this.databaseDir);
+
+		openTransServices();
+
+		evoPartition(config.getTheta(), config.getP());
+
+		closeTransServices();
 	}
 
-	private void init() {
-		// TODO
-		// Set X0
-		// Set S0
-	}
-
-	// theta
 	private void evoPartition(Double theta, Double p) {
-		// TODO
 
 		// Set W(j) = W(0) = V
-		// Set j = 0
-		// Set conductance = theta/7
+		Long volumeG = getVolumeG(-1);
 
-		// [WHILE] j < 12.m.Ceil( lg(1/p) ) [AND] volumeWj >= (3/4)volumeV
-		// -> Set j = j+1
-		// -> D(j) = evoNibble(G[W(j-1)], conductance)
-		// -> W(j) = W(j-1) - D(j)
+		Long m = volumeG / 2; // Undirected
+
+		// Set j = 0
+		Integer j = 0;
+
+		// Set conductance = theta/7
+		Double conductance = theta / 7;
+
+		// [WHILE] j < 12.m.Ceil( lg(1/p) ) [AND] volumeWj >= (3/4)volumeG
+		Double jMax = 12 * m * Math.ceil(Math.log(1.0 / p));
+		Long volumeWj = volumeG;
+		while ((j < jMax) && (volumeWj >= (3 / 4) * volumeG)) {
+
+			Transaction tx = transNeo.beginTx();
+
+			try {
+
+				System.err.println("0");
+
+				// -> D(j) = evoNibble(G[W(j-1)], conductance)
+				ArrayList<Long> Dj = evoNibble(conductance, volumeWj);
+
+				System.err.println("1");
+
+				// -> Set j = j+1
+				if (Dj != null) {
+					j++;
+
+					// -> W(j) = W(j-1) - D(j)
+					updateClusterAlloc(Dj, j);
+					volumeWj = getVolumeG(-1);
+					tx.success();
+				} else {
+					System.err.println(String.format("D(%d) == null!", j));
+				}
+
+			} catch (Exception ex) {
+				System.err.println(ex.toString());
+			} finally {
+				tx.finish();
+			}
+		}
 
 		// Set D = D(1) U ... U D(j)
+		// NOTE In this implementation vertices are colored rather than removed
+		// NOTE There is no need to perform a Union operation
+		// TODO Tidy up the unallocated vertices here?
 	}
 
 	// // To get balanced cuts, evoCut is replaced by evoNibble
-	// // NOTE Not used. Only added for reference & consistency with paper
+	// // NOT USED. Only added for reference & consistency with paper
 	// private void evoCut(Node v, double conductance) {
 	//
 	// Double T = Math.floor(Math.pow(conductance, -1) / 100.0);
@@ -64,8 +106,7 @@ public class AlgNibbleESP {
 	//
 	// }
 
-	private HashMap<Long, Long> evoNibble(Double conductance) {
-		Long volumeG = getVolumeG(-1);
+	private ArrayList<Long> evoNibble(Double conductance, Long volumeG) {
 
 		// T = Floor(conductance^-1 / 100)
 		Double T = Math.floor(Math.pow(conductance, -1) / 100.0);
@@ -74,7 +115,6 @@ public class AlgNibbleESP {
 		Double log_2_volumeG = Math.log(volumeG) / Math.log(2);
 		Double thetaT = Math.sqrt(4.0 * Math.pow(T, -1) * log_2_volumeG);
 
-		// TODO
 		// Choose random vertex with probability P(X=x) = d(x)/volume(G)
 		Node v = getRandomNode();
 
@@ -119,7 +159,6 @@ public class AlgNibbleESP {
 		Node X = null; // Current random-walk position @ time t
 		Double Z = new Double(0);
 		HashMap<Node, Boolean> D = new HashMap<Node, Boolean>();
-		Double conductance = new Double(0);
 
 		// Init
 		// -> X = x0 = x
@@ -158,23 +197,49 @@ public class AlgNibbleESP {
 		return sAndB;
 	}
 
+	// Color all nodes in Dj with color j
+	private void updateClusterAlloc(ArrayList<Long> Dj, Integer j) {
+		for (Long vID : Dj) {
+			Node v = transNeo.getNodeById(vID);
+			v.setProperty("color", j);
+		}
+	}
+
 	// Choose random vertex from remaining (unpartitioned) vertices
 	// Choose vertex with probability P(X=x) = d(x)/volume(G)
 	private Node getRandomNode() {
-		// TODO
-		return null;
+		// FIXME currently not random at all
+
+		Node randomNode = transIndexService.getNodes("color", new Integer(-1))
+				.iterator().next();
+
+		return randomNode;
 	}
 
 	// Only count nodes with "color" == color
 	private Long getVolumeG(Integer color) {
-		// TODO only count nodes with "color" == color
-		// TODO dont count external edges (e.g. to other colors)
 		Long volumeG = new Long(0);
 
-		for (Node v : transNeo.getAllNodes()) {
-			for (Relationship e : v.getRelationships(Direction.OUTGOING)) {
-				volumeG++;
+		Transaction tx = transNeo.beginTx();
+
+		try {
+
+			for (Node v : transNeo.getAllNodes()) {
+				if ((v.getId() != 0) && (v.getProperty("color") == color)) {
+
+					for (Relationship e : v
+							.getRelationships(Direction.OUTGOING)) {
+						if (e.getEndNode().getProperty("color") == color)
+							volumeG++;
+					}
+
+				}
 			}
+
+		} catch (Exception ex) {
+			System.err.println(ex.toString());
+		} finally {
+			tx.finish();
 		}
 
 		// Assume undirected graph
