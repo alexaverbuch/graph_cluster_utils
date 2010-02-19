@@ -3,7 +3,6 @@ package graph_cluster_algorithms;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Random;
 
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -14,8 +13,8 @@ import org.neo4j.index.IndexService;
 import org.neo4j.index.lucene.LuceneIndexService;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 
-import org.uncommons.maths.random.ExponentialGenerator;
 import org.uncommons.maths.random.MersenneTwisterRNG;
+import org.uncommons.maths.random.ExponentialGenerator;
 
 import graph_cluster_supervisor.Supervisor;
 
@@ -32,15 +31,15 @@ public class AlgNibbleESP {
 	private Supervisor supervisor = null;
 
 	private Iterator randomNodeIter = null;
-	private Random rng = new MersenneTwisterRNG();
-	private ExponentialGenerator gen = null;
+	private MersenneTwisterRNG rng = null;
+	private ExponentialGenerator expGen = null;
 
 	public void start(String databaseDir, ConfNibbleESP config,
 			Supervisor supervisor) throws Exception {
 		this.databaseDir = databaseDir;
 		this.supervisor = supervisor;
 		this.rng = new MersenneTwisterRNG();
-		this.gen = new ExponentialGenerator(CONST_B, this.rng);
+		this.expGen = new ExponentialGenerator(CONST_B, this.rng);
 
 		this.supervisor.do_initial_snapshot(-1, this.databaseDir);
 
@@ -88,8 +87,9 @@ public class AlgNibbleESP {
 
 				// -> Set j = j+1
 				if (Dj != null) {
-					System.out.println(String.format(
-							"\tevoNibble returned. D(%d) != null!", j));
+					System.out.printf(
+							"\n\n\n\tevoNibble returned. |D(%d)| = %d\n\n\n",
+							j, Dj.size());
 
 					// -> W(j) = W(j-1) - D(j)
 					updateClusterAlloc(Dj, j);
@@ -99,7 +99,7 @@ public class AlgNibbleESP {
 					tx.success();
 				} else {
 					System.err.println(String.format(
-							"\tevoNibble returned. D(%d) == null!", j));
+							"\tevoNibble returned. D(%d) = null!", j));
 				}
 
 			} catch (Exception ex) {
@@ -149,7 +149,7 @@ public class AlgNibbleESP {
 		// -> Choose budget with probability P(J=j) = constB.2^-j
 		// ----> Where constB is a proportionality constant
 		// NOTE exponential & mean = 1 is similar to constB.2^-j & constB = 1
-		Double j = this.gen.nextValue() * jMax;
+		Double j = this.expGen.nextValue() * jMax;
 		// -> Let Bj = 8.y.2^j
 		// ----> Where y = 1 + 4.Sqrt(T.log_2(volumeG))
 		Double y = 1 + 4 * Math.sqrt(T * log_2_volumeG);
@@ -162,8 +162,14 @@ public class AlgNibbleESP {
 
 		DSNibbleESP sAndB = genSample(v, T, Bj, thetaT);
 
-		if ((sAndB.getConductance() > 3 * thetaT)
-				&& (sAndB.getVolume() < (3 / 4) * volumeG))
+		System.out
+				.printf(
+						"conductanceS[%f]<=3thetaT[%f] , volumeS[%d]<=3/4volumeG[%f]\n",
+						sAndB.getConductance(), 3 * thetaT, sAndB.getVolume(),
+						(3.0 / 4.0) * volumeG);
+
+		if ((sAndB.getConductance() <= 3 * thetaT)
+				&& (sAndB.getVolume() <= (3.0 / 4.0) * volumeG))
 			return sAndB.getS();
 
 		return null;
@@ -194,12 +200,14 @@ public class AlgNibbleESP {
 		// -> X = x0 = x
 		X = x;
 		// -> S = S0 = {x}
-		sAndB = new DSNibbleESP(X);
+		sAndB = new DSNibbleESP(X, this.rng);
 
 		try {
 			// ForEach Step t <= T
 			for (int t = 0; t < T; t++) {
+
 				// STAGE 1: compute St-1 to St difference
+
 				// -> X = Choose X with p(Xt-1,Xt)
 				X = sAndB.getNextV(X);
 				// -> Compute probYinS(X)
@@ -215,7 +223,9 @@ public class AlgNibbleESP {
 					sAndB.applyDToS(D);
 					break;
 				}
+
 				// STAGE 2: update S to St by adding/removing vertices in D to S
+
 				// -> Add/remove vertices in D to S
 				// -> Update B(St-1) to B(St)
 				sAndB.applyDToS(D);

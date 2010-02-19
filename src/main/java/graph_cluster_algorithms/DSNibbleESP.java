@@ -2,13 +2,16 @@ package graph_cluster_algorithms;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Random;
 import java.util.Map.Entry;
 
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
+
+import org.uncommons.maths.random.MersenneTwisterRNG;
+import org.uncommons.maths.random.ContinuousUniformGenerator;
+import org.uncommons.maths.random.DiscreteUniformGenerator;
 
 public class DSNibbleESP {
 
@@ -18,10 +21,13 @@ public class DSNibbleESP {
 	private Long cost = new Long(0);
 	private Long outDeg = new Long(0);
 
-	public DSNibbleESP(Node x) {
+	private MersenneTwisterRNG rng;
+
+	public DSNibbleESP(Node x, MersenneTwisterRNG rng) {
 		addNodetoS(x);
 		this.volume = deg(x);
 		this.cost = this.volume;
+		this.rng = rng;
 	}
 
 	public ArrayList<Long> getS() {
@@ -52,10 +58,16 @@ public class DSNibbleESP {
 		for (Relationship e : previousV.getRelationships(Direction.OUTGOING))
 			neighbours.add(e.getEndNode());
 
-		Random rand = new Random(System.currentTimeMillis());
+		// NOTE old
+		// Random rand = new Random(System.currentTimeMillis());
+		// int neighbourCount = neighbours.size();
+		// int randIndex = rand.nextInt(neighbourCount * 2);
 
+		// NOTE new
 		int neighbourCount = neighbours.size();
-		int randIndex = rand.nextInt(neighbourCount * 2);
+		DiscreteUniformGenerator randGen = new DiscreteUniformGenerator(0,
+				(neighbourCount * 2) - 1, this.rng);
+		int randIndex = randGen.nextValue();
 
 		if (randIndex >= neighbourCount)
 			return previousV;
@@ -122,8 +134,12 @@ public class DSNibbleESP {
 
 	// Uniform random value from [0,probNodeInS(v)]
 	public double getZ(Node v) {
-		Random rand = new Random(System.currentTimeMillis());
-		return rand.nextDouble() * probNodeInS(v);
+		// NOTE old
+		// Random randGen = new Random(System.currentTimeMillis());
+		// Note new
+		ContinuousUniformGenerator randGen = new ContinuousUniformGenerator(0,
+				1, this.rng);
+		return randGen.nextValue() * probNodeInS(v);
 	}
 
 	// Call when a single node, v, is added/from to/from set, S
@@ -141,9 +157,11 @@ public class DSNibbleESP {
 
 		for (Relationship ve : v.getRelationships(Direction.OUTGOING)) {
 			Node u = ve.getEndNode();
+			
+			Integer color = (Integer) u.getProperty("color"); 
 
 			// NOTE Only consider vertices that have not been partitioned yet
-			if (u.getProperty("color") == new Integer(-1)) {
+			if (color == -1) {
 
 				if (nodeInS(u) == true)
 					edgesFromVToS++;
@@ -238,7 +256,8 @@ public class DSNibbleESP {
 
 		for (Relationship e : v.getRelationships(Direction.OUTGOING)) {
 			// NOTE Only consider vertices that have not been partitioned yet
-			if (e.getEndNode().getProperty("color") == new Integer(-1)) {
+			Integer color = (Integer) e.getEndNode().getProperty("color");
+			if (color == -1) {
 				deg++;
 			}
 		}
