@@ -97,7 +97,7 @@ public class ClusteringExample {
 
 		ConfNibbleESP config = new ConfNibbleESP();
 		config.setP(0.5);
-		config.setTheta(0.001);
+		config.setTheta(0.01);
 		
 		esp.start(databaseDir, config, espSupervisor);
 	}

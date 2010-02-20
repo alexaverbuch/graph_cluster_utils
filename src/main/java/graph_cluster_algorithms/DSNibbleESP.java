@@ -23,11 +23,12 @@ public class DSNibbleESP {
 
 	private MersenneTwisterRNG rng;
 
-	public DSNibbleESP(Node x, MersenneTwisterRNG rng) {
+	public DSNibbleESP(Node x, MersenneTwisterRNG rng) throws Exception {
 		addNodetoS(x);
 		this.volume = deg(x);
 		this.cost = this.volume;
 		this.rng = rng;
+		printSAndB();
 	}
 
 	public ArrayList<Long> getS() {
@@ -120,7 +121,7 @@ public class DSNibbleESP {
 		return D;
 	}
 
-	public void applyDToS(HashMap<Node, Boolean> D) {
+	public void applyDToS(HashMap<Node, Boolean> D) throws Exception {
 		// FIXME is this all that's necessary?
 
 		// Add/remove vertices in D to/from S
@@ -149,6 +150,7 @@ public class DSNibbleESP {
 	// -> Add/remove u to/from B
 	private void updateB(Node v) {
 		// FIXME if correct, more efficient to just B(u)-- for neighboursOf v?
+		// TODO once correct, ***definitely*** many optimizations to make here
 
 		// ForAll u neighboursOf(v) (incl v)
 
@@ -157,8 +159,8 @@ public class DSNibbleESP {
 
 		for (Relationship ve : v.getRelationships(Direction.OUTGOING)) {
 			Node u = ve.getEndNode();
-			
-			Integer color = (Integer) u.getProperty("color"); 
+
+			Integer color = (Integer) u.getProperty("color");
 
 			// NOTE Only consider vertices that have not been partitioned yet
 			if (color == -1) {
@@ -183,44 +185,52 @@ public class DSNibbleESP {
 				// By examining edgesFromNodeToS(u) & nodeInS(u)
 
 				// U is not in set S [AND] U has edges into set S --> U in set B
-				if ((edgesFromUToS > 0) && (nodeInS(u) == false)) {
+				if ((nodeInS(u) == false) && (edgesFromUToS > 0)) {
 					B.put(u.getId(), edgesFromUToS);
 					continue;
 				}
 
 				// U is in set S [AND] U has edges out of set S --> U in set B
-				if ((edgesFromUToNotS > 0) && (nodeInS(u) == true)) {
+				if ((nodeInS(u) == true) && (edgesFromUToNotS > 0)) {
 					B.put(u.getId(), edgesFromUToS);
 					continue;
 				}
 
+				// U is not in set S
 				B.remove(u.getId());
 
 			}
 
 		}
 
-		// Determine if nodeInB(v)
-		// By examining edgesFromNodeToS(v) & nodeInS(v)
-
-		// U is not in set S [AND] U has edges into set S --> U in set B
-		if ((edgesFromVToS > 0) && (nodeInS(v) == false))
-			B.put(v.getId(), edgesFromVToS);
-
-		// U is in set S [AND] U has edges out of set S --> U in set B
-		if ((edgesFromVToNotS > 0) && (nodeInS(v) == true))
-			B.put(v.getId(), edgesFromVToS);
-
-		B.remove(v.getId());
-
 		// Update out degree of S
 		if (nodeInS(v) == true) {
+			// v was just added to S
 			this.outDeg -= edgesFromVToS;
 			this.outDeg += edgesFromVToNotS;
 		} else {
+			// v was just removed from S
 			this.outDeg += edgesFromVToS;
 			this.outDeg -= edgesFromVToNotS;
 		}
+
+		// Determine if nodeInB(v)
+		// By examining edgesFromNodeToS(v) & nodeInS(v)
+
+		// V is not in set S [AND] V has edges into set S --> V in set B
+		if ((nodeInS(v) == false) && (edgesFromVToS > 0)) {
+			B.put(v.getId(), edgesFromVToS);
+			return;
+		}
+
+		// V is in set S [AND] V has edges out of set S --> V in set B
+		if ((nodeInS(v) == true) && (edgesFromVToNotS > 0)) {
+			B.put(v.getId(), edgesFromVToS);
+			return;
+		}
+
+		// V is not in S
+		B.remove(v.getId());
 
 	}
 
@@ -272,24 +282,40 @@ public class DSNibbleESP {
 
 	// Add node, v, to set, S
 	// Update boundary, B
-	private void addNodetoS(Node v) {
+	private void addNodetoS(Node v) throws Exception {
 		if (S.contains(v.getId()) == false) {
 			S.add(v.getId());
 			updateB(v);
-		} else {
-			System.err.println("Node already in S!");
-		}
+		} else
+			throw new Exception(String.format("Node[%d] already in S!", v
+					.getId()));
 	}
 
 	// Remove node, v, from set, S
 	// Update boundary, B
-	private void removeNodefromS(Node v) {
+	private void removeNodefromS(Node v) throws Exception {
 		if (S.contains(v.getId()) == true) {
 			S.remove(v.getId());
 			updateB(v);
-		} else {
-			System.err.println("Node not in S!");
-		}
+		} else
+			throw new Exception(String.format("Node[%d] not in S!", v.getId()));
+
 	}
 
+	private void printSAndB() {
+		System.out.printf("<DSNibbleESP.printSAndB>\n");
+		System.out.printf("\tS=[");
+		for (Long vID : S) {
+			System.out.printf(",%d", vID);
+		}
+		System.out.printf("]\n");
+
+		System.out.printf("\tB=[");
+		for (Entry<Long, Long> bEntry : B.entrySet()) {
+			System.out.printf(",ID=%d eToS=%d", bEntry.getKey(), bEntry
+					.getValue());
+		}
+		System.out.printf("]\n");
+
+	}
 }

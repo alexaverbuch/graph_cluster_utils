@@ -1,8 +1,12 @@
 package graph_cluster_algorithms;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.Map.Entry;
 
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -21,7 +25,7 @@ import graph_cluster_supervisor.Supervisor;
 public class AlgNibbleESP {
 
 	// ESP Related
-	private final static Double CONST_B = 1.0;
+	private final static Double CONST_B = 5.0;
 
 	private String databaseDir;
 
@@ -30,20 +34,26 @@ public class AlgNibbleESP {
 
 	private Supervisor supervisor = null;
 
-	private Iterator randomNodeIter = null;
+	private Iterator<Node> randomNodeIter = null;
 	private MersenneTwisterRNG rng = null;
-	private ExponentialGenerator expGen = null;
+	private ExponentialGenerator expGenB = null;
+	private ExponentialGenerator expGenV = null;
+
+	private TreeMap<Long, Integer> nodeDegrees = null;
 
 	public void start(String databaseDir, ConfNibbleESP config,
 			Supervisor supervisor) throws Exception {
 		this.databaseDir = databaseDir;
 		this.supervisor = supervisor;
 		this.rng = new MersenneTwisterRNG();
-		this.expGen = new ExponentialGenerator(CONST_B, this.rng);
+		this.expGenB = new ExponentialGenerator(CONST_B, this.rng);
+		this.expGenV = new ExponentialGenerator(5.0, this.rng);
 
 		this.supervisor.do_initial_snapshot(-1, this.databaseDir);
 
 		openTransServices();
+
+		this.nodeDegrees = getNodeDegrees();
 
 		evoPartition(config.getTheta(), config.getP());
 
@@ -64,16 +74,16 @@ public class AlgNibbleESP {
 		Double conductance = theta / 7;
 
 		// [WHILE] j < 12.m.Ceil( lg(1/p) ) [AND] volumeWj >= (3/4)volumeG
-		Double jMax = 12 * m * Math.ceil(Math.log(1.0 / p));
+		Double jMax = 12 * m * Math.ceil(Math.log(1.0 / p) / Math.log(10));
 		Long volumeWj = volumeG;
 
-		System.err.printf("evoPartition[theta=%f,p=%f]\n", theta, p);
-		System.err.printf("            [conductance=%f,jMax=%f,volumeWj=%d]\n",
+		System.out.printf("evoPartition[theta=%f,p=%f]\n", theta, p);
+		System.out.printf("            [conductance=%f,jMax=%f,volumeWj=%d]\n",
 				conductance, jMax, volumeWj);
 
 		while ((j < jMax) && (volumeWj >= (3 / 4) * volumeG)) {
 
-			System.err.printf("evoPartition[j=%d,jMax=%f,volumeWj=%d]\n", j,
+			System.out.printf("evoPartition[j=%d,jMax=%f,volumeWj=%d]\n", j,
 					jMax, volumeWj);
 
 			Transaction tx = transNeo.beginTx();
@@ -97,10 +107,9 @@ public class AlgNibbleESP {
 					volumeWj = getVolumeG(-1);
 
 					tx.success();
-				} else {
+				} else
 					System.err.println(String.format(
 							"\tevoNibble returned. D(%d) = null!", j));
-				}
 
 			} catch (Exception ex) {
 				System.err.printf("<evoPartition> \n\t%s\n", ex.toString());
@@ -138,7 +147,10 @@ public class AlgNibbleESP {
 		Double thetaT = Math.sqrt(4.0 * Math.pow(T, -1) * log_2_volumeG);
 
 		// Choose random vertex with probability P(X=x) = d(x)/volume(G)
+		// Node v = getNonRandomNode();
 		Node v = getRandomNode();
+
+		// This can only happen if all nodes have been partitioned
 		if (v == null)
 			return null;
 
@@ -149,15 +161,17 @@ public class AlgNibbleESP {
 		// -> Choose budget with probability P(J=j) = constB.2^-j
 		// ----> Where constB is a proportionality constant
 		// NOTE exponential & mean = 1 is similar to constB.2^-j & constB = 1
-		Double j = this.expGen.nextValue() * jMax;
+		Double j = this.expGenB.nextValue() * jMax;
+		if (j > jMax) // Exponential distribution -> May return > 1.0
+			j = jMax;
 		// -> Let Bj = 8.y.2^j
 		// ----> Where y = 1 + 4.Sqrt(T.log_2(volumeG))
 		Double y = 1 + 4 * Math.sqrt(T * log_2_volumeG);
 		Double Bj = 8 * y * Math.pow(2, j);
 
-		System.err.printf("evoNibble[conductance=%f,volumeG=%d]\n",
+		System.out.printf("evoNibble[conductance=%f,volumeG=%d]\n",
 				conductance, volumeG);
-		System.err.printf("         [v=%d,jMax=%f,j=%f,y=%f,Bj=%f]\n", v
+		System.out.printf("         [v=%d,jMax=%f,j=%f,y=%f,Bj=%f]\n", v
 				.getId(), jMax, j, y, Bj);
 
 		DSNibbleESP sAndB = genSample(v, T, Bj, thetaT);
@@ -188,7 +202,7 @@ public class AlgNibbleESP {
 	private DSNibbleESP genSample(Node x, Double T, Double B, Double thetaT)
 			throws Exception {
 
-		System.err.printf("genSample[x=%d,T=%f,B=%f,thetaT=%f]\n", x.getId(),
+		System.out.printf("genSample[x=%d,T=%f,B=%f,thetaT=%f]\n", x.getId(),
 				T, B, thetaT);
 
 		DSNibbleESP sAndB = null; // S, B, volume, conductance
@@ -202,6 +216,9 @@ public class AlgNibbleESP {
 		// -> S = S0 = {x}
 		sAndB = new DSNibbleESP(X, this.rng);
 
+		System.out.printf("<genSample> SB.conductance=%f, SB.cost=%d, SB.volume=%d\n",
+				sAndB.getConductance(), sAndB.getCost(), sAndB.getVolume());
+
 		try {
 			// ForEach Step t <= T
 			for (int t = 0; t < T; t++) {
@@ -210,9 +227,13 @@ public class AlgNibbleESP {
 
 				// -> X = Choose X with p(Xt-1,Xt)
 				X = sAndB.getNextV(X);
+				// FIXME
+				// System.out.printf("\tX=%d\n", X.getId());
 				// -> Compute probYinS(X)
 				// -> Select random threshold Z = getZ(X)
 				Z = sAndB.getZ(X);
+				// FIXME
+				// System.out.printf("\tZ=%f\n", Z);
 				// -> Define St = {y | probYinS(y,St-1) > Z}
 				// -> D = Set different between St & St-1
 				// -> Update volume(St) & cost(S0,...,St)
@@ -247,27 +268,98 @@ public class AlgNibbleESP {
 		for (Long vID : Dj) {
 			Node v = transNeo.getNodeById(vID);
 			v.setProperty("color", j);
+			this.nodeDegrees.remove(vID);
 		}
 	}
 
 	// Choose random vertex from remaining (unpartitioned) vertices
 	// Choose vertex with probability P(X=x) = d(x)/volume(G)
 	private Node getRandomNode() throws Exception {
-		// FIXME currently not random at all
+		Double randVal = this.expGenV.nextValue();
+		if (randVal > 1)
+			randVal = 0.99;
 
+		long randIndex = Math.round(randVal * (this.nodeDegrees.size() - 1));
+
+		long index = 0;
+		for (Entry<Long, Integer> nodeDeg : this.nodeDegrees.entrySet()) {
+			if (index == randIndex) {
+				return transNeo.getNodeById(nodeDeg.getKey());
+			}
+			index++;
+		}
+
+		throw new Exception(
+				String
+						.format(
+								"<getRandomNode> Could not find random node!\n\trandIndex=%d,index=%d\n",
+								randIndex, index));
+	}
+
+	// Choose random vertex from remaining (unpartitioned) vertices
+	// Choose vertex with probability P(X=x) = d(x)/volume(G)
+	private Node getNonRandomNode() throws Exception {
 		if (randomNodeIter == null)
 			randomNodeIter = transIndexService.getNodes("color",
 					new Integer(-1)).iterator();
 
 		while (randomNodeIter.hasNext()) {
 			Node randomNode = (Node) randomNodeIter.next();
+
+			// Ignore node 0 (reference node)
 			if (randomNode.getId() == 0)
 				continue;
+
+			// Only consider nodes that have not yet been partitioned
+			Integer color = (Integer) randomNode.getProperty("color");
+			if (color != -1)
+				continue;
+
 			return randomNode;
 		}
 
-		// throw new Exception("getRandomNode: No more nodes");
 		return null;
+	}
+
+	private TreeMap<Long, Integer> getNodeDegrees() throws Exception {
+		HashMap<Long, Integer> unsortedNodeDegs = new HashMap<Long, Integer>();
+		ValueComparator degreComparator = new ValueComparator(unsortedNodeDegs);
+		TreeMap<Long, Integer> sortedNodeDegs = new TreeMap(degreComparator);
+
+		Transaction tx = transNeo.beginTx();
+
+		try {
+
+			for (Node v : transNeo.getAllNodes()) {
+				if (v.getId() != 0) {
+
+					Integer vDeg = 0;
+
+					for (Relationship e : v
+							.getRelationships(Direction.OUTGOING))
+						vDeg++;
+
+					unsortedNodeDegs.put(v.getId(), vDeg);
+
+				}
+			}
+
+		} catch (Exception ex) {
+			System.err.printf("<getNodeDegrees> \n\t%s\n", ex.toString());
+			throw ex;
+		} finally {
+			tx.finish();
+		}
+
+		sortedNodeDegs.putAll(unsortedNodeDegs);
+
+		// TODO REMOVE!!!
+		for (Entry<Long, Integer> nodeDeg : sortedNodeDegs.entrySet()) {
+			System.out.printf("*** INDEX[%d] = DEG[%d] ***\n",
+					nodeDeg.getKey(), nodeDeg.getValue());
+		}
+
+		return sortedNodeDegs;
 	}
 
 	// Only count nodes with "color" == color
@@ -326,4 +418,24 @@ public class AlgNibbleESP {
 		System.out.printf("%dms%n", System.currentTimeMillis() - time);
 	}
 
+}
+
+class ValueComparator implements Comparator {
+
+	private Map base;
+
+	public ValueComparator(Map base) {
+		this.base = base;
+	}
+
+	public int compare(Object a, Object b) {
+
+		if ((Integer) base.get(a) < (Integer) base.get(b)) {
+			return 1;
+			// } else if ((Integer) base.get(a) == (Integer) base.get(b)) {
+			// return 0;
+		} else {
+			return -1;
+		}
+	}
 }
