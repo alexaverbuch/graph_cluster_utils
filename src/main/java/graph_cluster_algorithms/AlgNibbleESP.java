@@ -34,12 +34,12 @@ public class AlgNibbleESP {
 
 	private Supervisor supervisor = null;
 
-	private Iterator<Node> randomNodeIter = null;
+	private Iterator<Node> nodeIter = null;
 	private MersenneTwisterRNG rng = null;
 	private ExponentialGenerator expGenB = null;
 	private ExponentialGenerator expGenV = null;
 
-	private TreeMap<Long, Integer> nodeDegrees = null;
+	private ArrayList<Long> nodes = null;
 
 	public void start(String databaseDir, ConfNibbleESP config,
 			Supervisor supervisor) throws Exception {
@@ -53,7 +53,7 @@ public class AlgNibbleESP {
 
 		openTransServices();
 
-		this.nodeDegrees = getNodeDegrees();
+		this.nodes = getNodeDegrees();
 
 		evoPartition(config.getTheta(), config.getP());
 
@@ -83,8 +83,8 @@ public class AlgNibbleESP {
 
 		while ((j < jMax) && (volumeWj >= (3 / 4) * volumeG)) {
 
-			System.out.printf("evoPartition[j=%d,jMax=%f,volWj=%d]\n", j, jMax,
-					volumeWj);
+			System.out.printf("evoPartition[j=%d,jMax=%f,volWj=%d]\n%s\n", j,
+					jMax, volumeWj, nodesToStr());
 
 			Transaction tx = transNeo.beginTx();
 
@@ -98,8 +98,8 @@ public class AlgNibbleESP {
 				// -> Set j = j+1
 				if (Dj != null) {
 					System.out.printf(
-							"\n\tevoNibble returned. |D(%d)| = %d\n\n", j, Dj
-									.size());
+							"\n\tevoNibble returned. |D(%d)| = %d\n\t%s\n\n",
+							j, Dj.size(), dToStr(Dj));
 
 					// -> W(j) = W(j-1) - D(j)
 					updateClusterAlloc(Dj, j);
@@ -178,7 +178,7 @@ public class AlgNibbleESP {
 
 		System.out
 				.printf(
-						"\t\tgenSample() -> conductS[%f]<=3thetaT[%f] , volS[%d]<=3/4volG[%f]\n",
+						"\t\t<evoNibble> genSample() -> S: conductS[%f]<=3thetaT[%f] , volS[%d]<=3/4volG[%f]\n",
 						sAndB.getConductance(), 3 * thetaT, sAndB.getVolume(),
 						(3.0 / 4.0) * volumeG);
 
@@ -216,9 +216,11 @@ public class AlgNibbleESP {
 		// -> S = S0 = {x}
 		sAndB = new DSNibbleESP(X, this.rng);
 
-		System.out.printf(
-				"\t\t\t<genSample> SB_Init: conductS=%f, costS=%d, volS=%d\n",
-				sAndB.getConductance(), sAndB.getCost(), sAndB.getVolume());
+		System.out
+				.printf(
+						"\t\t\t<genSample> SB_Init: conductS=%f, costS=%d, volS=%d, X=%d\n",
+						sAndB.getConductance(), sAndB.getCost(), sAndB
+								.getVolume(), X.getId());
 
 		try {
 			// ForEach Step t <= T
@@ -228,14 +230,14 @@ public class AlgNibbleESP {
 
 				// -> X = Choose X with p(Xt-1,Xt)
 				X = sAndB.getNextV(X);
-				// FIXME
-				// System.out.printf("\tX=%d\n", X.getId());
 
 				// -> Compute probYinS(X)
 				// -> Select random threshold Z = getZ(X)
 				Z = sAndB.getZ(X);
-				// FIXME
-				// System.out.printf("\tZ=%f\n", Z);
+
+				System.out.printf(
+						"\t\t\t<genSample> t[%d], nextX[%d], Z[%f]\n", t, X
+								.getId(), Z);
 
 				// -> Define St = {y | probYinS(y,St-1) > Z}
 				// -> D = Set different between St & St-1
@@ -285,11 +287,17 @@ public class AlgNibbleESP {
 	}
 
 	// Color all nodes in Dj with color j
-	private void updateClusterAlloc(ArrayList<Long> Dj, Integer j) {
+	private void updateClusterAlloc(ArrayList<Long> Dj, Integer j)
+			throws Exception {
 		for (Long vID : Dj) {
 			Node v = transNeo.getNodeById(vID);
 			v.setProperty("color", j);
-			this.nodeDegrees.remove(vID);
+
+			if (this.nodes.remove(vID) == false) {
+				System.out.println(this.nodes.contains(vID));
+				throw new Exception(
+						"<updateClusterAlloc> Could not remove vID from nodes!");
+			}
 		}
 	}
 
@@ -297,52 +305,18 @@ public class AlgNibbleESP {
 	// Choose vertex with probability P(X=x) = d(x)/volume(G)
 	private Node getRandomNode() throws Exception {
 		Double randVal = this.expGenV.nextValue();
-		if (randVal > 1)
-			randVal = 0.99;
 
-		long randIndex = Math.round(randVal * (this.nodeDegrees.size() - 1));
+		long randIndex = Math.round(randVal * (this.nodes.size() - 1));
 
-		long index = 0;
-		for (Entry<Long, Integer> nodeDeg : this.nodeDegrees.entrySet()) {
-			if (index == randIndex) {
-				return transNeo.getNodeById(nodeDeg.getKey());
-			}
-			index++;
-		}
+		// Exponential distribution can result in > 1.0
+		// Default to node with highest degree in this case
+		if (randIndex >= this.nodes.size())
+			randIndex = 0;
 
-		throw new Exception(
-				String
-						.format(
-								"<getRandomNode> Could not find random node!\n\trandIndex=%d,index=%d\n",
-								randIndex, index));
+		return transNeo.getNodeById(this.nodes.get((int) randIndex));
 	}
 
-	// Choose random vertex from remaining (unpartitioned) vertices
-	// Choose vertex with probability P(X=x) = d(x)/volume(G)
-	private Node getNonRandomNode() throws Exception {
-		if (randomNodeIter == null)
-			randomNodeIter = transIndexService.getNodes("color",
-					new Integer(-1)).iterator();
-
-		while (randomNodeIter.hasNext()) {
-			Node randomNode = (Node) randomNodeIter.next();
-
-			// Ignore node 0 (reference node)
-			if (randomNode.getId() == 0)
-				continue;
-
-			// Only consider nodes that have not yet been partitioned
-			Integer color = (Integer) randomNode.getProperty("color");
-			if (color != -1)
-				continue;
-
-			return randomNode;
-		}
-
-		return null;
-	}
-
-	private TreeMap<Long, Integer> getNodeDegrees() throws Exception {
+	private ArrayList<Long> getNodeDegrees() throws Exception {
 		HashMap<Long, Integer> unsortedNodeDegs = new HashMap<Long, Integer>();
 		ValueComparator degreComparator = new ValueComparator(unsortedNodeDegs);
 		TreeMap<Long, Integer> sortedNodeDegs = new TreeMap(degreComparator);
@@ -374,13 +348,25 @@ public class AlgNibbleESP {
 
 		sortedNodeDegs.putAll(unsortedNodeDegs);
 
+		ArrayList<Long> sortedNodes = new ArrayList<Long>();
+		for (Long vID : sortedNodeDegs.keySet()) {
+			sortedNodes.add(vID);
+		}
+
 		// TODO REMOVE!!!
 		for (Entry<Long, Integer> nodeDeg : sortedNodeDegs.entrySet()) {
 			System.out.printf("*** INDEX[%d] = DEG[%d] ***\n",
 					nodeDeg.getKey(), nodeDeg.getValue());
 		}
 
-		return sortedNodeDegs;
+		System.out.printf("\n******\n");
+
+		// TODO REMOVE!!!
+		for (Long vID : sortedNodes) {
+			System.out.printf("*** INDEX[%d] ***\n", vID);
+		}
+
+		return sortedNodes;
 	}
 
 	// Only count nodes with "color" == color
@@ -411,6 +397,28 @@ public class AlgNibbleESP {
 
 		// Assume undirected graph
 		return volumeG / 2;
+	}
+
+	private String nodesToStr() {
+		String nodesToStr = "[ ";
+
+		for (Long vID : nodes) {
+			nodesToStr += String.format("%d ", vID);
+		}
+		nodesToStr += "]";
+
+		return nodesToStr;
+	}
+
+	private String dToStr(ArrayList<Long> D) {
+		String dToStr = "[ ";
+
+		for (Long vID : D) {
+			dToStr += String.format("%d ", vID);
+		}
+		dToStr += "]";
+
+		return dToStr;
 	}
 
 	private void openTransServices() {
