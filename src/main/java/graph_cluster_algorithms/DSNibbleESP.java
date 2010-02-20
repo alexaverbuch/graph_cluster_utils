@@ -303,14 +303,14 @@ public class DSNibbleESP {
 	}
 
 	private void printSAndB() {
-		System.out.printf("<DSNibbleESP.printSAndB>\n");
-		System.out.printf("\tS=[");
+		System.out.printf("\t\t\t\t<DSNibbleESP.printSAndB>\n");
+		System.out.printf("\t\t\t\tS=[");
 		for (Long vID : S) {
 			System.out.printf(",%d", vID);
 		}
 		System.out.printf("]\n");
 
-		System.out.printf("\tB=[");
+		System.out.printf("\t\t\t\tB=[");
 		for (Entry<Long, Long> bEntry : B.entrySet()) {
 			System.out.printf(",ID=%d eToS=%d", bEntry.getKey(), bEntry
 					.getValue());

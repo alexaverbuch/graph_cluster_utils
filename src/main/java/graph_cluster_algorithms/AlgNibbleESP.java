@@ -78,13 +78,13 @@ public class AlgNibbleESP {
 		Long volumeWj = volumeG;
 
 		System.out.printf("evoPartition[theta=%f,p=%f]\n", theta, p);
-		System.out.printf("            [conductance=%f,jMax=%f,volumeWj=%d]\n",
+		System.out.printf("            [conduct=%f,jMax=%f,volWj=%d]\n",
 				conductance, jMax, volumeWj);
 
 		while ((j < jMax) && (volumeWj >= (3 / 4) * volumeG)) {
 
-			System.out.printf("evoPartition[j=%d,jMax=%f,volumeWj=%d]\n", j,
-					jMax, volumeWj);
+			System.out.printf("evoPartition[j=%d,jMax=%f,volWj=%d]\n", j, jMax,
+					volumeWj);
 
 			Transaction tx = transNeo.beginTx();
 
@@ -98,8 +98,8 @@ public class AlgNibbleESP {
 				// -> Set j = j+1
 				if (Dj != null) {
 					System.out.printf(
-							"\n\n\n\tevoNibble returned. |D(%d)| = %d\n\n\n",
-							j, Dj.size());
+							"\n\tevoNibble returned. |D(%d)| = %d\n\n", j, Dj
+									.size());
 
 					// -> W(j) = W(j-1) - D(j)
 					updateClusterAlloc(Dj, j);
@@ -108,8 +108,8 @@ public class AlgNibbleESP {
 
 					tx.success();
 				} else
-					System.err.println(String.format(
-							"\tevoNibble returned. D(%d) = null!", j));
+					System.out.printf(
+							"\n\tevoNibble returned. D(%d) = null!\n\n", j);
 
 			} catch (Exception ex) {
 				System.err.printf("<evoPartition> \n\t%s\n", ex.toString());
@@ -169,16 +169,16 @@ public class AlgNibbleESP {
 		Double y = 1 + 4 * Math.sqrt(T * log_2_volumeG);
 		Double Bj = 8 * y * Math.pow(2, j);
 
-		System.out.printf("evoNibble[conductance=%f,volumeG=%d]\n",
-				conductance, volumeG);
-		System.out.printf("         [v=%d,jMax=%f,j=%f,y=%f,Bj=%f]\n", v
-				.getId(), jMax, j, y, Bj);
+		System.out.printf("\t\tevoNibble[conduct=%f,volG=%d]\n", conductance,
+				volumeG);
+		System.out.printf("\t\t         [v=%d,j=%f,jMax=%f,y=%f,Bj=%f]\n", v
+				.getId(), j, jMax, y, Bj);
 
 		DSNibbleESP sAndB = genSample(v, T, Bj, thetaT);
 
 		System.out
 				.printf(
-						"conductanceS[%f]<=3thetaT[%f] , volumeS[%d]<=3/4volumeG[%f]\n",
+						"\t\tgenSample() -> conductS[%f]<=3thetaT[%f] , volS[%d]<=3/4volG[%f]\n",
 						sAndB.getConductance(), 3 * thetaT, sAndB.getVolume(),
 						(3.0 / 4.0) * volumeG);
 
@@ -202,8 +202,8 @@ public class AlgNibbleESP {
 	private DSNibbleESP genSample(Node x, Double T, Double B, Double thetaT)
 			throws Exception {
 
-		System.out.printf("genSample[x=%d,T=%f,B=%f,thetaT=%f]\n", x.getId(),
-				T, B, thetaT);
+		System.out.printf("\t\t\tgenSample[x=%d,T=%f,B=%f,thetaT=%f]\n", x
+				.getId(), T, B, thetaT);
 
 		DSNibbleESP sAndB = null; // S, B, volume, conductance
 		Node X = null; // Current random-walk position @ time t
@@ -216,7 +216,8 @@ public class AlgNibbleESP {
 		// -> S = S0 = {x}
 		sAndB = new DSNibbleESP(X, this.rng);
 
-		System.out.printf("<genSample> SB.conductance=%f, SB.cost=%d, SB.volume=%d\n",
+		System.out.printf(
+				"\t\t\t<genSample> SB_Init: conductS=%f, costS=%d, volS=%d\n",
 				sAndB.getConductance(), sAndB.getCost(), sAndB.getVolume());
 
 		try {
@@ -229,17 +230,27 @@ public class AlgNibbleESP {
 				X = sAndB.getNextV(X);
 				// FIXME
 				// System.out.printf("\tX=%d\n", X.getId());
+
 				// -> Compute probYinS(X)
 				// -> Select random threshold Z = getZ(X)
 				Z = sAndB.getZ(X);
 				// FIXME
 				// System.out.printf("\tZ=%f\n", Z);
+
 				// -> Define St = {y | probYinS(y,St-1) > Z}
 				// -> D = Set different between St & St-1
 				// -> Update volume(St) & cost(S0,...,St)
 				D = sAndB.computeDVolumeCost(Z, transNeo);
+
 				// -> IF t==T OR cost()>B RETURN St = St-1 Diff D
+				System.out.printf(
+						"\t\t\t<genSample> Phase1? costS[%d] > B[%f]\n", sAndB
+								.getCost(), B);
 				if (sAndB.getCost() > B) {
+
+					System.out.printf(
+							"\t\t\t<genSample> t[%d]: Phase[1]: Return\n", t);
+
 					// Add/remove vertices in D to S
 					sAndB.applyDToS(D);
 					break;
@@ -250,10 +261,20 @@ public class AlgNibbleESP {
 				// -> Add/remove vertices in D to S
 				// -> Update B(St-1) to B(St)
 				sAndB.applyDToS(D);
-				// -> Compute conductance(St) = B(St) / volume(St)
+
+				// -> Compute conductance(St) = outDeg(St) / vol(St)
 				// -> IF conductance(St) < thetaT RETURN St
-				if (sAndB.getConductance() < thetaT)
+				System.out
+						.printf(
+								"\t\t\t<genSample> Phase2? conductS[%f] < thetaT[%f]\n",
+								sAndB.getConductance(), thetaT);
+				if (sAndB.getConductance() < thetaT) {
+
+					System.out.printf(
+							"\t\t\t<genSample> t[%d]: Phase[2]: Return\n", t);
+
 					break;
+				}
 			}
 		} catch (Exception ex) {
 			System.err.printf("<genSample> \n\t%s\n", ex.toString());
