@@ -106,13 +106,12 @@ public class DSNibbleESP {
 
 			} else {
 
-				// Remove from D only if already in S
+				// Remove from S only if already in S
 				if (nodeInS(v) == true) {
 					// Populate D
 					D.put(v, false);
 					// Compute volume(St)
-					// this.volume += edgesFromNodetoS(v);
-					// this.volume -= deg(v);
+					// No need to modify volume as S does't change
 				}
 
 			}
