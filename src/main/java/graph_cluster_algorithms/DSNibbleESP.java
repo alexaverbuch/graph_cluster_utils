@@ -41,6 +41,9 @@ public class DSNibbleESP {
 
 	// Conductance(St) = sOutDeg(St) / volume(St)
 	public Double getConductance() {
+		System.out.printf(
+				"\t\t\t\t<DSNibbleESP.getConductance> outDegS[%d], volS[%d]\n",
+				this.outDeg, this.volume);
 		return (double) this.outDeg / (double) this.volume;
 	}
 
@@ -97,6 +100,7 @@ public class DSNibbleESP {
 					// Populate D
 					D.put(v, true);
 					// Compute volume(St)
+					this.volume -= edgesFromNodetoS(v);
 					this.volume += deg(v);
 				}
 
@@ -107,7 +111,8 @@ public class DSNibbleESP {
 					// Populate D
 					D.put(v, false);
 					// Compute volume(St)
-					this.volume -= deg(v);
+					// this.volume += edgesFromNodetoS(v);
+					// this.volume -= deg(v);
 				}
 
 			}
@@ -283,6 +288,7 @@ public class DSNibbleESP {
 	// Add node, v, to set, S
 	// Update boundary, B
 	private void addNodetoS(Node v) throws Exception {
+
 		if (S.contains(v.getId()) == false) {
 			S.add(v.getId());
 			updateB(v);
@@ -294,6 +300,7 @@ public class DSNibbleESP {
 	// Remove node, v, from set, S
 	// Update boundary, B
 	private void removeNodefromS(Node v) throws Exception {
+
 		if (S.contains(v.getId()) == true) {
 			S.remove(v.getId());
 			updateB(v);
@@ -303,17 +310,17 @@ public class DSNibbleESP {
 	}
 
 	private void printSAndB() {
+
 		System.out.printf("\t\t\t\t<DSNibbleESP.printSAndB>\n");
-		System.out.printf("\t\t\t\tS=[");
+		System.out.printf("\t\t\t\tS=[ ");
 		for (Long vID : S) {
-			System.out.printf(",%d", vID);
+			System.out.printf("%d ", vID);
 		}
 		System.out.printf("]\n");
 
-		System.out.printf("\t\t\t\tB=[");
+		System.out.printf("\t\t\t\tB=[ ");
 		for (Entry<Long, Long> bEntry : B.entrySet()) {
-			System.out.printf(",ID=%d eToS=%d", bEntry.getKey(), bEntry
-					.getValue());
+			System.out.printf("(%d,%d) ", bEntry.getKey(), bEntry.getValue());
 		}
 		System.out.printf("]\n");
 
