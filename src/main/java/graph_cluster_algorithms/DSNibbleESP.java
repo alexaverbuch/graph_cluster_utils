@@ -2,6 +2,7 @@ package graph_cluster_algorithms;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Random;
 import java.util.Map.Entry;
 
 import org.neo4j.graphdb.Direction;
@@ -9,7 +10,6 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 
-import org.uncommons.maths.random.MersenneTwisterRNG;
 import org.uncommons.maths.random.ContinuousUniformGenerator;
 import org.uncommons.maths.random.DiscreteUniformGenerator;
 
@@ -21,14 +21,13 @@ public class DSNibbleESP {
 	private Long cost = new Long(0);
 	private Long outDeg = new Long(0);
 
-	private MersenneTwisterRNG rng;
+	private Random rng;
 
-	public DSNibbleESP(Node x, MersenneTwisterRNG rng) throws Exception {
+	public DSNibbleESP(Node x, Random rng) throws Exception {
 		addNodetoS(x);
 		this.volume = deg(x);
 		this.cost = this.volume;
 		this.rng = rng;
-		printSAndB();
 	}
 
 	public ArrayList<Long> getS() {
@@ -59,21 +58,18 @@ public class DSNibbleESP {
 	public Node getNextV(Node previousV) {
 		ArrayList<Node> neighbours = new ArrayList<Node>();
 
-		for (Relationship e : previousV.getRelationships(Direction.OUTGOING))
-			neighbours.add(e.getEndNode());
+		for (Relationship e : previousV.getRelationships(Direction.OUTGOING)) {
+			Node u = e.getEndNode();
+			Integer colorU = (Integer) u.getProperty("color");
+			if (colorU == -1)
+				neighbours.add(e.getEndNode());
+		}
 
-		// NOTE old
-		// Random rand = new Random(System.currentTimeMillis());
-		// int neighbourCount = neighbours.size();
-		// int randIndex = rand.nextInt(neighbourCount * 2);
-
-		// NOTE new
-		int neighbourCount = neighbours.size();
 		DiscreteUniformGenerator randGen = new DiscreteUniformGenerator(0,
-				(neighbourCount * 2) - 1, this.rng);
+				(neighbours.size() * 2) - 1, this.rng);
 		int randIndex = randGen.nextValue();
 
-		if (randIndex >= neighbourCount)
+		if (randIndex >= neighbours.size())
 			return previousV;
 
 		return neighbours.get(randIndex);
@@ -308,7 +304,7 @@ public class DSNibbleESP {
 
 	}
 
-	private void printSAndB() {
+	public void printSAndB() {
 
 		System.out.printf("\t\t\t\t<DSNibbleESP.printSAndB>\n");
 		System.out.printf("\t\t\t\tS=[ ");

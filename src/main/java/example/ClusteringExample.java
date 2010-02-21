@@ -96,7 +96,7 @@ public class ClusteringExample {
 				inputGraph, graphDir, ptnDir, metDir);
 
 		ConfNibbleESP config = new ConfNibbleESP();
-		config.setP(0.5);
+		config.setP(0.9);
 		config.setTheta(0.01);
 		
 		esp.start(databaseDir, config, espSupervisor);

@@ -5,6 +5,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Random;
 import java.util.TreeMap;
 import java.util.Map.Entry;
 
@@ -19,6 +20,7 @@ import org.neo4j.kernel.EmbeddedGraphDatabase;
 
 import org.uncommons.maths.random.MersenneTwisterRNG;
 import org.uncommons.maths.random.ExponentialGenerator;
+import org.uncommons.maths.random.XORShiftRNG;
 
 import graph_cluster_supervisor.Supervisor;
 
@@ -35,7 +37,7 @@ public class AlgNibbleESP {
 	private Supervisor supervisor = null;
 
 	private Iterator<Node> nodeIter = null;
-	private MersenneTwisterRNG rng = null;
+	private Random rng = null;
 	private ExponentialGenerator expGenB = null;
 	private ExponentialGenerator expGenV = null;
 
@@ -45,7 +47,8 @@ public class AlgNibbleESP {
 			Supervisor supervisor) throws Exception {
 		this.databaseDir = databaseDir;
 		this.supervisor = supervisor;
-		this.rng = new MersenneTwisterRNG();
+		this.rng = new MersenneTwisterRNG(); // Fast
+		// this.rng = new XORShiftRNG(); // Faster
 		this.expGenB = new ExponentialGenerator(CONST_B, this.rng);
 		this.expGenV = new ExponentialGenerator(5.0, this.rng);
 
@@ -65,7 +68,7 @@ public class AlgNibbleESP {
 		// Set W(j) = W(0) = V
 		Long volumeG = getVolumeG(-1);
 
-		Long m = volumeG / 2; // Undirected
+		Long m = volumeG;
 
 		// Set j = 0
 		Integer j = 0;
@@ -74,7 +77,7 @@ public class AlgNibbleESP {
 		Double conductance = theta / 7;
 
 		// [WHILE] j < 12.m.Ceil( lg(1/p) ) [AND] volumeWj >= (3/4)volumeG
-		Double jMax = 12 * m * Math.ceil(Math.log(1.0 / p) / Math.log(10));
+		Double jMax = 12 * m * Math.ceil(Math.log10(1.0 / p));
 		Long volumeWj = volumeG;
 
 		System.out.printf("evoPartition[theta=%f,p=%f]\n", theta, p);
@@ -91,20 +94,21 @@ public class AlgNibbleESP {
 			try {
 
 				// -> D(j) = evoNibble(G[W(j-1)], conductance)
-				ArrayList<Long> Dj = evoNibble(conductance, volumeWj);
+				DSNibbleESP Dj = evoNibble(conductance, volumeWj);
 
 				j++;
 
 				// -> Set j = j+1
 				if (Dj != null) {
 					System.out.printf(
-							"\n\tevoNibble returned. |D(%d)| = %d\n\t%s\n\n",
-							j, Dj.size(), dToStr(Dj));
+							"\n\tevoNibble returned. |D%d|[%d], volD%d[%d]\n",
+							j, Dj.getS().size(), j, Dj.getVolume());
+					System.out.printf("\t%s\n\n", dToStr(Dj.getS()));
 
 					// -> W(j) = W(j-1) - D(j)
-					updateClusterAlloc(Dj, j);
+					updateClusterAlloc(Dj.getS(), j);
 
-					volumeWj = getVolumeG(-1);
+					volumeWj -= Dj.getVolume();
 
 					tx.success();
 				} else
@@ -136,15 +140,15 @@ public class AlgNibbleESP {
 	//
 	// }
 
-	private ArrayList<Long> evoNibble(Double conductance, Long volumeG)
+	private DSNibbleESP evoNibble(Double conductance, Long volumeWj)
 			throws Exception {
 
 		// T = Floor(conductance^-1 / 100)
 		Double T = Math.floor(Math.pow(conductance, -1) / 100.0);
 
 		// thetaT = Sqrt(4.T^-1.log_2(volume(G)) )
-		Double log_2_volumeG = Math.log(volumeG) / Math.log(2);
-		Double thetaT = Math.sqrt(4.0 * Math.pow(T, -1) * log_2_volumeG);
+		Double log_2_volumeWj = Math.log(volumeWj) / Math.log(2);
+		Double thetaT = Math.sqrt(4.0 * Math.pow(T, -1) * log_2_volumeWj);
 
 		// Choose random vertex with probability P(X=x) = d(x)/volume(G)
 		// Node v = getNonRandomNode();
@@ -156,7 +160,7 @@ public class AlgNibbleESP {
 
 		// Choose random budget
 		// -> Let jMax = Ceil(log_2(volumeG))
-		Double jMax = Math.ceil(log_2_volumeG);
+		Double jMax = Math.ceil(log_2_volumeWj);
 		// -> Let j be an integer in the range [0,jMax]
 		// -> Choose budget with probability P(J=j) = constB.2^-j
 		// ----> Where constB is a proportionality constant
@@ -166,11 +170,11 @@ public class AlgNibbleESP {
 			j = jMax;
 		// -> Let Bj = 8.y.2^j
 		// ----> Where y = 1 + 4.Sqrt(T.log_2(volumeG))
-		Double y = 1 + 4 * Math.sqrt(T * log_2_volumeG);
+		Double y = 1 + 4 * Math.sqrt(T * log_2_volumeWj);
 		Double Bj = 8 * y * Math.pow(2, j);
 
 		System.out.printf("\t\tevoNibble[conduct=%f,volG=%d]\n", conductance,
-				volumeG);
+				volumeWj);
 		System.out.printf("\t\t         [v=%d,j=%f,jMax=%f,y=%f,Bj=%f]\n", v
 				.getId(), j, jMax, y, Bj);
 
@@ -180,11 +184,11 @@ public class AlgNibbleESP {
 				.printf(
 						"\t\t<evoNibble> genSample() -> S: conductS[%f]<=3thetaT[%f] , volS[%d]<=3/4volG[%f]\n",
 						sAndB.getConductance(), 3 * thetaT, sAndB.getVolume(),
-						(3.0 / 4.0) * volumeG);
+						(3.0 / 4.0) * volumeWj);
 
 		if ((sAndB.getConductance() <= 3 * thetaT)
-				&& (sAndB.getVolume() <= (3.0 / 4.0) * volumeG))
-			return sAndB.getS();
+				&& (sAndB.getVolume() <= (3.0 / 4.0) * volumeWj))
+			return sAndB;
 
 		return null;
 	}
@@ -201,6 +205,8 @@ public class AlgNibbleESP {
 	// ----> St : Set sampled from volume-biased Evolving Set Process
 	private DSNibbleESP genSample(Node x, Double T, Double B, Double thetaT)
 			throws Exception {
+
+		thetaT = 0.3;
 
 		System.out.printf("\t\t\tgenSample[x=%d,T=%f,B=%f,thetaT=%f]\n", x
 				.getId(), T, B, thetaT);
@@ -226,6 +232,9 @@ public class AlgNibbleESP {
 			// ForEach Step t <= T
 			for (int t = 0; t < T; t++) {
 
+				// NOTE for debugging
+				sAndB.printSAndB();
+
 				// STAGE 1: compute St-1 to St difference
 
 				// -> X = Choose X with p(Xt-1,Xt)
@@ -238,6 +247,7 @@ public class AlgNibbleESP {
 				System.out.printf(
 						"\t\t\t<genSample> t[%d], nextX[%d], Z[%f]\n", t, X
 								.getId(), Z);
+				sAndB.printSAndB();
 
 				// -> Define St = {y | probYinS(y,St-1) > Z}
 				// -> D = Set different between St & St-1
