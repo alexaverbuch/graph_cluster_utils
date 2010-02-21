@@ -43,6 +43,10 @@ public class DSNibbleESP {
 		System.out.printf(
 				"\t\t\t\t<DSNibbleESP.getConductance> outDegS[%d], volS[%d]\n",
 				this.outDeg, this.volume);
+
+		if (this.outDeg == 0)
+			return 0.0;
+
 		return (double) this.outDeg / (double) this.volume;
 	}
 
@@ -65,11 +69,16 @@ public class DSNibbleESP {
 				neighbours.add(e.getEndNode());
 		}
 
+		int neighboursSize = neighbours.size();
+
+		if (neighboursSize == 0)
+			return previousV;
+
 		DiscreteUniformGenerator randGen = new DiscreteUniformGenerator(0,
-				(neighbours.size() * 2) - 1, this.rng);
+				(neighboursSize * 2) - 1, this.rng);
 		int randIndex = randGen.nextValue();
 
-		if (randIndex >= neighbours.size())
+		if (randIndex >= neighboursSize)
 			return previousV;
 
 		return neighbours.get(randIndex);
@@ -79,12 +88,13 @@ public class DSNibbleESP {
 	// -> Iterate over nodes, v, in B
 	// -> Lookup probNodeInS(v) & compare with Z
 	// -> Meanwhile compute volume(S) & cost(S0,...,St)
-	public HashMap<Node, Boolean> computeDVolumeCost(double Z,
-			GraphDatabaseService transNeo) {
+	public HashMap<Node, Boolean> computeAndApplyD(double Z,
+			GraphDatabaseService transNeo) throws Exception {
 
 		HashMap<Node, Boolean> D = new HashMap<Node, Boolean>(); // New Set Diff
 
 		// Iterate over nodes, v, in B
+		// Populate D
 		for (Entry<Long, Long> entry : B.entrySet()) {
 			Node v = transNeo.getNodeById(entry.getKey());
 
@@ -92,27 +102,20 @@ public class DSNibbleESP {
 			if (probNodeInS(v) > Z) {
 
 				// Add to D only if not already in S
-				if (nodeInS(v) == false) {
-					// Populate D
+				if (nodeInS(v) == false)
 					D.put(v, true);
-					// Compute volume(St)
-					this.volume -= edgesFromNodetoS(v);
-					this.volume += deg(v);
-				}
 
 			} else {
 
 				// Remove from S only if already in S
-				if (nodeInS(v) == true) {
-					// Populate D
+				if (nodeInS(v) == true)
 					D.put(v, false);
-					// Compute volume(St)
-					// No need to modify volume as S does't change
-				}
 
 			}
 
 		}
+
+		applyDToS(D);
 
 		// Compute cost(St)
 		// cost = oldCost + SetDiffSt-1St + OutDegSt-1
@@ -121,25 +124,32 @@ public class DSNibbleESP {
 		return D;
 	}
 
-	public void applyDToS(HashMap<Node, Boolean> D) throws Exception {
-		// FIXME is this all that's necessary?
-
+	private void applyDToS(HashMap<Node, Boolean> D) throws Exception {
 		// Add/remove vertices in D to/from S
 		for (Entry<Node, Boolean> entry : D.entrySet()) {
-			if (entry.getValue() == true)
-				addNodetoS(entry.getKey());
-			else
+			Node v = entry.getKey();
+
+			if (entry.getValue() == true) {
+				addNodetoS(v);
+
+				// Compute volume(St)
+				this.volume -= edgesFromNodetoS(v);
+				this.volume += deg(v);
+			} else {
 				removeNodefromS(entry.getKey());
+
+				// Compute volume(St)
+				this.volume += edgesFromNodetoS(v);
+				this.volume -= deg(v);
+			}
+
 		}
 	}
 
 	// Uniform random value from [0,probNodeInS(v)]
 	public double getZ(Node v) {
-		// NOTE old
-		// Random randGen = new Random(System.currentTimeMillis());
-		// Note new
-		ContinuousUniformGenerator randGen = new ContinuousUniformGenerator(0,
-				1, this.rng);
+		ContinuousUniformGenerator randGen = new ContinuousUniformGenerator(
+				0.0, 1.0, this.rng);
 		return randGen.nextValue() * probNodeInS(v);
 	}
 
@@ -149,8 +159,8 @@ public class DSNibbleESP {
 	// -> Determine if nodeInB(u) by examining edgesFromNodeToB(u) & nodeInS(u)
 	// -> Add/remove u to/from B
 	private void updateB(Node v) {
-		// FIXME if correct, more efficient to just B(u)-- for neighboursOf v?
-		// TODO once correct, ***definitely*** many optimizations to make here
+		// FIXME if correct, more efficient to "B(u)--" for neighboursOf v?
+		// TODO optimize
 
 		// ForAll u neighboursOf(v) (incl v)
 
