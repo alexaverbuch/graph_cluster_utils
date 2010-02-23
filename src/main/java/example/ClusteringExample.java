@@ -1,9 +1,9 @@
 package example;
 
-import graph_cluster_algorithms.AlgNibbleESP;
+import graph_cluster_algorithms.AlgEvoPartition;
 import graph_cluster_algorithms.ConfDiDiC;
 import graph_cluster_algorithms.AlgDiDiC;
-import graph_cluster_algorithms.ConfNibbleESP;
+import graph_cluster_algorithms.ConfEvoPartition;
 import graph_cluster_supervisor.Supervisor;
 import graph_cluster_supervisor.SupervisorDiDiC;
 import graph_gen_utils.NeoFromFile;
@@ -90,14 +90,15 @@ public class ClusteringExample {
 			e.printStackTrace();
 		}
 
-		AlgNibbleESP esp = new AlgNibbleESP();
+		AlgEvoPartition esp = new AlgEvoPartition();
 
 		Supervisor espSupervisor = new SupervisorDiDiC(SNAPSHOT_PERIOD,
 				inputGraph, graphDir, ptnDir, metDir);
 
-		ConfNibbleESP config = new ConfNibbleESP();
+		ConfEvoPartition config = new ConfEvoPartition();
 		config.setP(0.9);
 		config.setTheta(0.01);
+		config.setConductance(0.001);
 		
 		esp.start(databaseDir, config, espSupervisor);
 	}

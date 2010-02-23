@@ -23,7 +23,7 @@ import org.uncommons.maths.random.XORShiftRNG;
 
 import graph_cluster_supervisor.Supervisor;
 
-public class AlgNibbleESP {
+public class AlgEvoPartition {
 
 	// ESP Related
 	private final static Double CONST_B = 5.0;
@@ -41,7 +41,7 @@ public class AlgNibbleESP {
 
 	private ArrayList<Long> nodes = null;
 
-	public void start(String databaseDir, ConfNibbleESP config,
+	public void start(String databaseDir, ConfEvoPartition config,
 			Supervisor supervisor) throws Exception {
 		this.databaseDir = databaseDir;
 		this.supervisor = supervisor;
@@ -57,7 +57,8 @@ public class AlgNibbleESP {
 
 		this.nodes = getNodeDegrees();
 
-		evoPartition(config.getTheta(), config.getP());
+		// evoPartitionOld(config.getTheta(), config.getP());
+		evoPartition(config.getConductance(), config.getP());
 
 		closeTransServices();
 
@@ -66,7 +67,7 @@ public class AlgNibbleESP {
 
 	// p is used to find jMax. Smaller p -> larger jMax
 	// theta
-	private void evoPartition(Double theta, Double p) throws Exception {
+	private void evoPartition(Double conductance, Double p) throws Exception {
 
 		// Set W(j) = W(0) = V
 		Long volumeG = getVolumeG(-1);
@@ -76,17 +77,12 @@ public class AlgNibbleESP {
 		// Set j = 0
 		Integer j = 0;
 
-		// Set conductance = theta/7
-		Double conductance = theta / 7;
-
 		// [WHILE] j < 12.m.Ceil( lg(1/p) ) [AND] volumeWj >= (3/4)volumeG
 		Double jMax = 12 * m * Math.ceil(Math.log10(1.0 / p));
 
 		Long volumeWj = volumeG;
 
-		System.out.printf("evoPartition[theta=%f,p=%f]\n", theta, p);
-		System.out.printf("            [conduct=%f,jMax=%f,volWj=%d]\n",
-				conductance, jMax, volumeWj);
+		System.out.printf("evoPartition[conduct=%f,p=%f]\n", conductance, p);
 
 		while ((j < jMax) && (volumeWj >= (3.0 / 4.0) * (double) volumeG)) {
 
@@ -100,7 +96,7 @@ public class AlgNibbleESP {
 			try {
 
 				// -> D(j) = evoNibble(G[W(j-1)], conductance)
-				DSNibbleESP Dj = evoNibble(conductance, volumeWj);
+				DSEvoPartition Dj = evoNibble(conductance, volumeWj);
 
 				j++;
 
@@ -142,25 +138,96 @@ public class AlgNibbleESP {
 		// TODO Tidy up the unallocated vertices here?
 	}
 
-	// // To get balanced cuts, evoCut is replaced by evoNibble
-	// // NOT USED. Only added for reference & consistency with paper
-	// private void evoCut(Node v, double conductance) {
-	//
-	// Double T = Math.floor(Math.pow(conductance, -1) / 100.0);
-	// Double thetaT = new Double(0);
-	// DSNibbleESP sAndB = genSample(v, T, Double.MAX_VALUE, thetaT);
-	//
-	// }
+	// p is used to find jMax. Smaller p -> larger jMax
+	// theta
+	private void evoPartitionOld(Double theta, Double p) throws Exception {
 
-	private DSNibbleESP evoNibble(Double conductance, Long volumeWj)
+		// Set W(j) = W(0) = V
+		Long volumeG = getVolumeG(-1);
+
+		Long m = volumeG / 2;
+
+		// Set j = 0
+		Integer j = 0;
+
+		// Set conductance = theta/7
+		Double conductance = theta / 7;
+
+		// [WHILE] j < 12.m.Ceil( lg(1/p) ) [AND] volumeWj >= (3/4)volumeG
+		Double jMax = 12 * m * Math.ceil(Math.log10(1.0 / p));
+
+		Long volumeWj = volumeG;
+
+		System.out.printf("evoPartition[theta=%f,p=%f]\n", theta, p);
+		System.out.printf("            [conduct=%f,jMax=%f,volWj=%d]\n",
+				conductance, jMax, volumeWj);
+
+		while ((j < jMax) && (volumeWj >= (3.0 / 4.0) * (double) volumeG)) {
+
+			System.out.printf(
+					"evoPartition[j=%d,jMax=%f,volWj=%d, 3/4volG[%f]]\n%s\n",
+					j, jMax, volumeWj, (3.0 / 4.0) * (double) volumeG,
+					nodesToStr());
+
+			Transaction tx = transNeo.beginTx();
+
+			try {
+
+				// -> D(j) = evoNibble(G[W(j-1)], conductance)
+				DSEvoPartition Dj = evoNibble(conductance, volumeWj);
+
+				j++;
+
+				// -> Set j = j+1
+				if (Dj != null) {
+					System.out.printf(
+							"\n\tevoNibble returned. |D%d|[%d], volD%d[%d]\n",
+							j, Dj.getS().size(), j, Dj.getVolume());
+					System.out.printf("\t%s\n\n", dToStr(Dj.getS()));
+
+					// -> W(j) = W(j-1) - D(j)
+					updateClusterAlloc(Dj.getS(), j);
+
+					volumeWj -= Dj.getVolume();
+
+					tx.success();
+				} else
+					System.out.printf(
+							"\n\tevoNibble returned. D(%d) = null!\n\n", j);
+
+			} catch (Exception ex) {
+				System.err.printf("<evoPartition> \n\t%s\n", ex.toString());
+				throw ex;
+			} finally {
+				tx.finish();
+			}
+
+		}
+
+		System.out
+				.printf(
+						"\nevoPartition[volWj=%d, 3/4volG[%f], volG[%d]]\n%s\n\n",
+						volumeWj, (3.0 / 4.0) * (double) volumeG, volumeG,
+						nodesToStr());
+
+		// Set D = D(1) U ... U D(j)
+		// NOTE In this implementation vertices are colored rather than removed
+		// NOTE There is no need to perform a Union operation
+		// TODO Tidy up the unallocated vertices here?
+	}
+
+	private DSEvoPartition evoNibble(Double conductance, Long volumeWj)
 			throws Exception {
+
+		// Precompute for efficiency
+		Double log2VolumeWj = Math.log(volumeWj) / Math.log(2);
+		Double logVolumeWj = Math.log(volumeWj);
 
 		// T = Floor(conductance^-1 / 100)
 		Double T = Math.floor(Math.pow(conductance, -1) / 100.0);
 
-		// thetaT = Sqrt(4.T^-1.log_2(volume(G)) )
-		Double log_2_volumeWj = Math.log(volumeWj) / Math.log(2);
-		Double thetaT = Math.sqrt(4.0 * Math.pow(T, -1) * log_2_volumeWj);
+		// thetaT = Sqrt(4.T^-1.log(volume(G)) )
+		Double thetaT = Math.sqrt(4.0 * Math.pow(T, -1) * logVolumeWj);
 
 		// Choose random vertex with probability P(X=x) = d(x)/volume(G)
 		Node v = getRandomNode();
@@ -171,19 +238,19 @@ public class AlgNibbleESP {
 
 		// Choose random budget
 		// -> Let jMax = Ceil(log_2(volumeG))
-		Double jMax = Math.ceil(log_2_volumeWj);
+		Double jMax = Math.ceil(log2VolumeWj);
 
 		// -> Let j be an integer in the range [0,jMax]
 		// -> Choose budget with probability P(J=j) = constB.2^-j
 		// ----> Where constB is a proportionality constant
-		// NOTE exponential & mean = 5 is similar to constB.2^-j & constB = 1
+		// NOTE Exponential & appropriate mean similar to constB.2^-j
 		Double j = this.expGenB.nextValue() * jMax;
-		if (j > jMax) // Exponential distribution: May return j > 1.0
-			j = jMax;
+		if (j > jMax) // Exponential distribution may return > 1.0
+			j = 0.0; // If so, default to most probable j value
 
 		// -> Let Bj = 8.y.2^j
 		// ----> Where y = 1 + 4.Sqrt(T.log_2(volumeG))
-		Double y = 1 + 4 * Math.sqrt(T * log_2_volumeWj);
+		Double y = 1 + (4 * Math.sqrt(T * logVolumeWj));
 		Double Bj = 8 * y * Math.pow(2, j);
 
 		System.out.printf("\t\tevoNibble[conduct=%f,volG=%d]\n", conductance,
@@ -191,7 +258,7 @@ public class AlgNibbleESP {
 		System.out.printf("\t\t         [v=%d,j=%f,jMax=%f,y=%f,Bj=%f]\n", v
 				.getId(), j, jMax, y, Bj);
 
-		DSNibbleESP sAndB = genSample(v, T, Bj, thetaT);
+		DSEvoPartition sAndB = genSample(v, T, Bj, thetaT);
 
 		System.out
 				.printf(
@@ -216,15 +283,16 @@ public class AlgNibbleESP {
 	// ----> B>=0 : Budget
 	// OUTPUT
 	// ----> St : Set sampled from volume-biased Evolving Set Process
-	private DSNibbleESP genSample(Node x, Double T, Double B, Double thetaT)
+	private DSEvoPartition genSample(Node x, Double T, Double B, Double thetaT)
 			throws Exception {
 
-		thetaT = 0.3;
+		// FIXME Remove later, only useful for testing
+		// thetaT = 0.3;
 
 		System.out.printf("\t\t\tgenSample[x=%d,T=%f,B=%f,thetaT=%f]\n", x
 				.getId(), T, B, thetaT);
 
-		DSNibbleESP sAndB = null; // S, B, volume, conductance
+		DSEvoPartition sAndB = null; // S, B, volume, conductance
 		Node X = null; // Current random-walk position @ time t
 		Double Z = new Double(0);
 		HashMap<Node, Boolean> D = new HashMap<Node, Boolean>();
@@ -233,7 +301,7 @@ public class AlgNibbleESP {
 		// -> X = x0 = x
 		X = x;
 		// -> S = S0 = {x}
-		sAndB = new DSNibbleESP(X, this.rng);
+		sAndB = new DSEvoPartition(X, this.rng);
 
 		sAndB.printSAndB();
 
@@ -376,10 +444,12 @@ public class AlgNibbleESP {
 		}
 
 		// TODO REMOVE!!!
+		System.out.printf("\nAll Nodes Sorted By Degree:\n");
 		for (Entry<Long, Integer> nodeDeg : sortedNodeDegs.entrySet()) {
-			System.out.printf("*** INDEX[%d] = DEG[%d] ***\n",
-					nodeDeg.getKey(), nodeDeg.getValue());
+			System.out.printf("\tNodeId[%d]\tDegree[%d]\n", nodeDeg.getKey(),
+					nodeDeg.getValue());
 		}
+		System.out.println();
 
 		return sortedNodes;
 	}

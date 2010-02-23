@@ -13,7 +13,7 @@ import org.neo4j.graphdb.Relationship;
 import org.uncommons.maths.random.ContinuousUniformGenerator;
 import org.uncommons.maths.random.DiscreteUniformGenerator;
 
-public class DSNibbleESP {
+public class DSEvoPartition {
 
 	private ArrayList<Long> S = new ArrayList<Long>(); // Current Set
 	private HashMap<Long, Long> B = new HashMap<Long, Long>(); // Boundary Set
@@ -23,7 +23,7 @@ public class DSNibbleESP {
 
 	private Random rng;
 
-	public DSNibbleESP(Node x, Random rng) throws Exception {
+	public DSEvoPartition(Node x, Random rng) throws Exception {
 		addNodetoS(x);
 		this.volume = deg(x);
 		this.cost = this.volume;
