@@ -64,12 +64,14 @@ public class AlgNibbleESP {
 		this.supervisor.do_final_snapshot(-1, databaseDir);
 	}
 
+	// p is used to find jMax. Smaller p -> larger jMax
+	// theta
 	private void evoPartition(Double theta, Double p) throws Exception {
 
 		// Set W(j) = W(0) = V
 		Long volumeG = getVolumeG(-1);
 
-		Long m = volumeG;
+		Long m = volumeG / 2;
 
 		// Set j = 0
 		Integer j = 0;
@@ -79,16 +81,19 @@ public class AlgNibbleESP {
 
 		// [WHILE] j < 12.m.Ceil( lg(1/p) ) [AND] volumeWj >= (3/4)volumeG
 		Double jMax = 12 * m * Math.ceil(Math.log10(1.0 / p));
+
 		Long volumeWj = volumeG;
 
 		System.out.printf("evoPartition[theta=%f,p=%f]\n", theta, p);
 		System.out.printf("            [conduct=%f,jMax=%f,volWj=%d]\n",
 				conductance, jMax, volumeWj);
 
-		while ((j < jMax) && (volumeWj >= (3 / 4) * volumeG)) {
+		while ((j < jMax) && (volumeWj >= (3.0 / 4.0) * (double) volumeG)) {
 
-			System.out.printf("evoPartition[j=%d,jMax=%f,volWj=%d]\n%s\n", j,
-					jMax, volumeWj, nodesToStr());
+			System.out.printf(
+					"evoPartition[j=%d,jMax=%f,volWj=%d, 3/4volG[%f]]\n%s\n",
+					j, jMax, volumeWj, (3.0 / 4.0) * (double) volumeG,
+					nodesToStr());
 
 			Transaction tx = transNeo.beginTx();
 
@@ -124,6 +129,12 @@ public class AlgNibbleESP {
 			}
 
 		}
+
+		System.out
+				.printf(
+						"\nevoPartition[volWj=%d, 3/4volG[%f], volG[%d]]\n%s\n\n",
+						volumeWj, (3.0 / 4.0) * (double) volumeG, volumeG,
+						nodesToStr());
 
 		// Set D = D(1) U ... U D(j)
 		// NOTE In this implementation vertices are colored rather than removed
@@ -320,6 +331,9 @@ public class AlgNibbleESP {
 		if (randIndex >= this.nodes.size())
 			randIndex = 0;
 
+		if (this.nodes.size() == 0)
+			return null;
+
 		return transNeo.getNodeById(this.nodes.get((int) randIndex));
 	}
 
@@ -371,6 +385,9 @@ public class AlgNibbleESP {
 	}
 
 	// Calculate volume of a given colour/partitioned graph
+	// volume(G) = sum( deg(v elementOf St) )
+	// volume(G) DOES NOT mean edgeCount(G)
+	// edgeCount(G) = m = volume(G)/2
 	private Long getVolumeG(Integer color) {
 		Long volumeG = new Long(0);
 
@@ -397,8 +414,7 @@ public class AlgNibbleESP {
 			tx.finish();
 		}
 
-		// Assume undirected graph
-		return volumeG / 2;
+		return volumeG;
 	}
 
 	private String nodesToStr() {

@@ -132,14 +132,14 @@ public class DSNibbleESP {
 			if (entry.getValue() == true) {
 				addNodetoS(v);
 
-				// Compute volume(St)
-				this.volume -= edgesFromNodetoS(v);
+				// Compute volume(St) = sum( deg(v elementOf St) )
+				// this.volume -= edgesFromNodetoS(v);
 				this.volume += deg(v);
 			} else {
 				removeNodefromS(entry.getKey());
 
-				// Compute volume(St)
-				this.volume += edgesFromNodetoS(v);
+				// Compute volume(St) = sum( deg(v elementOf St) )
+				// this.volume += edgesFromNodetoS(v);
 				this.volume -= deg(v);
 			}
 
