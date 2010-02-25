@@ -4,10 +4,6 @@
 
 *.class
 *.met
-*.svg
-
-.classpath
-*.classpath
 
 !.gitignore 
 
