@@ -1,21 +1,21 @@
 package graph_cluster_supervisor;
 
 public abstract class Supervisor {
-	public abstract boolean is_dynamism(int timeStep);
+	public abstract boolean isDynamism(int timeStep);
 
-	public abstract void do_dynamism(String databaseDir); 
+	public abstract void doDynamism(String databaseDir); 
 
-	public abstract boolean is_initial_snapshot();
+	public abstract boolean isInitialSnapshot();
 
-	public abstract void do_initial_snapshot(int clusterCount,
+	public abstract void doInitialSnapshot(int clusterCount,
 			String databaseDir);
 
-	public abstract boolean is_periodic_snapshot(long timeStep);
+	public abstract boolean isPeriodicSnapshot(long timeStep);
 
-	public abstract void do_periodic_snapshot(long timeStep, int clusterCount,
+	public abstract void doPeriodicSnapshot(long timeStep, int clusterCount,
 			String databaseDir);
 
-	public abstract boolean is_final_snapshot();
+	public abstract boolean isFinalSnapshot();
 
-	public abstract void do_final_snapshot(int clusterCount, String databaseDir);
+	public abstract void doFinalSnapshot(int clusterCount, String databaseDir);
 }

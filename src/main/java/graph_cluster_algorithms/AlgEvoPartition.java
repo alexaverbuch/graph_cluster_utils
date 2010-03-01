@@ -51,7 +51,7 @@ public class AlgEvoPartition {
 		this.expGenB = new ExponentialGenerator(CONST_B, this.rng);
 		this.expGenV = new ExponentialGenerator(5.0, this.rng);
 
-		this.supervisor.do_initial_snapshot(-1, this.databaseDir);
+		this.supervisor.doInitialSnapshot(-1, this.databaseDir);
 
 		openTransServices();
 
@@ -62,7 +62,7 @@ public class AlgEvoPartition {
 
 		closeTransServices();
 
-		this.supervisor.do_final_snapshot(-1, databaseDir);
+		this.supervisor.doFinalSnapshot(-1, databaseDir);
 	}
 
 	// p is used to find jMax. Smaller p -> larger jMax

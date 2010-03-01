@@ -22,21 +22,21 @@ public class SupervisorDiDiC extends Supervisor {
 	}
 
 	@Override
-	public boolean is_dynamism(int timeStep) {
+	public boolean isDynamism(int timeStep) {
 		return false;
 	}
 
 	@Override
-	public void do_dynamism(String databaseDir) {
+	public void doDynamism(String databaseDir) {
 	}
 
 	@Override
-	public boolean is_initial_snapshot() {
+	public boolean isInitialSnapshot() {
 		return true;
 	}
 
 	@Override
-	public void do_initial_snapshot(int clusterCount, String databaseDir) {
+	public void doInitialSnapshot(int clusterCount, String databaseDir) {
 
 		try {
 
@@ -66,12 +66,12 @@ public class SupervisorDiDiC extends Supervisor {
 	}
 
 	@Override
-	public boolean is_periodic_snapshot(long timeStep) {
+	public boolean isPeriodicSnapshot(long timeStep) {
 		return (timeStep % snapshotPeriod) == 0;
 	}
 
 	@Override
-	public void do_periodic_snapshot(long timeStep, int clusterCount,
+	public void doPeriodicSnapshot(long timeStep, int clusterCount,
 			String databaseDir) {
 
 		try {
@@ -101,12 +101,12 @@ public class SupervisorDiDiC extends Supervisor {
 	}
 
 	@Override
-	public boolean is_final_snapshot() {
+	public boolean isFinalSnapshot() {
 		return true;
 	}
 
 	@Override
-	public void do_final_snapshot(int clusterCount, String databaseDir) {
+	public void doFinalSnapshot(int clusterCount, String databaseDir) {
 
 		try {
 
@@ -134,7 +134,7 @@ public class SupervisorDiDiC extends Supervisor {
 			NeoFromFile neoCreator = new NeoFromFile(databaseDir);
 
 			// Write graph metrics to file
-			neoCreator.appendMetricsCSV(outMetrics);
+			neoCreator.appendMetricsCSV(outMetrics, null);
 
 		} catch (Exception e) {
 			e.printStackTrace();
