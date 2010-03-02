@@ -17,11 +17,18 @@ import graph_gen_utils.graph.MemGraph;
 import graph_gen_utils.graph.MemNode;
 import graph_gen_utils.graph.MemRel;
 
-public class AlgMemDiDiC {
+public class AlgMemDiDiCBalanced {
 
 	private HashMap<Long, ArrayList<Double>> w = null; // Load Vec 1
 	private HashMap<Long, ArrayList<Double>> l = null; // Load Vec 2 ('drain')
 
+	private HashMap<Integer, Long> clusterSizes = null; // Number of nodes in a
+	private HashMap<Integer, Boolean> clusterActivated = null; // Number of
+	// nodes in a
+
+	// cluster
+
+	// private int clusterCount;
 	private String databaseDir;
 	private ConfDiDiC config = null;
 
@@ -35,6 +42,8 @@ public class AlgMemDiDiC {
 
 		w = new HashMap<Long, ArrayList<Double>>();
 		l = new HashMap<Long, ArrayList<Double>>();
+		clusterSizes = new HashMap<Integer, Long>();
+		clusterActivated = new HashMap<Integer, Boolean>();
 		this.databaseDir = databaseDir;
 		this.config = confDiDiC;
 		this.memGraph = memGraph;
@@ -71,6 +80,14 @@ public class AlgMemDiDiC {
 			// For Every "Cluster System"
 			for (int c = 0; c < config.getClusterCount(); c++) {
 
+				if (clusterSizes.get(c) > config.getClusterSizeOff())
+					clusterActivated.put(c, false);
+				else if (clusterSizes.get(c) < config.getClusterSizeOn())
+					clusterActivated.put(c, true);
+
+				if (clusterActivated.get(c) == false)
+					continue;
+
 				// For Every Node
 				for (MemNode v : this.memGraph.getAllNodes()) {
 
@@ -80,6 +97,14 @@ public class AlgMemDiDiC {
 				}
 
 			}
+
+			// TODO REMOVE!!
+			// System.out.println();
+			// System.out.printf("Total W = %f\nTotal L = %f\n",
+			// getTotalW(), getTotalL());
+			// System.out.printf("Min = %d, Max = %d\n", config
+			// .getClusterSizeOn(), config.getClusterSizeOff());
+			// System.out.printf("Clusters = %s\n", getClusterSizes());
 
 			// PRINTOUT
 			long msTotal = System.currentTimeMillis() - timeStepTime;
@@ -126,7 +151,7 @@ public class AlgMemDiDiC {
 		}
 
 		closeTransServices();
-		
+
 		// PRINTOUT
 		long msTotal = System.currentTimeMillis() - time;
 		long ms = msTotal % 1000;
@@ -144,6 +169,11 @@ public class AlgMemDiDiC {
 		// PRINTOUT
 		System.out.printf("Initialising Load Vectors...");
 
+		for (int c = 0; c < config.getClusterCount(); c++) {
+			clusterSizes.put(c, (long) 0);
+			clusterActivated.put(c, true);
+		}
+
 		for (MemNode v : this.memGraph.getAllNodes()) {
 
 			int vColor = v.getColor();
@@ -156,6 +186,7 @@ public class AlgMemDiDiC {
 				if (vColor == i) {
 					wV.add(new Double(config.getDefClusterVal()));
 					lV.add(new Double(config.getDefClusterVal()));
+					clusterSizes.put(i, clusterSizes.get(i) + 1);
 					continue;
 				}
 
@@ -191,6 +222,8 @@ public class AlgMemDiDiC {
 
 				Integer vNewColor = memV.getColor();
 
+				clusterSizes.put(vNewColor, clusterSizes.get(vNewColor) - 1);
+
 				switch (allocType) {
 				case BASE:
 					vNewColor = allocateClusterBasic(wC.getValue());
@@ -206,6 +239,8 @@ public class AlgMemDiDiC {
 					break;
 
 				}
+
+				clusterSizes.put(vNewColor, clusterSizes.get(vNewColor) + 1);
 
 				memV.setColor(vNewColor);
 
@@ -231,7 +266,7 @@ public class AlgMemDiDiC {
 	private void doFOST(MemNode v, int c) {
 
 		ArrayList<Double> lV = l.get(v.getId());
-		ArrayList<Double> wV = w.get(v.getId());		
+		ArrayList<Double> wV = w.get(v.getId());
 
 		double wVC = wV.get(c);
 
@@ -248,11 +283,13 @@ public class AlgMemDiDiC {
 				MemNode u = this.memGraph.getNode(e.getEndNodeId());
 
 				ArrayList<Double> wU = w.get(u.getId());
+				double wUC = wU.get(c);
 
-				double wVwUDiff = wVC - wU.get(c);
+				double diff = alphaE(u, vDeg) * e.getWeight() * (wVC - wUC);
 
-				wVC = wVC - alphaE(u, vDeg) * e.getWeight() * wVwUDiff;
+				wVC = wVC - (diff / 2.0);
 
+				wU.set(c, wUC + (diff / 2.0));
 			}
 
 			wVC = wVC + lV.get(c);
@@ -279,11 +316,14 @@ public class AlgMemDiDiC {
 				MemNode u = this.memGraph.getNode(e.getEndNodeId());
 
 				ArrayList<Double> lU = l.get(u.getId());
+				double lUC = lU.get(c);
 
-				double lVlUDiff = (lVC / bV) - (lU.get(c) / benefit(u, c));
+				double diff = alphaE(u, vDeg) * e.getWeight()
+						* ((lVC / bV) - (lUC / benefit(u, c)));
 
-				lVC = lVC - (alphaE(u, vDeg) * e.getWeight() * lVlUDiff);
+				lVC = lVC - (diff / 2.0);
 
+				lU.set(c, lUC + (diff / 2.0));
 			}
 
 		}
@@ -434,6 +474,16 @@ public class AlgMemDiDiC {
 		}
 
 		return result;
+	}
+
+	private String getClusterSizes() {
+		String result = "[ ";
+
+		for (int c = 0; c < config.getClusterCount(); c++) {
+			result = String.format("%s%d ", result, clusterSizes.get(c));
+		}
+
+		return String.format("%s]", result);
 	}
 
 }

@@ -23,7 +23,7 @@ import org.uncommons.maths.random.XORShiftRNG;
 
 import graph_cluster_supervisor.Supervisor;
 
-public class AlgEvoPartition {
+public class AlgDiskEvoPartition {
 
 	// ESP Related
 	private final static Double CONST_B = 5.0;

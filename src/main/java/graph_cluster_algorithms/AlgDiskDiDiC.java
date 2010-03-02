@@ -15,12 +15,11 @@ import org.neo4j.kernel.EmbeddedGraphDatabase;
 
 import graph_cluster_supervisor.Supervisor;
 
-public class AlgDiDiC {
+public class AlgDiskDiDiC {
 
 	private HashMap<String, ArrayList<Double>> w = null; // Load Vec 1
 	private HashMap<String, ArrayList<Double>> l = null; // Load Vec 2 ('drain')
 
-	// private int clusterCount;
 	private String databaseDir;
 	ConfDiDiC config = null;
 
@@ -29,8 +28,6 @@ public class AlgDiDiC {
 
 	public void start(String databaseDir, ConfDiDiC confDiDiC,
 			Supervisor supervisor) {
-		// public void start(String databaseDir, int maxTimeSteps,
-		// int clusterCount, AllocType allocType, Supervisor supervisor) {
 		w = new HashMap<String, ArrayList<Double>>();
 		l = new HashMap<String, ArrayList<Double>>();
 		this.databaseDir = databaseDir;
@@ -71,6 +68,7 @@ public class AlgDiDiC {
 				// For Every "Cluster System"
 				for (int c = 0; c < config.getClusterCount(); c++) {
 
+					// TODO outside cluster loop (less frequent node changes)
 					// For Every Node
 					for (Node v : transNeo.getAllNodes()) {
 						if (v.getId() != 0) {
@@ -275,7 +273,7 @@ public class AlgDiDiC {
 
 				double wVwUDiff = wVC - wU.get(c);
 
-				wVC = wVC - alphaE(u, vDeg) * weightE(e) * wVwUDiff;
+				wVC = wVC - (alphaE(u, vDeg) * weightE(e) * wVwUDiff);
 			}
 
 			wVC = wVC + lV.get(c);
@@ -465,6 +463,30 @@ public class AlgDiDiC {
 
 		// PRINTOUT
 		System.out.printf("%dms%n", System.currentTimeMillis() - time);
+	}
+
+	private double getTotalW() {
+		double result = 0.0;
+
+		for (ArrayList<Double> vW : w.values()) {
+			for (Double vWC : vW) {
+				result += vWC;
+			}
+		}
+
+		return result;
+	}
+
+	private double getTotalL() {
+		double result = 0.0;
+
+		for (ArrayList<Double> vL : l.values()) {
+			for (Double vLC : vL) {
+				result += vLC;
+			}
+		}
+
+		return result;
 	}
 
 }

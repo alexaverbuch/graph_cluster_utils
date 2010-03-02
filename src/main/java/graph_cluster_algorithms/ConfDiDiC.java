@@ -18,8 +18,11 @@ public class ConfDiDiC {
 		BASE, OPT, HYBRID
 	}
 
+	// Experimental DiDiC Related
 	private AllocType allocType = AllocType.BASE;
 	private int hybridSwitchPoint = -1;
+	private long clusterSizeOff = 0;
+	private long clusterSizeOn = 0;
 
 	public ConfDiDiC(int clusterCount) {
 		this.FOSTIterations = 11;
@@ -33,11 +36,14 @@ public class ConfDiDiC {
 
 		this.allocType = AllocType.BASE;
 		this.hybridSwitchPoint = -1;
+		this.clusterSizeOff = 0;
+		this.clusterSizeOn = 0;
 	}
 
 	public ConfDiDiC(int fOSTIterations, int fOSBIterations, int benefitLow,
 			int benefitHigh, int defClusterVal, int maxIterations,
-			int clusterCount, AllocType allocType, int hybridSwitchPoint) {
+			int clusterCount, AllocType allocType, int hybridSwitchPoint,
+			long clusterSizeOff, long clusterSizeOn) throws Exception {
 		super();
 		FOSTIterations = fOSTIterations;
 		FOSBIterations = fOSBIterations;
@@ -48,6 +54,24 @@ public class ConfDiDiC {
 		this.clusterCount = clusterCount;
 		this.allocType = allocType;
 		this.hybridSwitchPoint = hybridSwitchPoint;
+		this.clusterSizeOff = clusterSizeOff;
+		this.clusterSizeOn = clusterSizeOn;
+	}
+
+	public long getClusterSizeOff() {
+		return clusterSizeOff;
+	}
+
+	public void setClusterSizeOff(long clusterSizeOff) {
+		this.clusterSizeOff = clusterSizeOff;
+	}
+
+	public long getClusterSizeOn() {
+		return clusterSizeOn;
+	}
+
+	public void setClusterSizeOn(long clusterSizeOn) {
+		this.clusterSizeOn = clusterSizeOn;
 	}
 
 	public int getFOSTIterations() {
