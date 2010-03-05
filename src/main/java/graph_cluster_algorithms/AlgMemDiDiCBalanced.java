@@ -11,7 +11,8 @@ import org.neo4j.index.IndexService;
 import org.neo4j.index.lucene.LuceneIndexService;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 
-import graph_cluster_supervisor.Supervisor;
+import graph_cluster_algorithms.configs.ConfDiDiC;
+import graph_cluster_algorithms.supervisors.Supervisor;
 
 import graph_gen_utils.graph.MemGraph;
 import graph_gen_utils.graph.MemNode;
@@ -99,11 +100,11 @@ public class AlgMemDiDiCBalanced {
 			}
 
 			// TODO REMOVE!!
-			// System.out.println();
-			// System.out.printf("Total W = %f\nTotal L = %f\n",
-			// getTotalW(), getTotalL());
-			// System.out.printf("Min = %d, Max = %d\n", config
-			// .getClusterSizeOn(), config.getClusterSizeOff());
+			System.out.println();
+			System.out.printf("Total W = %f\nTotal L = %f\n", getTotalW(),
+					getTotalL());
+			System.out.printf("Min = %d, Max = %d\n",
+					config.getClusterSizeOn(), config.getClusterSizeOff());
 			// System.out.printf("Clusters = %s\n", getClusterSizes());
 
 			// PRINTOUT
@@ -287,9 +288,10 @@ public class AlgMemDiDiCBalanced {
 
 				double diff = alphaE(u, vDeg) * e.getWeight() * (wVC - wUC);
 
-				wVC = wVC - (diff / 2.0);
+				// wVC = wVC - (diff / 2.0);
+				wVC = wVC - diff;
 
-				wU.set(c, wUC + (diff / 2.0));
+				// wU.set(c, wUC + (diff / 2.0));
 			}
 
 			wVC = wVC + lV.get(c);
@@ -321,9 +323,10 @@ public class AlgMemDiDiCBalanced {
 				double diff = alphaE(u, vDeg) * e.getWeight()
 						* ((lVC / bV) - (lUC / benefit(u, c)));
 
-				lVC = lVC - (diff / 2.0);
+				// lVC = lVC - (diff / 2.0);
+				lVC = lVC - diff;
 
-				lU.set(c, lUC + (diff / 2.0));
+				// lU.set(c, lUC + (diff / 2.0));
 			}
 
 		}

@@ -21,7 +21,9 @@ import org.uncommons.maths.random.MersenneTwisterRNG;
 import org.uncommons.maths.random.ExponentialGenerator;
 import org.uncommons.maths.random.XORShiftRNG;
 
-import graph_cluster_supervisor.Supervisor;
+import graph_cluster_algorithms.configs.ConfEvoPartition;
+import graph_cluster_algorithms.structs.DSEvoPartition;
+import graph_cluster_algorithms.supervisors.Supervisor;
 
 public class AlgDiskEvoPartition {
 
@@ -333,7 +335,7 @@ public class AlgDiskEvoPartition {
 				// -> Update volume(St) & cost(S0,...,St)
 				// -> Add/remove vertices in D to St
 				// -> Update B(St-1) to B(St)
-				D = sAndB.computeAndApplyD(Z, transNeo);
+				D = sAndB.updateBoundary(Z, transNeo);
 
 				// -> IF t==T OR cost()>B RETURN St = St-1 Diff D
 				System.out.printf(

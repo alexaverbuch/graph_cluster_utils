@@ -13,7 +13,8 @@ import org.neo4j.index.IndexService;
 import org.neo4j.index.lucene.LuceneIndexService;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 
-import graph_cluster_supervisor.Supervisor;
+import graph_cluster_algorithms.configs.ConfDiDiC;
+import graph_cluster_algorithms.supervisors.Supervisor;
 
 public class AlgDiskDiDiC {
 

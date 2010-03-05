@@ -1,4 +1,4 @@
-package graph_cluster_supervisor;
+package graph_cluster_algorithms.supervisors;
 
 import graph_gen_utils.NeoFromFile;
 import graph_gen_utils.NeoFromFile.ChacoType;

@@ -3,11 +3,11 @@ package example;
 import graph_cluster_algorithms.AlgDiskEvoPartition;
 import graph_cluster_algorithms.AlgMemDiDiC;
 import graph_cluster_algorithms.AlgMemDiDiCBalanced;
-import graph_cluster_algorithms.ConfDiDiC;
 import graph_cluster_algorithms.AlgDiskDiDiC;
-import graph_cluster_algorithms.ConfEvoPartition;
-import graph_cluster_supervisor.Supervisor;
-import graph_cluster_supervisor.SupervisorDiDiC;
+import graph_cluster_algorithms.configs.ConfDiDiC;
+import graph_cluster_algorithms.configs.ConfEvoPartition;
+import graph_cluster_algorithms.supervisors.Supervisor;
+import graph_cluster_algorithms.supervisors.SupervisorDiDiC;
 import graph_gen_utils.NeoFromFile;
 import graph_gen_utils.NeoFromFile.ClusterInitType;
 import graph_gen_utils.graph.MemGraph;
@@ -294,13 +294,13 @@ public class ClusteringExample {
 
 		NeoFromFile neoGenerator = new NeoFromFile(databaseDir);
 
-		// try {
-		// neoGenerator.writeNeo(inputGraphPath, inputPtnPath);
-		// } catch (FileNotFoundException e) {
-		// e.printStackTrace();
-		// } catch (Exception e) {
-		// e.printStackTrace();
-		// }
+		try {
+			neoGenerator.writeNeo(inputGraphPath, inputPtnPath);
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 
 		MemGraph memGraph = neoGenerator.readMemGraph();
 

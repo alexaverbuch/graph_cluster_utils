@@ -1,4 +1,4 @@
-package graph_cluster_supervisor;
+package graph_cluster_algorithms.supervisors;
 
 public abstract class Supervisor {
 	public abstract boolean isDynamism(int timeStep);

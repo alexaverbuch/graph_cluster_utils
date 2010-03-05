@@ -1,4 +1,4 @@
-package graph_cluster_algorithms;
+package graph_cluster_algorithms.configs;
 
 public class ConfEvoPartition {
 
