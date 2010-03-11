@@ -11,7 +11,7 @@ public class ConfDiDiC {
 
 	// DiDiC Related General Variables
 	private int maxIterations = 150;
-	private int clusterCount = 2;
+	private byte clusterCount = 2;
 
 	// Experimental DiDiC Related
 	public enum AllocType {
@@ -24,7 +24,7 @@ public class ConfDiDiC {
 	private long clusterSizeOff = 0;
 	private long clusterSizeOn = 0;
 
-	public ConfDiDiC(int clusterCount) {
+	public ConfDiDiC(byte clusterCount) {
 		this.FOSTIterations = 11;
 		this.FOSBIterations = 11;
 		this.benefitLow = 1;
@@ -42,7 +42,7 @@ public class ConfDiDiC {
 
 	public ConfDiDiC(int fOSTIterations, int fOSBIterations, int benefitLow,
 			int benefitHigh, int defClusterVal, int maxIterations,
-			int clusterCount, AllocType allocType, int hybridSwitchPoint,
+			byte clusterCount, AllocType allocType, int hybridSwitchPoint,
 			long clusterSizeOff, long clusterSizeOn) throws Exception {
 		super();
 		FOSTIterations = fOSTIterations;
@@ -126,7 +126,7 @@ public class ConfDiDiC {
 		return clusterCount;
 	}
 
-	public void setClusterCount(int clusterCount) {
+	public void setClusterCount(byte clusterCount) {
 		this.clusterCount = clusterCount;
 	}
 

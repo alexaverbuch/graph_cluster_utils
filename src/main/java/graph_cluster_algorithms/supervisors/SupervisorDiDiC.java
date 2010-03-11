@@ -43,18 +43,18 @@ public class SupervisorDiDiC extends Supervisor {
 			String outMetrics = String.format("%s%s.%d.met", resultsDir,
 					graphName, clusterCount);
 
-			String outGraph = String.format("%s%s.graph", resultsDir,
-					graphName);
-			
-			String outPtn = String.format("%s%s.%d.ptn", resultsDir,
-					graphName, clusterCount);
-			
+			String outGraph = String
+					.format("%s%s.graph", resultsDir, graphName);
+
+			String outPtn = String.format("%s%s.%d.ptn", resultsDir, graphName,
+					clusterCount);
+
 			// Create NeoFromFile and assign DB location
 			NeoFromFile neoCreator = new NeoFromFile(databaseDir);
 
 			// Write graph metrics to file
 			neoCreator.writeMetricsCSV(outMetrics);
-			
+
 			// Write chaco file and initial partitioning to file
 			// .ptn file can be used in future simulations for consistency
 			neoCreator.writeChacoAndPtn(outGraph, ChacoType.UNWEIGHTED, outPtn);
@@ -93,6 +93,11 @@ public class SupervisorDiDiC extends Supervisor {
 
 			// Write graph metrics to file
 			neoCreator.appendMetricsCSV(outMetrics, timeStep);
+
+			String outGml = String.format("%s%s.%d.%d.gml", resultsDir,
+					graphName, clusterCount, timeStep);
+
+			neoCreator.writeGML(outGml);
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -135,6 +140,11 @@ public class SupervisorDiDiC extends Supervisor {
 
 			// Write graph metrics to file
 			neoCreator.appendMetricsCSV(outMetrics, null);
+
+			String outGml = String.format("%s%s.%d.gml", resultsDir, graphName,
+					clusterCount);
+
+			neoCreator.writeGML(outGml);
 
 		} catch (Exception e) {
 			e.printStackTrace();

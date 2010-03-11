@@ -20,8 +20,15 @@ import graph_gen_utils.graph.MemRel;
 
 public class AlgMemDiDiC {
 
-	private HashMap<Long, ArrayList<Double>> w = null; // Load Vec 1
-	private HashMap<Long, ArrayList<Double>> l = null; // Load Vec 2 ('drain')
+	// Load Vec 1
+	private HashMap<Long, ArrayList<Double>> w_prev = null;
+	// Load Vec 2 ('drain')
+	private HashMap<Long, ArrayList<Double>> l_prev = null;
+
+	// Load Vec 1
+	private HashMap<Long, ArrayList<Double>> w_curr = null;
+	// Load Vec 2 ('drain')
+	private HashMap<Long, ArrayList<Double>> l_curr = null;
 
 	private String databaseDir;
 	private ConfDiDiC config = null;
@@ -31,11 +38,140 @@ public class AlgMemDiDiC {
 	private GraphDatabaseService transNeo = null;
 	private IndexService transIndexService = null;
 
-	public void start(String databaseDir, ConfDiDiC confDiDiC,
-			Supervisor supervisor, MemGraph memGraph) {
+	// public void start(String databaseDir, ConfDiDiC confDiDiC,
+	// Supervisor supervisor, MemGraph memGraph) throws Exception {
+	//
+	// w_prev = new HashMap<Long, ArrayList<Double>>();
+	// l_prev = new HashMap<Long, ArrayList<Double>>();
+	// w_curr = new HashMap<Long, ArrayList<Double>>();
+	// l_curr = new HashMap<Long, ArrayList<Double>>();
+	// this.databaseDir = databaseDir;
+	// this.config = confDiDiC;
+	// this.memGraph = memGraph;
+	//
+	// // PRINTOUT
+	// System.out.println("\n*********DiDiC***********");
+	//
+	// openTransServices();
+	//
+	// initLoadVectors();
+	//
+	// System.out.printf("\nTotalL = %f\nTotalW = %f\n\n", getTotalL(),
+	// getTotalW());
+	//
+	// if (supervisor.isInitialSnapshot()) {
+	// closeTransServices();
+	// supervisor.doInitialSnapshot(config.getClusterCount(), databaseDir);
+	// openTransServices();
+	// }
+	//
+	// for (MemNode v : this.memGraph.getAllNodes()) {
+	//
+	// for (MemRel e : v.getNeighbours()) {
+	// MemNode u = memGraph.getNode(e.getEndNodeId());
+	// if (u.hasNeighbour(v.getId()) == false)
+	// throw new Exception("FUCK");
+	// }
+	//
+	// }
+	//
+	// long time = System.currentTimeMillis();
+	//
+	// // PRINTOUT
+	// System.out
+	// .printf(
+	// "DiDiC [FOST_ITERS=%d, FOSB_ITERS=%d, MAX_CLUSTERS=%d, TIME_STEPS=%d]%n",
+	// config.getFOSTIterations(), config.getFOSBIterations(),
+	// config.getClusterCount(), config.getMaxIterations());
+	//
+	// for (int timeStep = 0; timeStep < config.getMaxIterations(); timeStep++)
+	// {
+	//
+	// long timeStepTime = System.currentTimeMillis();
+	//
+	// // PRINTOUT
+	// System.out.printf("\tFOS/T [TimeStep:%d, All Nodes]...", timeStep);
+	//
+	// // For Every "Cluster System"
+	// for (byte c = 0; c < config.getClusterCount(); c++) {
+	//
+	// // For Every Node
+	// for (MemNode v : this.memGraph.getAllNodes()) {
+	//
+	// // FOS/T Primary Diffusion Algorithm
+	// doFOST(v, c);
+	//
+	// }
+	//
+	// }
+	//
+	// // PRINTOUT
+	// long msTotal = System.currentTimeMillis() - timeStepTime;
+	// long ms = msTotal % 1000;
+	// long s = (msTotal / 1000) % 60;
+	// long m = (msTotal / 1000) / 60;
+	// System.out.printf(
+	// "DiDiC Complete - Time Taken: %d(m):%d(s):%d(ms)%n", m, s,
+	// ms);
+	//
+	// updateClusterAllocation(timeStep, config.getAllocType());
+	//
+	// if (supervisor.isDynamism(timeStep)) {
+	// closeTransServices();
+	//
+	// // TODO: perform insertions/deletions to Neo4j instance
+	// supervisor.doDynamism(this.databaseDir);
+	//
+	// openTransServices();
+	//
+	// // TODO: if graph has changed, DiDiC state must be updated
+	// // adaptToGraphChanges()
+	//
+	// }
+	//
+	// if (supervisor.isPeriodicSnapshot(timeStep)) {
+	// closeTransServices();
+	//
+	// supervisor.doPeriodicSnapshot(timeStep, config
+	// .getClusterCount(), databaseDir);
+	//
+	// openTransServices();
+	// }
+	//
+	// // System.out.printf("\nTotalL = %f\nTotalW = %f\n\n", getTotalL(),
+	// // getTotalW());
+	//
+	// }
+	//
+	// if (supervisor.isFinalSnapshot()) {
+	// // TODO: take a final snapshot here
+	// closeTransServices();
+	//
+	// supervisor.doFinalSnapshot(config.getClusterCount(), databaseDir);
+	//
+	// openTransServices();
+	// }
+	//
+	// closeTransServices();
+	//
+	// // PRINTOUT
+	// long msTotal = System.currentTimeMillis() - time;
+	// long ms = msTotal % 1000;
+	// long s = (msTotal / 1000) % 60;
+	// long m = (msTotal / 1000) / 60;
+	// System.out.printf("DiDiC Complete - Time Taken: %d(m):%d(s):%d(ms)%n",
+	// m, s, ms);
+	//
+	// System.out.println("*********DiDiC***********\n");
+	// }
 
-		w = new HashMap<Long, ArrayList<Double>>();
-		l = new HashMap<Long, ArrayList<Double>>();
+	public void start(String databaseDir, ConfDiDiC confDiDiC,
+			Supervisor supervisor, MemGraph memGraph) throws Exception {
+
+		w_prev = new HashMap<Long, ArrayList<Double>>();
+		l_prev = new HashMap<Long, ArrayList<Double>>();
+		w_curr = new HashMap<Long, ArrayList<Double>>();
+		l_curr = new HashMap<Long, ArrayList<Double>>();
 		this.databaseDir = databaseDir;
 		this.config = confDiDiC;
 		this.memGraph = memGraph;
@@ -47,10 +183,23 @@ public class AlgMemDiDiC {
 
 		initLoadVectors();
 
+		// System.out.printf("\nTotalL = %f\nTotalW = %f\n\n", getTotalL(),
+		// getTotalW());
+
 		if (supervisor.isInitialSnapshot()) {
 			closeTransServices();
 			supervisor.doInitialSnapshot(config.getClusterCount(), databaseDir);
 			openTransServices();
+		}
+
+		for (MemNode v : this.memGraph.getAllNodes()) {
+
+			for (MemRel e : v.getNeighbours()) {
+				MemNode u = memGraph.getNode(e.getEndNodeId());
+				if (u.hasNeighbour(v.getId()) == false)
+					throw new Exception("Not Undirected!");
+			}
+
 		}
 
 		long time = System.currentTimeMillis();
@@ -70,15 +219,15 @@ public class AlgMemDiDiC {
 			System.out.printf("\tFOS/T [TimeStep:%d, All Nodes]...", timeStep);
 
 			// For Every "Cluster System"
-			for (int c = 0; c < config.getClusterCount(); c++) {
+			for (byte c = 0; c < config.getClusterCount(); c++) {
 
-				// For Every Node
-				for (MemNode v : this.memGraph.getAllNodes()) {
+				// // For Every Node
+				// for (MemNode v : this.memGraph.getAllNodes()) {
 
-					// FOS/T Primary Diffusion Algorithm
-					doFOST(v, c);
+				// FOS/T Primary Diffusion Algorithm
+				doFOST(c);
 
-				}
+				// }
 
 			}
 
@@ -115,6 +264,9 @@ public class AlgMemDiDiC {
 				openTransServices();
 			}
 
+			// System.out.printf("\nTotalL = %f\nTotalW = %f\n\n", getTotalL(),
+			// getTotalW());
+
 		}
 
 		if (supervisor.isFinalSnapshot()) {
@@ -127,7 +279,7 @@ public class AlgMemDiDiC {
 		}
 
 		closeTransServices();
-		
+
 		// PRINTOUT
 		long msTotal = System.currentTimeMillis() - time;
 		long ms = msTotal % 1000;
@@ -147,25 +299,38 @@ public class AlgMemDiDiC {
 
 		for (MemNode v : this.memGraph.getAllNodes()) {
 
-			int vColor = v.getColor();
+			byte vColor = v.getColor();
 
-			ArrayList<Double> wV = new ArrayList<Double>();
-			ArrayList<Double> lV = new ArrayList<Double>();
+			ArrayList<Double> wV_prev = new ArrayList<Double>();
+			ArrayList<Double> lV_prev = new ArrayList<Double>();
 
-			for (int i = 0; i < config.getClusterCount(); i++) {
+			ArrayList<Double> wV_curr = new ArrayList<Double>();
+			ArrayList<Double> lV_curr = new ArrayList<Double>();
 
-				if (vColor == i) {
-					wV.add(new Double(config.getDefClusterVal()));
-					lV.add(new Double(config.getDefClusterVal()));
+			for (byte c = 0; c < config.getClusterCount(); c++) {
+
+				if (vColor == c) {
+					wV_prev.add(new Double(config.getDefClusterVal()));
+					lV_prev.add(new Double(config.getDefClusterVal()));
+
+					wV_curr.add(new Double(config.getDefClusterVal()));
+					lV_curr.add(new Double(config.getDefClusterVal()));
+
 					continue;
 				}
 
-				wV.add(new Double(0));
-				lV.add(new Double(0));
+				wV_prev.add(new Double(0));
+				lV_prev.add(new Double(0));
+
+				wV_curr.add(new Double(0));
+				lV_curr.add(new Double(0));
 			}
 
-			w.put(v.getId(), wV);
-			l.put(v.getId(), lV);
+			w_prev.put(v.getId(), wV_prev);
+			l_prev.put(v.getId(), lV_prev);
+
+			w_curr.put(v.getId(), wV_curr);
+			l_curr.put(v.getId(), lV_curr);
 
 		}
 
@@ -186,24 +351,25 @@ public class AlgMemDiDiC {
 
 		try {
 
-			for (Entry<Long, ArrayList<Double>> wC : w.entrySet()) {
+			for (Entry<Long, ArrayList<Double>> wV_curr : w_curr.entrySet()) {
 
-				MemNode memV = this.memGraph.getNode(wC.getKey());
+				MemNode memV = memGraph.getNode(wV_curr.getKey());
 
-				Integer vNewColor = memV.getColor();
+				Byte vNewColor = memV.getColor();
 
 				switch (allocType) {
 				case BASE:
-					vNewColor = allocateClusterBasic(wC.getValue());
+					vNewColor = allocateClusterBasic(wV_curr.getValue());
 					break;
 
 				case OPT:
-					vNewColor = allocateClusterIntdeg(memV, wC.getValue(),
+					vNewColor = allocateClusterIntdeg(memV, wV_curr.getValue(),
 							timeStep);
 					break;
 
 				case HYBRID:
-					vNewColor = allocateCluster(memV, wC.getValue(), timeStep);
+					vNewColor = allocateClusterHybrid(memV, wV_curr.getValue(),
+							timeStep);
 					break;
 
 				}
@@ -224,76 +390,317 @@ public class AlgMemDiDiC {
 			tx.finish();
 		}
 
+		// System.out.printf("\nBefore TotalL = %f, Before TotalW = %f\n\n",
+		// getTotalL(), getTotalW());
+		//
+		// // Copy "current" load vectors to "previous" load vectors
+		// for (Entry<Long, ArrayList<Double>> wV_curr_entry :
+		// w_curr.entrySet()) {
+		//
+		// ArrayList<Double> wV_curr = wV_curr_entry.getValue();
+		// ArrayList<Double> wV_prev = w_prev.get(wV_curr_entry.getKey());
+		//
+		// for (int i = 0; i < wV_curr.size(); i++) {
+		// wV_prev.set(i, wV_curr.get(i));
+		// }
+		//
+		// }
+		// for (Entry<Long, ArrayList<Double>> lV_curr_entry :
+		// l_curr.entrySet()) {
+		//
+		// ArrayList<Double> lV_curr = lV_curr_entry.getValue();
+		// ArrayList<Double> lV_prev = l_prev.get(lV_curr_entry.getKey());
+		//
+		// for (int i = 0; i < lV_curr.size(); i++) {
+		// lV_prev.set(i, lV_curr.get(i));
+		// }
+		//
+		// }
+		//
+		// System.out.printf("\nAfter TotalL = %f, After TotalW = %f\n\n",
+		// getTotalL(), getTotalW());
+
 		// PRINTOUT
 		System.out.printf("%dms%n", System.currentTimeMillis() - time);
 	}
 
-	// MUST call from inside Transaction
-	private void doFOST(MemNode v, int c) {
+	// private void doFOST(MemNode v, byte c) {
+	//
+	// ArrayList<Double> lV = l_curr.get(v.getId());
+	// ArrayList<Double> wV = w_curr.get(v.getId());
+	//
+	// double wVC = wV.get(c);
+	//
+	// int vDeg = v.getNeighbourCount();
+	//
+	// for (int fostIter = 0; fostIter < config.getFOSTIterations(); fostIter++)
+	// {
+	//
+	// // FOS/B (Secondary/Drain) Diffusion Algorithm
+	// doFOSB(v, c);
+	//
+	// // FOS/T Primary Diffusion Algorithm
+	// for (MemRel e : v.getNeighbours()) {
+	//
+	// MemNode u = this.memGraph.getNode(e.getEndNodeId());
+	//
+	// ArrayList<Double> wU = w_curr.get(u.getId());
+	//
+	// double wVwUDiff = wVC - wU.get(c);
+	//
+	// wVC = wVC - alphaE(u, vDeg) * e.getWeight() * wVwUDiff;
+	//
+	// }
+	//
+	// wVC = wVC + lV.get(c);
+	//
+	// wV.set(c, wVC);
+	// }
+	//
+	// }
 
-		ArrayList<Double> lV = l.get(v.getId());
-		ArrayList<Double> wV = w.get(v.getId());		
+	// private void doFOST(MemNode v, byte c) {
+	//
+	// ArrayList<Double> lV_curr = l_curr.get(v.getId());
+	//
+	// ArrayList<Double> wV_prev = w_prev.get(v.getId());
+	// ArrayList<Double> wV_curr = w_curr.get(v.getId());
+	//
+	// double wVC_prev = wV_prev.get(c);
+	// double wVC_curr = wV_curr.get(c);
+	//
+	// int vDeg = v.getNeighbourCount();
+	//
+	// for (int fostIter = 0; fostIter < config.getFOSTIterations(); fostIter++)
+	// {
+	//
+	// // FOS/B (Secondary/Drain) Diffusion Algorithm
+	// doFOSB(v, c);
+	//
+	// // FOS/T Primary Diffusion Algorithm
+	// for (MemRel e : v.getNeighbours()) {
+	//
+	// MemNode u = memGraph.getNode(e.getEndNodeId());
+	//
+	// ArrayList<Double> wU_prev = w_prev.get(u.getId());
+	//
+	// double wVwUDiff = wVC_prev - wU_prev.get(c);
+	//
+	// wVC_curr = wVC_curr
+	// - (alphaE(u, vDeg) * e.getWeight() * wVwUDiff);
+	//
+	// }
+	//
+	// wVC_curr = wVC_curr + lV_curr.get(c);
+	//
+	// }
+	//
+	// wV_curr.set(c, wVC_curr);
+	//
+	// }
 
-		double wVC = wV.get(c);
-
-		int vDeg = v.getNeighbourCount();
+	private void doFOST(byte c) {
 
 		for (int fostIter = 0; fostIter < config.getFOSTIterations(); fostIter++) {
-
 			// FOS/B (Secondary/Drain) Diffusion Algorithm
-			doFOSB(v, c);
+			doFOSB(c);
 
-			// FOS/T Primary Diffusion Algorithm
-			for (MemRel e : v.getNeighbours()) {
+			for (MemNode v : memGraph.getAllNodes()) {
 
-				MemNode u = this.memGraph.getNode(e.getEndNodeId());
+				ArrayList<Double> wV_prev = w_prev.get(v.getId());
+				ArrayList<Double> wV_curr = w_curr.get(v.getId());
 
-				ArrayList<Double> wU = w.get(u.getId());
+				double wVC_prev = wV_prev.get(c);
+				double wVC_curr = wV_curr.get(c);
 
-				double wVwUDiff = wVC - wU.get(c);
+				int vDeg = v.getNeighbourCount();
 
-				wVC = wVC - alphaE(u, vDeg) * e.getWeight() * wVwUDiff;
+				// // FOS/B (Secondary/Drain) Diffusion Algorithm
+				// doFOSB(v, c);
+
+				// FOS/T Primary Diffusion Algorithm
+				for (MemRel e : v.getNeighbours()) {
+
+					MemNode u = memGraph.getNode(e.getEndNodeId());
+
+					ArrayList<Double> wU_prev = w_prev.get(u.getId());
+
+					double diff = alphaE(u, vDeg) * e.getWeight()
+							* (wVC_prev - wU_prev.get(c));
+
+					// wVC_curr = wVC_curr - (diff / 2.0);
+					wVC_curr = wVC_curr - diff;
+
+					// ArrayList<Double> wU_curr = w_curr.get(u.getId());
+					// wU_curr.set(c, wU_curr.get(c) + (diff / 2.0));
+
+				}
+
+				ArrayList<Double> lV_curr = l_curr.get(v.getId());
+
+				wVC_curr = wVC_curr + lV_curr.get(c);
+				wV_curr.set(c, wVC_curr);
 
 			}
 
-			wVC = wVC + lV.get(c);
-
-			wV.set(c, wVC);
+			copyWVectors();
 		}
 
 	}
 
-	// MUST call from inside Transaction
-	private void doFOSB(MemNode v, int c) {
-		ArrayList<Double> lV = l.get(v.getId());
+	// private void doFOSB(MemNode v, byte c) {
+	// ArrayList<Double> lV = l_curr.get(v.getId());
+	//
+	// double lVC = lV.get(c);
+	// int vDeg = v.getNeighbourCount();
+	//
+	// double bV = benefit(v, c);
+	//
+	// for (int fosbIter = 0; fosbIter < config.getFOSBIterations(); fosbIter++)
+	// {
+	//
+	// // FOS/B Diffusion Algorithm
+	// for (MemRel e : v.getNeighbours()) {
+	//
+	// MemNode u = this.memGraph.getNode(e.getEndNodeId());
+	//
+	// ArrayList<Double> lU = l_curr.get(u.getId());
+	//
+	// double lVlUDiff = (lVC / bV) - (lU.get(c) / benefit(u, c));
+	//
+	// lVC = lVC - (alphaE(u, vDeg) * e.getWeight() * lVlUDiff);
+	//
+	// }
+	//
+	// }
+	//
+	// lV.set(c, lVC);
+	//
+	// }
 
-		double lVC = lV.get(c);
-		int vDeg = v.getNeighbourCount();
+	// private void doFOSB(MemNode v, byte c) {
+	//
+	// ArrayList<Double> lV_prev = l_prev.get(v.getId());
+	// ArrayList<Double> lV_curr = l_curr.get(v.getId());
+	//
+	// double lVC_prev = lV_prev.get(c);
+	// double lVC_curr = lV_curr.get(c);
+	//
+	// int vDeg = v.getNeighbourCount();
+	//
+	// double bV = benefit(v, c);
+	//
+	// for (int fosbIter = 0; fosbIter < config.getFOSBIterations(); fosbIter++)
+	// {
+	//
+	// // FOS/B Diffusion Algorithm
+	// for (MemRel e : v.getNeighbours()) {
+	//
+	// MemNode u = memGraph.getNode(e.getEndNodeId());
+	//
+	// ArrayList<Double> lU_prev = l_prev.get(u.getId());
+	//
+	// double lUC_prev = lU_prev.get(c);
+	//
+	// double diff = alphaE(u, vDeg) * e.getWeight()
+	// * ((lVC_prev / bV) - (lUC_prev / benefit(u, c)));
+	//
+	// // lVC_curr = lVC_curr - (diff / 2.0);
+	// lVC_curr = lVC_curr - diff;
+	//
+	// // ArrayList<Double> lU_curr = l_curr.get(u.getId());
+	// // lU_curr.set(c, lU_curr.get(c) + (diff / 2.0));
+	//
+	// }
+	//
+	// }
+	//
+	// lV_curr.set(c, lVC_curr);
+	//
+	// }
 
-		double bV = benefit(v, c);
+	private void doFOSB(byte c) {
 
 		for (int fosbIter = 0; fosbIter < config.getFOSBIterations(); fosbIter++) {
 
-			// FOS/B Diffusion Algorithm
-			for (MemRel e : v.getNeighbours()) {
+			for (MemNode v : memGraph.getAllNodes()) {
 
-				MemNode u = this.memGraph.getNode(e.getEndNodeId());
+				ArrayList<Double> lV_prev = l_prev.get(v.getId());
+				ArrayList<Double> lV_curr = l_curr.get(v.getId());
 
-				ArrayList<Double> lU = l.get(u.getId());
+				double lVC_prev = lV_prev.get(c);
+				double lVC_curr = lV_curr.get(c);
 
-				double lVlUDiff = (lVC / bV) - (lU.get(c) / benefit(u, c));
+				int vDeg = v.getNeighbourCount();
 
-				lVC = lVC - (alphaE(u, vDeg) * e.getWeight() * lVlUDiff);
+				double bV = benefit(v, c);
 
+				// FOS/B Diffusion Algorithm
+				for (MemRel e : v.getNeighbours()) {
+
+					MemNode u = memGraph.getNode(e.getEndNodeId());
+
+					ArrayList<Double> lU_prev = l_prev.get(u.getId());
+
+					double lUC_prev = lU_prev.get(c);
+
+					double diff = alphaE(u, vDeg) * e.getWeight()
+							* ((lVC_prev / bV) - (lUC_prev / benefit(u, c)));
+
+					// lVC_curr = lVC_curr - (diff / 2.0);
+					lVC_curr = lVC_curr - diff;
+
+					// ArrayList<Double> lU_curr = l_curr.get(u.getId());
+					// lU_curr.set(c, lU_curr.get(c) + (diff / 2.0));
+
+				}
+
+				lV_curr.set(c, lVC_curr);
+
+			}
+
+			copyLVectors();
+
+		}
+
+	}
+
+	private void copyLVectors() {
+		// System.out.printf("\nBefore TotalL = %f, ", getTotalL());
+
+		// Copy "current" load vectors to "previous" load vectors
+		for (Long lV_curr_key : l_curr.keySet()) {
+
+			ArrayList<Double> lV_curr = l_curr.get(lV_curr_key);
+			ArrayList<Double> lV_prev = l_prev.get(lV_curr_key);
+
+			for (int i = 0; i < lV_curr.size(); i++) {
+				lV_prev.set(i, lV_curr.get(i));
 			}
 
 		}
 
-		lV.set(c, lVC);
-
+		// System.out.printf("After TotalL = %f\n", getTotalL(), getTotalW());
 	}
 
-	// MUST call from inside Transaction
+	private void copyWVectors() {
+		// System.out.printf("\nBefore TotalW = %f, \n", getTotalW());
+
+		// Copy "current" load vectors to "previous" load vectors
+		for (Long wV_curr_key : w_curr.keySet()) {
+
+			ArrayList<Double> wV_curr = w_curr.get(wV_curr_key);
+			ArrayList<Double> wV_prev = w_prev.get(wV_curr_key);
+
+			for (int i = 0; i < wV_curr.size(); i++) {
+				wV_prev.set(i, wV_curr.get(i));
+			}
+
+		}
+
+		// System.out.printf("After TotalW = %f\n", getTotalW());
+	}
+
 	private double alphaE(MemNode u, MemNode v) {
 		// alphaE = 1/max{deg(u),deg(v)};
 		int uDeg = u.getNeighbourCount();
@@ -304,7 +711,6 @@ public class AlgMemDiDiC {
 		return 1.0 / (double) max;
 	}
 
-	// MUST call from inside Transaction
 	// Optimized version. Find vDeg once only
 	private double alphaE(MemNode u, double vDeg) {
 		// alphaE = 1/max{deg(u),deg(v)};
@@ -313,36 +719,35 @@ public class AlgMemDiDiC {
 		return 1.0 / Math.max(uDeg, vDeg);
 	}
 
-	// MUST call from inside Transaction
-	private double benefit(MemNode v, int c) {
+	private double benefit(MemNode v, byte c) {
 		if (v.getColor() == c)
 			return config.getBenefitHigh();
 		else
 			return config.getBenefitLow();
 	}
 
-	// MUST call from inside Transaction
 	// Switch between algorithms depending on time-step
-	private int allocateCluster(MemNode v, ArrayList<Double> wC, int timeStep) {
+	private byte allocateClusterHybrid(MemNode v, ArrayList<Double> wC_curr,
+			int timeStep) {
 		// Choose cluster with largest load vector
 		if ((timeStep < config.getHybridSwitchPoint())
 				|| (config.getHybridSwitchPoint() == -1))
-			return allocateClusterBasic(wC);
+			return allocateClusterBasic(wC_curr);
 
 		// Optimization to exclude clusters with no connections
 		else
-			return allocateClusterIntdeg(v, wC, timeStep);
+			return allocateClusterIntdeg(v, wC_curr, timeStep);
 	}
 
 	// Assign to cluster:
 	// * Associated with highest load value
-	private int allocateClusterBasic(ArrayList<Double> wC) {
-		int maxC = 0;
+	private byte allocateClusterBasic(ArrayList<Double> wC_curr) {
+		byte maxC = 0;
 		double maxW = 0.0;
 
-		for (int c = 0; c < wC.size(); c++) {
-			if (wC.get(c) > maxW) {
-				maxW = wC.get(c);
+		for (byte c = 0; c < wC_curr.size(); c++) {
+			if (wC_curr.get(c) > maxW) {
+				maxW = wC_curr.get(c);
 				maxC = c;
 			}
 		}
@@ -355,15 +760,15 @@ public class AlgMemDiDiC {
 	// * Associated with highest load value
 	// AND
 	// * Internal Degree of v is greater than zero
-	private int allocateClusterIntdeg(MemNode v, ArrayList<Double> wC,
+	private byte allocateClusterIntdeg(MemNode v, ArrayList<Double> wC_curr,
 			int timeStep) {
 
-		int maxC = v.getColor();
+		byte maxC = v.getColor();
 		double maxW = 0.0;
 
-		for (int c = 0; c < wC.size(); c++) {
-			if ((wC.get(c) > maxW) && (intDegNotZero(v, c))) {
-				maxW = wC.get(c);
+		for (byte c = 0; c < wC_curr.size(); c++) {
+			if ((wC_curr.get(c) > maxW) && (intDegNotZero(v, c))) {
+				maxW = wC_curr.get(c);
 				maxC = c;
 			}
 		}
@@ -371,13 +776,12 @@ public class AlgMemDiDiC {
 		return maxC;
 	}
 
-	// MUST call from inside Transaction
 	// v has at least 1 edge to given cluster
-	private boolean intDegNotZero(MemNode v, int c) {
+	private boolean intDegNotZero(MemNode v, byte c) {
 		for (MemRel e : v.getNeighbours()) {
 
 			MemNode u = this.memGraph.getNode(e.getEndNodeId());
-			int uColor = u.getColor();
+			byte uColor = u.getColor();
 
 			if (c == uColor)
 				return true;
@@ -416,7 +820,7 @@ public class AlgMemDiDiC {
 	private double getTotalW() {
 		double result = 0.0;
 
-		for (ArrayList<Double> vW : w.values()) {
+		for (ArrayList<Double> vW : w_prev.values()) {
 			for (Double vWC : vW) {
 				result += vWC;
 			}
@@ -428,7 +832,7 @@ public class AlgMemDiDiC {
 	private double getTotalL() {
 		double result = 0.0;
 
-		for (ArrayList<Double> vL : l.values()) {
+		for (ArrayList<Double> vL : l_prev.values()) {
 			for (Double vLC : vL) {
 				result += vLC;
 			}

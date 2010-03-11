@@ -4,10 +4,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map.Entry;
 
-import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.index.IndexService;
 import org.neo4j.index.lucene.LuceneIndexService;
@@ -16,23 +14,31 @@ import org.neo4j.kernel.EmbeddedGraphDatabase;
 import graph_cluster_algorithms.configs.ConfDiDiC;
 import graph_cluster_algorithms.supervisors.Supervisor;
 
-public class AlgDiskDiDiC {
+import graph_gen_utils.graph.MemGraph;
+import graph_gen_utils.graph.MemNode;
+import graph_gen_utils.graph.MemRel;
 
-	private HashMap<String, ArrayList<Double>> w = null; // Load Vec 1
-	private HashMap<String, ArrayList<Double>> l = null; // Load Vec 2 ('drain')
+public class AlgMemDiDiCOld {
+
+	private HashMap<Long, ArrayList<Double>> w = null; // Load Vec 1
+	private HashMap<Long, ArrayList<Double>> l = null; // Load Vec 2 ('drain')
 
 	private String databaseDir;
-	ConfDiDiC config = null;
+	private ConfDiDiC config = null;
+
+	private MemGraph memGraph = null;
 
 	private GraphDatabaseService transNeo = null;
 	private IndexService transIndexService = null;
 
 	public void start(String databaseDir, ConfDiDiC confDiDiC,
-			Supervisor supervisor) {
-		w = new HashMap<String, ArrayList<Double>>();
-		l = new HashMap<String, ArrayList<Double>>();
+			Supervisor supervisor, MemGraph memGraph) {
+
+		w = new HashMap<Long, ArrayList<Double>>();
+		l = new HashMap<Long, ArrayList<Double>>();
 		this.databaseDir = databaseDir;
 		this.config = confDiDiC;
+		this.memGraph = memGraph;
 
 		// PRINTOUT
 		System.out.println("\n*********DiDiC***********");
@@ -40,8 +46,6 @@ public class AlgDiskDiDiC {
 		openTransServices();
 
 		initLoadVectors();
-		
-		System.out.printf("\nTotalL = %f\nTotalW = %f\n\n",getTotalL(), getTotalW());
 
 		if (supervisor.isInitialSnapshot()) {
 			closeTransServices();
@@ -65,33 +69,17 @@ public class AlgDiskDiDiC {
 			// PRINTOUT
 			System.out.printf("\tFOS/T [TimeStep:%d, All Nodes]...", timeStep);
 
-			Transaction tx = transNeo.beginTx();
+			// For Every "Cluster System"
+			for (byte c = 0; c < config.getClusterCount(); c++) {
 
-			try {
-				// For Every "Cluster System"
-				for (byte c = 0; c < config.getClusterCount(); c++) {
+				// For Every Node
+				for (MemNode v : this.memGraph.getAllNodes()) {
 
-					// TODO outside cluster loop (less frequent node changes)
-					// For Every Node
-					for (Node v : transNeo.getAllNodes()) {
-						if (v.getId() != 0) {
-
-							// FOS/T Primary Diffusion Algorithm
-							doFOST(v, c);
-
-						}
-
-					}
+					// FOS/T Primary Diffusion Algorithm
+					doFOST(v, c);
 
 				}
 
-				tx.success();
-
-			} catch (Exception ex) {
-				System.err.printf("<ERR: DiDiC Outer Loop Aborted>");
-				System.err.println(ex.toString());
-			} finally {
-				tx.finish();
 			}
 
 			// PRINTOUT
@@ -127,8 +115,6 @@ public class AlgDiskDiDiC {
 				openTransServices();
 			}
 
-			System.out.printf("\nTotalL = %f\nTotalW = %f\n\n",getTotalL(), getTotalW());
-			
 		}
 
 		if (supervisor.isFinalSnapshot()) {
@@ -159,42 +145,28 @@ public class AlgDiskDiDiC {
 		// PRINTOUT
 		System.out.printf("Initialising Load Vectors...");
 
-		Transaction tx = transNeo.beginTx();
+		for (MemNode v : this.memGraph.getAllNodes()) {
 
-		try {
+			byte vColor = v.getColor();
 
-			for (Node v : transNeo.getAllNodes()) {
-				if (v.getId() != 0) {
+			ArrayList<Double> wV = new ArrayList<Double>();
+			ArrayList<Double> lV = new ArrayList<Double>();
 
-					byte vColor = (Byte) v.getProperty("color");
-					String vName = (String) v.getProperty("name");
+			for (byte i = 0; i < config.getClusterCount(); i++) {
 
-					ArrayList<Double> wV = new ArrayList<Double>();
-					ArrayList<Double> lV = new ArrayList<Double>();
-
-					for (byte i = 0; i < config.getClusterCount(); i++) {
-
-						if (vColor == i) {
-							wV.add(new Double(config.getDefClusterVal()));
-							lV.add(new Double(config.getDefClusterVal()));
-							continue;
-						}
-
-						wV.add(new Double(0));
-						lV.add(new Double(0));
-					}
-
-					w.put(vName, wV);
-					l.put(vName, lV);
-
+				if (vColor == i) {
+					wV.add(new Double(config.getDefClusterVal()));
+					lV.add(new Double(config.getDefClusterVal()));
+					continue;
 				}
+
+				wV.add(new Double(0));
+				lV.add(new Double(0));
 			}
 
-		} catch (Exception ex) {
-			System.err.printf("<ERR: Load Vectors May Not Be Initialised>");
-			System.err.println(ex.toString());
-		} finally {
-			tx.finish();
+			w.put(v.getId(), wV);
+			l.put(v.getId(), lV);
+
 		}
 
 		// PRINTOUT
@@ -203,6 +175,7 @@ public class AlgDiskDiDiC {
 
 	private void updateClusterAllocation(int timeStep,
 			ConfDiDiC.AllocType allocType) {
+
 		long time = System.currentTimeMillis();
 
 		// PRINTOUT
@@ -213,13 +186,11 @@ public class AlgDiskDiDiC {
 
 		try {
 
-			for (Entry<String, ArrayList<Double>> wC : w.entrySet()) {
-				String vName = wC.getKey();
+			for (Entry<Long, ArrayList<Double>> wC : w.entrySet()) {
 
-				Node v = transIndexService.getNodes("name", vName).iterator()
-						.next();
+				MemNode memV = this.memGraph.getNode(wC.getKey());
 
-				Byte vNewColor = (Byte) v.getProperty("color");
+				Byte vNewColor = memV.getColor();
 
 				switch (allocType) {
 				case BASE:
@@ -227,17 +198,21 @@ public class AlgDiskDiDiC {
 					break;
 
 				case OPT:
-					vNewColor = allocateClusterIntdeg(v, wC.getValue(),
+					vNewColor = allocateClusterIntdeg(memV, wC.getValue(),
 							timeStep);
 					break;
 
 				case HYBRID:
-					vNewColor = allocateCluster(v, wC.getValue(), timeStep);
+					vNewColor = allocateCluster(memV, wC.getValue(), timeStep);
 					break;
 
 				}
 
-				v.setProperty("color", vNewColor);
+				memV.setColor(vNewColor);
+
+				Node v = transIndexService.getSingleNode("name", memV.getId()
+						.toString());
+				v.setProperty("color", memV.getColor());
 			}
 
 			tx.success();
@@ -254,16 +229,14 @@ public class AlgDiskDiDiC {
 	}
 
 	// MUST call from inside Transaction
-	private void doFOST(Node v, byte c) {
+	private void doFOST(MemNode v, byte c) {
 
-		String vName = (String) v.getProperty("name");
-
-		ArrayList<Double> lV = l.get(vName);
-		ArrayList<Double> wV = w.get(vName);
+		ArrayList<Double> lV = l.get(v.getId());
+		ArrayList<Double> wV = w.get(v.getId());
 
 		double wVC = wV.get(c);
 
-		int vDeg = inDeg(v);
+		int vDeg = v.getNeighbourCount();
 
 		for (int fostIter = 0; fostIter < config.getFOSTIterations(); fostIter++) {
 
@@ -271,14 +244,16 @@ public class AlgDiskDiDiC {
 			doFOSB(v, c);
 
 			// FOS/T Primary Diffusion Algorithm
-			for (Relationship e : v.getRelationships(Direction.OUTGOING)) {
+			for (MemRel e : v.getNeighbours()) {
 
-				Node u = e.getEndNode();
-				ArrayList<Double> wU = w.get(u.getProperty("name"));
+				MemNode u = this.memGraph.getNode(e.getEndNodeId());
+
+				ArrayList<Double> wU = w.get(u.getId());
 
 				double wVwUDiff = wVC - wU.get(c);
 
-				wVC = wVC - (alphaE(u, vDeg) * weightE(e) * wVwUDiff);
+				wVC = wVC - alphaE(u, vDeg) * e.getWeight() * wVwUDiff;
+
 			}
 
 			wVC = wVC + lV.get(c);
@@ -289,27 +264,26 @@ public class AlgDiskDiDiC {
 	}
 
 	// MUST call from inside Transaction
-	private void doFOSB(Node v, byte c) {
-		String vName = (String) v.getProperty("name");
-
-		ArrayList<Double> lV = l.get(vName);
+	private void doFOSB(MemNode v, byte c) {
+		ArrayList<Double> lV = l.get(v.getId());
 
 		double lVC = lV.get(c);
-		int vDeg = inDeg(v);
+		int vDeg = v.getNeighbourCount();
+
 		double bV = benefit(v, c);
 
 		for (int fosbIter = 0; fosbIter < config.getFOSBIterations(); fosbIter++) {
 
 			// FOS/B Diffusion Algorithm
-			for (Relationship e : v.getRelationships(Direction.OUTGOING)) {
+			for (MemRel e : v.getNeighbours()) {
 
-				Node u = e.getEndNode();
+				MemNode u = this.memGraph.getNode(e.getEndNodeId());
 
-				ArrayList<Double> lU = l.get(u.getProperty("name"));
+				ArrayList<Double> lU = l.get(u.getId());
 
 				double lVlUDiff = (lVC / bV) - (lU.get(c) / benefit(u, c));
 
-				lVC = lVC - (alphaE(u, vDeg) * weightE(e) * lVlUDiff);
+				lVC = lVC - (alphaE(u, vDeg) * e.getWeight() * lVlUDiff);
 
 			}
 
@@ -320,18 +294,10 @@ public class AlgDiskDiDiC {
 	}
 
 	// MUST call from inside Transaction
-	private double alphaE(Node u, Node v) {
+	private double alphaE(MemNode u, MemNode v) {
 		// alphaE = 1/max{deg(u),deg(v)};
-		int uDeg = 0;
-		int vDeg = 0;
-
-		for (Relationship e : v.getRelationships(Direction.OUTGOING)) {
-			vDeg++;
-		}
-
-		for (Relationship e : u.getRelationships(Direction.OUTGOING)) {
-			uDeg++;
-		}
+		int uDeg = u.getNeighbourCount();
+		int vDeg = v.getNeighbourCount();
 
 		int max = Math.max(uDeg, vDeg);
 
@@ -340,29 +306,16 @@ public class AlgDiskDiDiC {
 
 	// MUST call from inside Transaction
 	// Optimized version. Find vDeg once only
-	private double alphaE(Node u, double vDeg) {
+	private double alphaE(MemNode u, double vDeg) {
 		// alphaE = 1/max{deg(u),deg(v)};
-		double uDeg = 0;
-
-		for (Relationship e : u.getRelationships(Direction.OUTGOING)) {
-			uDeg++;
-		}
+		double uDeg = u.getNeighbourCount();
 
 		return 1.0 / Math.max(uDeg, vDeg);
 	}
 
 	// MUST call from inside Transaction
-	private double weightE(Relationship e) {
-		if (e.hasProperty("weight")) {
-			return (Double) e.getProperty("weight");
-		} else
-			return 1.0;
-	}
-
-	// MUST call from inside Transaction
-	private double benefit(Node v, byte c) {
-
-		if ((Byte) v.getProperty("color") == c)
+	private double benefit(MemNode v, byte c) {
+		if (v.getColor() == c)
 			return config.getBenefitHigh();
 		else
 			return config.getBenefitLow();
@@ -370,7 +323,7 @@ public class AlgDiskDiDiC {
 
 	// MUST call from inside Transaction
 	// Switch between algorithms depending on time-step
-	private byte allocateCluster(Node v, ArrayList<Double> wC, int timeStep) {
+	private byte allocateCluster(MemNode v, ArrayList<Double> wC, int timeStep) {
 		// Choose cluster with largest load vector
 		if ((timeStep < config.getHybridSwitchPoint())
 				|| (config.getHybridSwitchPoint() == -1))
@@ -402,9 +355,10 @@ public class AlgDiskDiDiC {
 	// * Associated with highest load value
 	// AND
 	// * Internal Degree of v is greater than zero
-	private byte allocateClusterIntdeg(Node v, ArrayList<Double> wC, int timeStep) {
+	private byte allocateClusterIntdeg(MemNode v, ArrayList<Double> wC,
+			int timeStep) {
 
-		byte maxC = (Byte) v.getProperty("color");
+		byte maxC = v.getColor();
 		double maxW = 0.0;
 
 		for (byte c = 0; c < wC.size(); c++) {
@@ -419,11 +373,11 @@ public class AlgDiskDiDiC {
 
 	// MUST call from inside Transaction
 	// v has at least 1 edge to given cluster
-	private boolean intDegNotZero(Node v, byte c) {
-		for (Relationship e : v.getRelationships(Direction.OUTGOING)) {
+	private boolean intDegNotZero(MemNode v, byte c) {
+		for (MemRel e : v.getNeighbours()) {
 
-			Node u = e.getEndNode();
-			byte uColor = (Byte) u.getProperty("color");
+			MemNode u = this.memGraph.getNode(e.getEndNodeId());
+			byte uColor = u.getColor();
 
 			if (c == uColor)
 				return true;
@@ -431,17 +385,6 @@ public class AlgDiskDiDiC {
 		}
 
 		return false;
-	}
-
-	// MUST call from inside Transaction
-	private int inDeg(Node v) {
-		int vDeg = 0;
-
-		for (Relationship e : v.getRelationships(Direction.OUTGOING)) {
-			vDeg++;
-		}
-
-		return vDeg;
 	}
 
 	private void openTransServices() {

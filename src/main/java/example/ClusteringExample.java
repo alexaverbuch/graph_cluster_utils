@@ -14,8 +14,6 @@ import graph_gen_utils.graph.MemGraph;
 
 import java.io.FileNotFoundException;
 
-import javax.naming.ConfigurationException;
-
 public class ClusteringExample {
 
 	// Debugging Related
@@ -23,18 +21,25 @@ public class ClusteringExample {
 	private static final int MAX_ITERATIONS = 150;
 
 	public static void main(String[] args) throws Exception {
-		// do_didic_test_2_base_balanced_T5B5();
 		// do_esp_test_single();
+
+		// do_didic_test_2_base_balanced_T5B5();
+
 		// do_mem_didic_test_2_base_balanced_T5B5();
-		// do_mem_add20_16_opt_balanced_T11B11();
-		// do_mem_auto_2_opt_balanced_T11B11();
-		// do_mem_didic_test_2_opt_balanced_T11B11();
+		// do_mem_didic_add20_16_opt_balanced_T11B11();
+		do_mem_didic_add20_2_opt_balanced_T11B11();
+		// do_mem_didic_uk_2_opt_balanced_T11B11();
+
+		// do_mem_didic_balanced_add20_16_opt_balanced_T11B11();
+		// do_mem_didic_balanced_uk_16_opt_balanced_T11B11();
+		// do_mem_didic_balanced_uk_2_opt_balanced_T11B11();
 		// do_mem_didic_balanced_test_2_opt_balanced_T11B11();
-		do_mem_didic_balanced_add20_16_opt_balanced_T11B11();
+		// do_mem_didic_test_2_opt_balanced_T11B11();
 	}
 
-	private static void do_didic_test_2_base_balanced_T5B5() {
-		int clusterCount = 2;
+	private static void do_didic_test_2_base_balanced_T5B5()
+			throws FileNotFoundException {
+		byte clusterCount = 2;
 
 		String inputGraph = "test-cluster";
 		String inputPtn = "test-cluster-IN-BAL";
@@ -52,11 +57,7 @@ public class ClusteringExample {
 
 		NeoFromFile neoGenerator = new NeoFromFile(databaseDir);
 
-		try {
-			neoGenerator.writeNeo(inputGraphPath, inputPtnPath);
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		}
+		neoGenerator.writeNeo(inputGraphPath, inputPtnPath);
 
 		AlgDiskDiDiC didic = new AlgDiskDiDiC();
 
@@ -72,8 +73,9 @@ public class ClusteringExample {
 		didic.start(databaseDir, config, didicSupervisor);
 	}
 
-	private static void do_mem_didic_test_2_base_balanced_T5B5() {
-		int clusterCount = 2;
+	private static void do_mem_didic_test_2_base_balanced_T5B5()
+			throws Exception {
+		byte clusterCount = 2;
 
 		String inputGraph = "test-cluster";
 		String inputPtn = "test-cluster-IN-BAL";
@@ -101,8 +103,10 @@ public class ClusteringExample {
 
 		AlgMemDiDiC didic = new AlgMemDiDiC();
 
-		Supervisor didicSupervisor = new SupervisorDiDiC(SNAPSHOT_PERIOD,
-				inputGraph, graphDir, ptnDir, metDir);
+		// Supervisor didicSupervisor = new SupervisorDiDiC(SNAPSHOT_PERIOD,
+		// inputGraph, graphDir, ptnDir, metDir);
+		Supervisor didicSupervisor = new SupervisorDiDiC(50, inputGraph,
+				graphDir, ptnDir, metDir);
 
 		ConfDiDiC config = new ConfDiDiC(clusterCount);
 		config.setAllocType(ConfDiDiC.AllocType.BASE);
@@ -113,8 +117,9 @@ public class ClusteringExample {
 		didic.start(databaseDir, config, didicSupervisor, memGraph);
 	}
 
-	private static void do_mem_didic_test_2_opt_balanced_T11B11() {
-		int clusterCount = 2;
+	private static void do_mem_didic_test_2_opt_balanced_T11B11()
+			throws Exception {
+		byte clusterCount = 2;
 
 		String inputGraph = "test-cluster";
 		String inputPtn = "test-cluster-IN-BAL";
@@ -132,11 +137,7 @@ public class ClusteringExample {
 
 		NeoFromFile neoGenerator = new NeoFromFile(databaseDir);
 
-		try {
-			neoGenerator.writeNeo(inputGraphPath, inputPtnPath);
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		}
+		neoGenerator.writeNeo(inputGraphPath, inputPtnPath);
 
 		MemGraph memGraph = neoGenerator.readMemGraph();
 
@@ -156,7 +157,7 @@ public class ClusteringExample {
 
 	private static void do_mem_didic_balanced_test_2_opt_balanced_T11B11()
 			throws Exception {
-		int clusterCount = 2;
+		byte clusterCount = 2;
 
 		String inputGraph = "test-cluster";
 		String inputPtn = "test-cluster-IN-BAL";
@@ -196,7 +197,7 @@ public class ClusteringExample {
 
 	private static void do_mem_didic_balanced_add20_16_opt_balanced_T11B11()
 			throws FileNotFoundException {
-		int clusterCount = 16;
+		byte clusterCount = 16;
 
 		String inputGraph = "add20";
 		String inputPtn = "add20-IN-BAL";
@@ -220,8 +221,10 @@ public class ClusteringExample {
 
 		AlgMemDiDiCBalanced didic = new AlgMemDiDiCBalanced();
 
-		Supervisor didicSupervisor = new SupervisorDiDiC(SNAPSHOT_PERIOD,
-				inputGraph, graphDir, ptnDir, metDir);
+		// Supervisor didicSupervisor = new SupervisorDiDiC(SNAPSHOT_PERIOD,
+		// inputGraph, graphDir, ptnDir, metDir);
+		Supervisor didicSupervisor = new SupervisorDiDiC(50, inputGraph,
+				graphDir, ptnDir, metDir);
 
 		ConfDiDiC config = new ConfDiDiC(clusterCount);
 		config.setAllocType(ConfDiDiC.AllocType.OPT);
@@ -234,8 +237,9 @@ public class ClusteringExample {
 		didic.start(databaseDir, config, didicSupervisor, memGraph);
 	}
 
-	private static void do_mem_didic_add20_16_opt_balanced_T11B11() {
-		int clusterCount = 16;
+	private static void do_mem_didic_add20_16_opt_balanced_T11B11()
+			throws Exception {
+		byte clusterCount = 16;
 
 		String inputGraph = "add20";
 		String inputPtn = "add20-IN-BAL";
@@ -275,17 +279,18 @@ public class ClusteringExample {
 		didic.start(databaseDir, config, didicSupervisor, memGraph);
 	}
 
-	private static void do_mem_didic_auto_2_opt_balanced_T11B11() {
-		int clusterCount = 2;
+	private static void do_mem_didic_add20_2_opt_balanced_T11B11()
+			throws Exception {
+		byte clusterCount = 2;
 
-		String inputGraph = "auto";
-		String inputPtn = "auto-IN-BAL";
+		String inputGraph = "add20";
+		String inputPtn = "add20-IN-BAL";
 
 		String databaseDir = String.format("var/%s-2-balanced", inputGraph);
 
 		String graphDir = "graphs/";
 		String ptnDir = "partitionings/";
-		String metDir = "metrics/Mem DiDiC - auto 2 Opt Balanced T11 B11/";
+		String metDir = "metrics/Mem DiDiC - add20 2 Opt Balanced T11 B11/";
 
 		String inputGraphPath = String.format("%s%s.graph", graphDir,
 				inputGraph);
@@ -294,13 +299,7 @@ public class ClusteringExample {
 
 		NeoFromFile neoGenerator = new NeoFromFile(databaseDir);
 
-		try {
-			neoGenerator.writeNeo(inputGraphPath, inputPtnPath);
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+		neoGenerator.writeNeo(inputGraphPath, inputPtnPath);
 
 		MemGraph memGraph = neoGenerator.readMemGraph();
 
@@ -337,7 +336,8 @@ public class ClusteringExample {
 
 		try {
 			// neoGenerator.writeNeo(inputGraphPath, inputPtnPath);
-			neoGenerator.writeNeo(inputGraphPath, ClusterInitType.SINGLE, -1);
+			neoGenerator.writeNeo(inputGraphPath, ClusterInitType.SINGLE,
+					(byte) -1);
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		} catch (Exception e) {
@@ -356,6 +356,130 @@ public class ClusteringExample {
 		config.setConductance(0.001);
 
 		esp.start(databaseDir, config, espSupervisor);
+	}
+
+	private static void do_mem_didic_balanced_uk_16_opt_balanced_T11B11()
+			throws FileNotFoundException {
+		byte clusterCount = 16;
+
+		String inputGraph = "uk";
+		String inputPtn = "uk-IN-BAL";
+
+		String databaseDir = String.format("var/%s-16-balanced", inputGraph);
+
+		String graphDir = "graphs/";
+		String ptnDir = "partitionings/";
+		String metDir = "metrics/Mem DiDiC Balanced - uk 16 Opt Balanced T11 B11/";
+
+		String inputGraphPath = String.format("%s%s.graph", graphDir,
+				inputGraph);
+		String inputPtnPath = String.format("%s%s.%d.ptn", ptnDir, inputPtn,
+				clusterCount);
+
+		NeoFromFile neoGenerator = new NeoFromFile(databaseDir);
+
+		neoGenerator.writeNeo(inputGraphPath, inputPtnPath);
+
+		MemGraph memGraph = neoGenerator.readMemGraph();
+
+		AlgMemDiDiCBalanced didic = new AlgMemDiDiCBalanced();
+
+		// Supervisor didicSupervisor = new SupervisorDiDiC(SNAPSHOT_PERIOD,
+		// inputGraph, graphDir, ptnDir, metDir);
+		Supervisor didicSupervisor = new SupervisorDiDiC(50, inputGraph,
+				graphDir, ptnDir, metDir);
+
+		ConfDiDiC config = new ConfDiDiC(clusterCount);
+		config.setAllocType(ConfDiDiC.AllocType.OPT);
+		config.setMaxIterations(500);
+		config.setFOSTIterations(11);
+		config.setFOSBIterations(11);
+		config.setClusterSizeOff(500);
+		config.setClusterSizeOn(400);
+
+		didic.start(databaseDir, config, didicSupervisor, memGraph);
+	}
+
+	private static void do_mem_didic_balanced_uk_2_opt_balanced_T11B11()
+			throws FileNotFoundException {
+		byte clusterCount = 2;
+
+		String inputGraph = "uk";
+		String inputPtn = "uk-IN-BAL";
+
+		String databaseDir = String.format("var/%s-2-balanced", inputGraph);
+
+		String graphDir = "graphs/";
+		String ptnDir = "partitionings/";
+		String metDir = "metrics/Mem DiDiC Balanced - uk 2 Opt Balanced T11 B11/";
+
+		String inputGraphPath = String.format("%s%s.graph", graphDir,
+				inputGraph);
+		String inputPtnPath = String.format("%s%s.%d.ptn", ptnDir, inputPtn,
+				clusterCount);
+
+		NeoFromFile neoGenerator = new NeoFromFile(databaseDir);
+
+		neoGenerator.writeNeo(inputGraphPath, inputPtnPath);
+
+		MemGraph memGraph = neoGenerator.readMemGraph();
+
+		AlgMemDiDiCBalanced didic = new AlgMemDiDiCBalanced();
+
+		// Supervisor didicSupervisor = new SupervisorDiDiC(SNAPSHOT_PERIOD,
+		// inputGraph, graphDir, ptnDir, metDir);
+		Supervisor didicSupervisor = new SupervisorDiDiC(50, inputGraph,
+				graphDir, ptnDir, metDir);
+
+		ConfDiDiC config = new ConfDiDiC(clusterCount);
+		config.setAllocType(ConfDiDiC.AllocType.OPT);
+		config.setMaxIterations(500);
+		config.setFOSTIterations(11);
+		config.setFOSBIterations(11);
+		config.setClusterSizeOff(3200);
+		config.setClusterSizeOn(3000);
+
+		didic.start(databaseDir, config, didicSupervisor, memGraph);
+	}
+
+	private static void do_mem_didic_uk_2_opt_balanced_T11B11()
+			throws Exception {
+		byte clusterCount = 2;
+
+		String inputGraph = "uk";
+		String inputPtn = "uk-IN-BAL";
+
+		String databaseDir = String.format("var/%s-2-balanced", inputGraph);
+
+		String graphDir = "graphs/";
+		String ptnDir = "partitionings/";
+		String metDir = "metrics/Mem DiDiC - uk 2 Opt Balanced T11 B11/";
+
+		String inputGraphPath = String.format("%s%s.graph", graphDir,
+				inputGraph);
+		String inputPtnPath = String.format("%s%s.%d.ptn", ptnDir, inputPtn,
+				clusterCount);
+
+		NeoFromFile neoGenerator = new NeoFromFile(databaseDir);
+
+		neoGenerator.writeNeo(inputGraphPath, inputPtnPath);
+
+		MemGraph memGraph = neoGenerator.readMemGraph();
+
+		AlgMemDiDiC didic = new AlgMemDiDiC();
+
+		// Supervisor didicSupervisor = new SupervisorDiDiC(SNAPSHOT_PERIOD,
+		// inputGraph, graphDir, ptnDir, metDir);
+		Supervisor didicSupervisor = new SupervisorDiDiC(5, inputGraph,
+				graphDir, ptnDir, metDir);
+
+		ConfDiDiC config = new ConfDiDiC(clusterCount);
+		config.setAllocType(ConfDiDiC.AllocType.OPT);
+		config.setMaxIterations(MAX_ITERATIONS);
+		config.setFOSTIterations(11);
+		config.setFOSBIterations(11);
+
+		didic.start(databaseDir, config, didicSupervisor, memGraph);
 	}
 
 }

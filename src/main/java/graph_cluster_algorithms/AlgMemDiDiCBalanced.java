@@ -23,13 +23,9 @@ public class AlgMemDiDiCBalanced {
 	private HashMap<Long, ArrayList<Double>> w = null; // Load Vec 1
 	private HashMap<Long, ArrayList<Double>> l = null; // Load Vec 2 ('drain')
 
-	private HashMap<Integer, Long> clusterSizes = null; // Number of nodes in a
-	private HashMap<Integer, Boolean> clusterActivated = null; // Number of
-	// nodes in a
+	private HashMap<Byte, Long> clusterSizes = null; // Number of nodes in a
+	private HashMap<Byte, Boolean> clusterActivated = null; // Number of
 
-	// cluster
-
-	// private int clusterCount;
 	private String databaseDir;
 	private ConfDiDiC config = null;
 
@@ -43,8 +39,8 @@ public class AlgMemDiDiCBalanced {
 
 		w = new HashMap<Long, ArrayList<Double>>();
 		l = new HashMap<Long, ArrayList<Double>>();
-		clusterSizes = new HashMap<Integer, Long>();
-		clusterActivated = new HashMap<Integer, Boolean>();
+		clusterSizes = new HashMap<Byte, Long>();
+		clusterActivated = new HashMap<Byte, Boolean>();
 		this.databaseDir = databaseDir;
 		this.config = confDiDiC;
 		this.memGraph = memGraph;
@@ -79,7 +75,7 @@ public class AlgMemDiDiCBalanced {
 			System.out.printf("\tFOS/T [TimeStep:%d, All Nodes]...", timeStep);
 
 			// For Every "Cluster System"
-			for (int c = 0; c < config.getClusterCount(); c++) {
+			for (byte c = 0; c < config.getClusterCount(); c++) {
 
 				if (clusterSizes.get(c) > config.getClusterSizeOff())
 					clusterActivated.put(c, false);
@@ -170,24 +166,24 @@ public class AlgMemDiDiCBalanced {
 		// PRINTOUT
 		System.out.printf("Initialising Load Vectors...");
 
-		for (int c = 0; c < config.getClusterCount(); c++) {
+		for (byte c = 0; c < config.getClusterCount(); c++) {
 			clusterSizes.put(c, (long) 0);
 			clusterActivated.put(c, true);
 		}
 
 		for (MemNode v : this.memGraph.getAllNodes()) {
 
-			int vColor = v.getColor();
+			byte vColor = v.getColor();
 
 			ArrayList<Double> wV = new ArrayList<Double>();
 			ArrayList<Double> lV = new ArrayList<Double>();
 
-			for (int i = 0; i < config.getClusterCount(); i++) {
+			for (byte c = 0; c < config.getClusterCount(); c++) {
 
-				if (vColor == i) {
+				if (vColor == c) {
 					wV.add(new Double(config.getDefClusterVal()));
 					lV.add(new Double(config.getDefClusterVal()));
-					clusterSizes.put(i, clusterSizes.get(i) + 1);
+					clusterSizes.put(c, clusterSizes.get(c) + 1);
 					continue;
 				}
 
@@ -221,7 +217,7 @@ public class AlgMemDiDiCBalanced {
 
 				MemNode memV = this.memGraph.getNode(wC.getKey());
 
-				Integer vNewColor = memV.getColor();
+				Byte vNewColor = memV.getColor();
 
 				clusterSizes.put(vNewColor, clusterSizes.get(vNewColor) - 1);
 
@@ -264,7 +260,7 @@ public class AlgMemDiDiCBalanced {
 	}
 
 	// MUST call from inside Transaction
-	private void doFOST(MemNode v, int c) {
+	private void doFOST(MemNode v, byte c) {
 
 		ArrayList<Double> lV = l.get(v.getId());
 		ArrayList<Double> wV = w.get(v.getId());
@@ -288,13 +284,17 @@ public class AlgMemDiDiCBalanced {
 
 				double diff = alphaE(u, vDeg) * e.getWeight() * (wVC - wUC);
 
-				// wVC = wVC - (diff / 2.0);
-				wVC = wVC - diff;
+				// NOTE New
+				wVC = wVC - (diff / 2.0);
+				// NOTE Old
+				// wVC = wVC - diff;
 
-				// wU.set(c, wUC + (diff / 2.0));
+				// NOTE New
+				wU.set(c, wUC + (diff / 2.0));
 			}
 
-			wVC = wVC + lV.get(c);
+			// FIXME uncomment
+			// wVC = wVC + lV.get(c);
 
 			wV.set(c, wVC);
 		}
@@ -302,7 +302,7 @@ public class AlgMemDiDiCBalanced {
 	}
 
 	// MUST call from inside Transaction
-	private void doFOSB(MemNode v, int c) {
+	private void doFOSB(MemNode v, byte c) {
 		ArrayList<Double> lV = l.get(v.getId());
 
 		double lVC = lV.get(c);
@@ -323,10 +323,13 @@ public class AlgMemDiDiCBalanced {
 				double diff = alphaE(u, vDeg) * e.getWeight()
 						* ((lVC / bV) - (lUC / benefit(u, c)));
 
-				// lVC = lVC - (diff / 2.0);
-				lVC = lVC - diff;
+				// NOTE New
+				lVC = lVC - (diff / 2.0);
+				// NOTE Old
+				// lVC = lVC - diff;
 
-				// lU.set(c, lUC + (diff / 2.0));
+				// NOTE New
+				lU.set(c, lUC + (diff / 2.0));
 			}
 
 		}
@@ -356,7 +359,7 @@ public class AlgMemDiDiCBalanced {
 	}
 
 	// MUST call from inside Transaction
-	private double benefit(MemNode v, int c) {
+	private double benefit(MemNode v, byte c) {
 		if (v.getColor() == c)
 			return config.getBenefitHigh();
 		else
@@ -365,7 +368,7 @@ public class AlgMemDiDiCBalanced {
 
 	// MUST call from inside Transaction
 	// Switch between algorithms depending on time-step
-	private int allocateCluster(MemNode v, ArrayList<Double> wC, int timeStep) {
+	private byte allocateCluster(MemNode v, ArrayList<Double> wC, int timeStep) {
 		// Choose cluster with largest load vector
 		if ((timeStep < config.getHybridSwitchPoint())
 				|| (config.getHybridSwitchPoint() == -1))
@@ -378,11 +381,11 @@ public class AlgMemDiDiCBalanced {
 
 	// Assign to cluster:
 	// * Associated with highest load value
-	private int allocateClusterBasic(ArrayList<Double> wC) {
-		int maxC = 0;
+	private byte allocateClusterBasic(ArrayList<Double> wC) {
+		byte maxC = 0;
 		double maxW = 0.0;
 
-		for (int c = 0; c < wC.size(); c++) {
+		for (byte c = 0; c < wC.size(); c++) {
 			if (wC.get(c) > maxW) {
 				maxW = wC.get(c);
 				maxC = c;
@@ -397,13 +400,13 @@ public class AlgMemDiDiCBalanced {
 	// * Associated with highest load value
 	// AND
 	// * Internal Degree of v is greater than zero
-	private int allocateClusterIntdeg(MemNode v, ArrayList<Double> wC,
+	private byte allocateClusterIntdeg(MemNode v, ArrayList<Double> wC,
 			int timeStep) {
 
-		int maxC = v.getColor();
+		byte maxC = v.getColor();
 		double maxW = 0.0;
 
-		for (int c = 0; c < wC.size(); c++) {
+		for (byte c = 0; c < wC.size(); c++) {
 			if ((wC.get(c) > maxW) && (intDegNotZero(v, c))) {
 				maxW = wC.get(c);
 				maxC = c;
@@ -415,11 +418,11 @@ public class AlgMemDiDiCBalanced {
 
 	// MUST call from inside Transaction
 	// v has at least 1 edge to given cluster
-	private boolean intDegNotZero(MemNode v, int c) {
+	private boolean intDegNotZero(MemNode v, byte c) {
 		for (MemRel e : v.getNeighbours()) {
 
 			MemNode u = this.memGraph.getNode(e.getEndNodeId());
-			int uColor = u.getColor();
+			byte uColor = u.getColor();
 
 			if (c == uColor)
 				return true;
@@ -482,7 +485,7 @@ public class AlgMemDiDiCBalanced {
 	private String getClusterSizes() {
 		String result = "[ ";
 
-		for (int c = 0; c < config.getClusterCount(); c++) {
+		for (byte c = 0; c < config.getClusterCount(); c++) {
 			result = String.format("%s%d ", result, clusterSizes.get(c));
 		}
 
