@@ -3,7 +3,7 @@ package graph_cluster_algorithms.supervisors;
 import graph_gen_utils.NeoFromFile;
 import graph_gen_utils.NeoFromFile.ChacoType;
 
-public class SupervisorDiDiC extends Supervisor {
+public class SupervisorBase extends Supervisor {
 
 	private int snapshotPeriod = -1;
 	private String graphName = "";
@@ -11,7 +11,7 @@ public class SupervisorDiDiC extends Supervisor {
 	private String ptnDir = "";
 	private String resultsDir = "";
 
-	public SupervisorDiDiC(int snapshotPeriod, String graphName,
+	public SupervisorBase(int snapshotPeriod, String graphName,
 			String graphDir, String ptnDir, String resultsDir) {
 		super();
 		this.snapshotPeriod = snapshotPeriod;

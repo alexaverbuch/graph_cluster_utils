@@ -293,8 +293,7 @@ public class AlgMemDiDiCBalanced {
 				wU.set(c, wUC + (diff / 2.0));
 			}
 
-			// FIXME uncomment
-			// wVC = wVC + lV.get(c);
+			wVC = wVC + lV.get(c);
 
 			wV.set(c, wVC);
 		}
