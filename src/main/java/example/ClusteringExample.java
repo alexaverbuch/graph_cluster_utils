@@ -5,6 +5,7 @@ import graph_cluster_algorithms.AlgMemDiDiC;
 import graph_cluster_algorithms.AlgMemDiDiCExpBal;
 import graph_cluster_algorithms.AlgDiskDiDiC;
 import graph_cluster_algorithms.AlgMemDiDiCExpFix;
+import graph_cluster_algorithms.AlgMemDiDiCExpPaper;
 import graph_cluster_algorithms.AlgMemDiDiCExpSync;
 import graph_cluster_algorithms.configs.ConfDiDiC;
 import graph_cluster_algorithms.configs.ConfEvoPartition;
@@ -63,7 +64,12 @@ public class ClusteringExample {
 		// ****************************************
 		// *** DiDiC In-Memory Experimental Sync ***
 		// ****************************************
-		do_mem_didic_exp_sync_uk_2_opt_balanced_T11B11();
+		// do_mem_didic_exp_sync_uk_2_opt_balanced_T11B11();
+
+		// **************************************************
+		// *** DiDiC In-Memory Experimental Updated Paper ***
+		// **************************************************
+		do_mem_didic_exp_paper_uk_2_opt_balanced_T11B11();
 	}
 
 	private static void do_disk_didic_test_2_opt_balanced_T11B11()
@@ -591,6 +597,44 @@ public class ClusteringExample {
 		MemGraph memGraph = neoGenerator.readMemGraph();
 
 		AlgMemDiDiCExpSync didic = new AlgMemDiDiCExpSync();
+
+		Supervisor didicSupervisor = new SupervisorBase(SNAPSHOT_PERIOD,
+				inputGraph, graphDir, ptnDir, metDir);
+
+		ConfDiDiC config = new ConfDiDiC(clusterCount);
+		config.setAllocType(ConfDiDiC.AllocType.OPT);
+		config.setMaxIterations(500);
+		config.setFOSTIterations(11);
+		config.setFOSBIterations(11);
+
+		didic.start(databaseDir, config, didicSupervisor, memGraph);
+	}
+
+	private static void do_mem_didic_exp_paper_uk_2_opt_balanced_T11B11()
+			throws Exception {
+		byte clusterCount = 2;
+
+		String inputGraph = "uk";
+		String inputPtn = "uk-IN-BAL";
+
+		String databaseDir = String.format("var/%s-2-balanced", inputGraph);
+
+		String graphDir = "graphs/";
+		String ptnDir = "partitionings/";
+		String metDir = "metrics/Mem DiDiC Exp Paper - uk 2 Opt Balanced T11 B11/";
+
+		String inputGraphPath = String.format("%s%s.graph", graphDir,
+				inputGraph);
+		String inputPtnPath = String.format("%s%s.%d.ptn", ptnDir, inputPtn,
+				clusterCount);
+
+		NeoFromFile neoGenerator = new NeoFromFile(databaseDir);
+
+		neoGenerator.writeNeo(inputGraphPath, inputPtnPath);
+
+		MemGraph memGraph = neoGenerator.readMemGraph();
+
+		AlgMemDiDiCExpPaper didic = new AlgMemDiDiCExpPaper();
 
 		Supervisor didicSupervisor = new SupervisorBase(SNAPSHOT_PERIOD,
 				inputGraph, graphDir, ptnDir, metDir);

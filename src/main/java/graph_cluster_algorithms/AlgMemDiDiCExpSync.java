@@ -436,6 +436,23 @@ public class AlgMemDiDiCExpSync {
 	// Printout Stuff
 	// **************
 
+	private void printLoadState(Long[] vIds) {
+		System.out.printf("***\n");
+
+		double totalL = getTotalL();
+		double totalW = getTotalW();
+
+		System.out.printf("TotalL = %f, TotalW = %f, Total = %f\n", totalL,
+				totalW, totalL + totalW);
+
+		for (Long vId : vIds) {
+			System.out.printf("\tVertex %d \n\t\tW = %s \n\t\tL = %s\n", vId,
+					getWV(vId), getLV(vId));
+		}
+
+		System.out.printf("***\n");
+	}
+
 	private double getTotalW() {
 		double result = 0.0;
 
@@ -482,23 +499,6 @@ public class AlgMemDiDiCExpSync {
 		result = String.format("%s ]", result);
 
 		return result;
-	}
-
-	private void printLoadState(Long[] vIds) {
-		System.out.printf("***\n");
-
-		double totalL = getTotalL();
-		double totalW = getTotalW();
-
-		System.out.printf("TotalL = %f, TotalW = %f, Total = %f\n", totalL,
-				totalW, totalL + totalW);
-
-		for (Long vId : vIds) {
-			System.out.printf("\tVertex %d \n\t\tW = %s \n\t\tL = %s\n", vId,
-					getWV(vId), getLV(vId));
-		}
-
-		System.out.printf("***\n");
 	}
 
 }
