@@ -21,6 +21,7 @@ public class ClusteringExample {
 
 	// Debugging Related
 	private static final int SNAPSHOT_PERIOD = 5;
+	private static final int LONG_SNAPSHOT_PERIOD = 50;
 	private static final int MAX_ITERATIONS = 150;
 
 	public static void main(String[] args) throws Exception {
@@ -97,7 +98,7 @@ public class ClusteringExample {
 		AlgDiskDiDiC didic = new AlgDiskDiDiC();
 
 		Supervisor didicSupervisor = new SupervisorBase(SNAPSHOT_PERIOD,
-				inputGraph, graphDir, ptnDir, metDir);
+				LONG_SNAPSHOT_PERIOD, inputGraph, graphDir, ptnDir, metDir);
 
 		ConfDiDiC config = new ConfDiDiC(clusterCount);
 		config.setAllocType(ConfDiDiC.AllocType.OPT);
@@ -135,7 +136,7 @@ public class ClusteringExample {
 		AlgMemDiDiC didic = new AlgMemDiDiC();
 
 		Supervisor didicSupervisor = new SupervisorBase(SNAPSHOT_PERIOD,
-				inputGraph, graphDir, ptnDir, metDir);
+				LONG_SNAPSHOT_PERIOD, inputGraph, graphDir, ptnDir, metDir);
 
 		ConfDiDiC config = new ConfDiDiC(clusterCount);
 		config.setAllocType(ConfDiDiC.AllocType.OPT);
@@ -173,7 +174,7 @@ public class ClusteringExample {
 		AlgMemDiDiCExpBal didic = new AlgMemDiDiCExpBal();
 
 		Supervisor didicSupervisor = new SupervisorBase(SNAPSHOT_PERIOD,
-				inputGraph, graphDir, ptnDir, metDir);
+				LONG_SNAPSHOT_PERIOD, inputGraph, graphDir, ptnDir, metDir);
 
 		ConfDiDiC config = new ConfDiDiC(clusterCount);
 		config.setAllocType(ConfDiDiC.AllocType.OPT);
@@ -213,7 +214,7 @@ public class ClusteringExample {
 		AlgMemDiDiCExpBal didic = new AlgMemDiDiCExpBal();
 
 		Supervisor didicSupervisor = new SupervisorBase(SNAPSHOT_PERIOD,
-				inputGraph, graphDir, ptnDir, metDir);
+				LONG_SNAPSHOT_PERIOD, inputGraph, graphDir, ptnDir, metDir);
 
 		ConfDiDiC config = new ConfDiDiC(clusterCount);
 		config.setAllocType(ConfDiDiC.AllocType.OPT);
@@ -257,7 +258,7 @@ public class ClusteringExample {
 		AlgMemDiDiC didic = new AlgMemDiDiC();
 
 		Supervisor didicSupervisor = new SupervisorBase(SNAPSHOT_PERIOD,
-				inputGraph, graphDir, ptnDir, metDir);
+				LONG_SNAPSHOT_PERIOD, inputGraph, graphDir, ptnDir, metDir);
 
 		ConfDiDiC config = new ConfDiDiC(clusterCount);
 		config.setAllocType(ConfDiDiC.AllocType.OPT);
@@ -295,7 +296,7 @@ public class ClusteringExample {
 		AlgMemDiDiC didic = new AlgMemDiDiC();
 
 		Supervisor didicSupervisor = new SupervisorBase(SNAPSHOT_PERIOD,
-				inputGraph, graphDir, ptnDir, metDir);
+				LONG_SNAPSHOT_PERIOD, inputGraph, graphDir, ptnDir, metDir);
 
 		ConfDiDiC config = new ConfDiDiC(clusterCount);
 		config.setAllocType(ConfDiDiC.AllocType.OPT);
@@ -330,7 +331,7 @@ public class ClusteringExample {
 		AlgDiskEvoPartition esp = new AlgDiskEvoPartition();
 
 		Supervisor espSupervisor = new SupervisorBase(SNAPSHOT_PERIOD,
-				inputGraph, graphDir, ptnDir, metDir);
+				LONG_SNAPSHOT_PERIOD, inputGraph, graphDir, ptnDir, metDir);
 
 		ConfEvoPartition config = new ConfEvoPartition();
 		config.setP(0.9);
@@ -367,7 +368,7 @@ public class ClusteringExample {
 		AlgMemDiDiCExpBal didic = new AlgMemDiDiCExpBal();
 
 		Supervisor didicSupervisor = new SupervisorBase(SNAPSHOT_PERIOD,
-				inputGraph, graphDir, ptnDir, metDir);
+				LONG_SNAPSHOT_PERIOD, inputGraph, graphDir, ptnDir, metDir);
 
 		ConfDiDiC config = new ConfDiDiC(clusterCount);
 		config.setAllocType(ConfDiDiC.AllocType.OPT);
@@ -407,7 +408,7 @@ public class ClusteringExample {
 		AlgMemDiDiCExpBal didic = new AlgMemDiDiCExpBal();
 
 		Supervisor didicSupervisor = new SupervisorBase(SNAPSHOT_PERIOD,
-				inputGraph, graphDir, ptnDir, metDir);
+				LONG_SNAPSHOT_PERIOD, inputGraph, graphDir, ptnDir, metDir);
 
 		ConfDiDiC config = new ConfDiDiC(clusterCount);
 		config.setAllocType(ConfDiDiC.AllocType.OPT);
@@ -447,7 +448,7 @@ public class ClusteringExample {
 		AlgMemDiDiC didic = new AlgMemDiDiC();
 
 		Supervisor didicSupervisor = new SupervisorBase(SNAPSHOT_PERIOD,
-				inputGraph, graphDir, ptnDir, metDir);
+				LONG_SNAPSHOT_PERIOD, inputGraph, graphDir, ptnDir, metDir);
 
 		ConfDiDiC config = new ConfDiDiC(clusterCount);
 		config.setAllocType(ConfDiDiC.AllocType.OPT);
@@ -485,7 +486,7 @@ public class ClusteringExample {
 		AlgMemDiDiC didic = new AlgMemDiDiC();
 
 		Supervisor didicSupervisor = new SupervisorBase(SNAPSHOT_PERIOD,
-				inputGraph, graphDir, ptnDir, metDir);
+				LONG_SNAPSHOT_PERIOD, inputGraph, graphDir, ptnDir, metDir);
 
 		ConfDiDiC config = new ConfDiDiC(clusterCount);
 		config.setAllocType(ConfDiDiC.AllocType.OPT);
@@ -522,8 +523,8 @@ public class ClusteringExample {
 
 		AlgMemDiDiC didic = new AlgMemDiDiC();
 
-		Supervisor didicSupervisor = new SupervisorBase(1, inputGraph,
-				graphDir, ptnDir, metDir);
+		Supervisor didicSupervisor = new SupervisorBase(SNAPSHOT_PERIOD,
+				LONG_SNAPSHOT_PERIOD, inputGraph, graphDir, ptnDir, metDir);
 
 		ConfDiDiC config = new ConfDiDiC(clusterCount);
 		config.setAllocType(ConfDiDiC.AllocType.OPT);
@@ -561,7 +562,7 @@ public class ClusteringExample {
 		AlgMemDiDiCExpFix didic = new AlgMemDiDiCExpFix();
 
 		Supervisor didicSupervisor = new SupervisorBase(SNAPSHOT_PERIOD,
-				inputGraph, graphDir, ptnDir, metDir);
+				LONG_SNAPSHOT_PERIOD, inputGraph, graphDir, ptnDir, metDir);
 
 		ConfDiDiC config = new ConfDiDiC(clusterCount);
 		config.setAllocType(ConfDiDiC.AllocType.OPT);
@@ -599,7 +600,7 @@ public class ClusteringExample {
 		AlgMemDiDiCExpSync didic = new AlgMemDiDiCExpSync();
 
 		Supervisor didicSupervisor = new SupervisorBase(SNAPSHOT_PERIOD,
-				inputGraph, graphDir, ptnDir, metDir);
+				LONG_SNAPSHOT_PERIOD, inputGraph, graphDir, ptnDir, metDir);
 
 		ConfDiDiC config = new ConfDiDiC(clusterCount);
 		config.setAllocType(ConfDiDiC.AllocType.OPT);
@@ -637,7 +638,7 @@ public class ClusteringExample {
 		AlgMemDiDiCExpPaper didic = new AlgMemDiDiCExpPaper();
 
 		Supervisor didicSupervisor = new SupervisorBase(SNAPSHOT_PERIOD,
-				inputGraph, graphDir, ptnDir, metDir);
+				LONG_SNAPSHOT_PERIOD, inputGraph, graphDir, ptnDir, metDir);
 
 		ConfDiDiC config = new ConfDiDiC(clusterCount);
 		config.setAllocType(ConfDiDiC.AllocType.OPT);

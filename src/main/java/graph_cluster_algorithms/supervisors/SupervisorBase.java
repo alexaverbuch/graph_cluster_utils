@@ -6,15 +6,17 @@ import graph_gen_utils.NeoFromFile.ChacoType;
 public class SupervisorBase extends Supervisor {
 
 	private int snapshotPeriod = -1;
+	private int longSnapshotPeriod = -1;
 	private String graphName = "";
 	private String graphDir = "";
 	private String ptnDir = "";
 	private String resultsDir = "";
 
-	public SupervisorBase(int snapshotPeriod, String graphName,
-			String graphDir, String ptnDir, String resultsDir) {
+	public SupervisorBase(int snapshotPeriod, int longSnapshotPeriod,
+			String graphName, String graphDir, String ptnDir, String resultsDir) {
 		super();
 		this.snapshotPeriod = snapshotPeriod;
+		this.longSnapshotPeriod = longSnapshotPeriod;
 		this.graphName = graphName;
 		this.graphDir = graphDir;
 		this.ptnDir = ptnDir;
@@ -76,15 +78,6 @@ public class SupervisorBase extends Supervisor {
 
 		try {
 
-			// String outMetrics = String.format("%s%s-%d.%d.met", resultsDir,
-			// graphName, timeStep, clusterCount);
-			//
-			// // Create NeoFromFile and assign DB location
-			// NeoFromFile neoCreator = new NeoFromFile(databaseDir);
-			//
-			// // Write graph metrics to file
-			// neoCreator.writeMetrics(outMetrics);
-
 			String outMetrics = String.format("%s%s.%d.met", resultsDir,
 					graphName, clusterCount);
 
@@ -97,7 +90,8 @@ public class SupervisorBase extends Supervisor {
 			String outGml = String.format("%s%s.%d.%d.gml", resultsDir,
 					graphName, clusterCount, timeStep);
 
-			neoCreator.writeGML(outGml);
+			if ((timeStep % longSnapshotPeriod) == 0)
+				neoCreator.writeGML(outGml);
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -114,23 +108,6 @@ public class SupervisorBase extends Supervisor {
 	public void doFinalSnapshot(int clusterCount, String databaseDir) {
 
 		try {
-
-			// // String outGraph = String.format("%s%s-FINAL.graph", graphDir,
-			// // graphName);
-			// // String outPtn = String.format("%s%s-OUT-FINAL.%d.ptn", ptnDir,
-			// // graphName, clusterCount);
-			// String outMetrics = String.format("%s%s-FINAL.%d.met",
-			// resultsDir,
-			// graphName, clusterCount);
-			//
-			// // Create NeoFromFile and assign DB location
-			// NeoFromFile neoCreator = new NeoFromFile(databaseDir);
-			//
-			// // neoCreator.generateChaco(outGraph,
-			// // NeoFromFile.ChacoType.UNWEIGHTED, outPtn);
-			//
-			// // Write graph metrics to file
-			// neoCreator.writeMetrics(outMetrics);
 
 			String outMetrics = String.format("%s%s.%d.met", resultsDir,
 					graphName, clusterCount);
