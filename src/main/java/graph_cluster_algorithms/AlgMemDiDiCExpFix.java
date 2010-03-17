@@ -30,6 +30,9 @@ public class AlgMemDiDiCExpFix {
 	private GraphDatabaseService transNeo = null;
 	private IndexService transIndexService = null;
 
+	// FIXME Remove
+	private double timeStepWeight = 1.0;
+
 	public void start(String databaseDir, ConfDiDiC confDiDiC,
 			Supervisor supervisor, MemGraph memGraph) {
 
@@ -63,10 +66,12 @@ public class AlgMemDiDiCExpFix {
 
 		for (int timeStep = 0; timeStep < config.getMaxIterations(); timeStep++) {
 
+			// FIXME Remove
+			timeStepWeight = 1.0 + (0.5 * timeStep);
+
 			// FIXME REMOVE
 			System.out.printf("\nBefore FOST\n");
-			printLoadState(new Long[] { (long) 1, (long) 100, (long) 500,
-					(long) 1000 });
+			printLoadState(new Long[] { (long) 1, (long) 100, (long) 500 });
 
 			long timeStepTime = System.currentTimeMillis();
 
@@ -240,6 +245,16 @@ public class AlgMemDiDiCExpFix {
 
 		for (int fostIter = 0; fostIter < config.getFOSTIterations(); fostIter++) {
 
+			// // For Every Node: Copy fraction of W back to L
+			// for (MemNode v : memGraph.getAllNodes()) {
+			// ArrayList<Double> lV = l.get(v.getId());
+			// ArrayList<Double> wV = w.get(v.getId());
+			// double lVC = lV.get(c);
+			// double wVC = wV.get(c);
+			// lV.set(c, lVC + (wVC * moveFraction));
+			// wV.set(c, wVC - (wVC * moveFraction));
+			// }
+
 			// FIXME REMOVE
 			// System.out.println("--- Before FOSB---");
 			// printLoadState(new Long[] { (long) 1, (long) 500 });
@@ -260,6 +275,16 @@ public class AlgMemDiDiCExpFix {
 				lV.set(c, lVC - (lVC * moveFraction));
 				wV.set(c, wVC + (lVC * moveFraction));
 			}
+
+			// // For Every Node: Copy fraction of L to W
+			// for (MemNode v : memGraph.getAllNodes()) {
+			// ArrayList<Double> lV = l.get(v.getId());
+			// ArrayList<Double> wV = w.get(v.getId());
+			// double lVC = lV.get(c);
+			// double wVC = wV.get(c);
+			// lV.set(c, lVC - (lVC * (moveFraction / (1 + moveFraction))));
+			// wV.set(c, wVC + (lVC * (moveFraction / (1 + moveFraction))));
+			// }
 
 			// FIXME REMOVE
 			// System.out.println("--- Before FOST---");
@@ -304,8 +329,8 @@ public class AlgMemDiDiCExpFix {
 				ArrayList<Double> wV = w.get(v.getId());
 				double lVC = lV.get(c);
 				double wVC = wV.get(c);
-				lV.set(c, lVC + (wVC * moveFraction));
-				wV.set(c, wVC - (wVC * moveFraction));
+				lV.set(c, lVC + (wVC * (moveFraction / (1 + moveFraction))));
+				wV.set(c, wVC - (wVC * (moveFraction / (1 + moveFraction))));
 			}
 
 			// FIXME REMOVE
@@ -401,7 +426,10 @@ public class AlgMemDiDiCExpFix {
 
 			// double loadTotal = wC.get(c)
 			// + (lC.get(c) * config.getFOSBIterations());
-			double loadTotal = wC.get(c) + lC.get(c);
+			// double loadTotal = (2 * wC.get(c)) + lC.get(c);
+			// double loadTotal = lC.get(c) / wC.get(c);
+			double loadTotal = wC.get(c) + (timeStepWeight * lC.get(c));
+			// double loadTotal = wC.get(c) + lC.get(c);
 
 			if (loadTotal > maxW) {
 				maxW = loadTotal;
@@ -427,7 +455,10 @@ public class AlgMemDiDiCExpFix {
 
 			// double loadTotal = wC.get(c)
 			// + (lC.get(c) * config.getFOSBIterations());
-			double loadTotal = wC.get(c) + lC.get(c);
+			// double loadTotal = (2 * wC.get(c)) + lC.get(c);
+			// double loadTotal = lC.get(c) / wC.get(c);
+			double loadTotal = wC.get(c) + (timeStepWeight * lC.get(c));
+			// double loadTotal = wC.get(c) + lC.get(c);
 
 			if ((loadTotal > maxW) && (intDegNotZero(v, c))) {
 				maxW = loadTotal;

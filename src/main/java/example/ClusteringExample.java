@@ -1,6 +1,7 @@
 package example;
 
 import graph_cluster_algorithms.AlgDiskEvoPartition;
+import graph_cluster_algorithms.AlgDiskEvoPartitionExp;
 import graph_cluster_algorithms.AlgMemDiDiC;
 import graph_cluster_algorithms.AlgMemDiDiCExpBal;
 import graph_cluster_algorithms.AlgDiskDiDiC;
@@ -15,7 +16,9 @@ import graph_gen_utils.NeoFromFile;
 import graph_gen_utils.NeoFromFile.ClusterInitType;
 import graph_gen_utils.graph.MemGraph;
 
+import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.Stack;
 
 public class ClusteringExample {
 
@@ -29,6 +32,11 @@ public class ClusteringExample {
 		// *** ESP Tests ***
 		// *****************
 		// do_esp_test_single();
+
+		// **************************************
+		// *** ESP Experimental Version Tests ***
+		// **************************************
+		do_esp_exp_forest_fire_single();
 
 		// ***************************
 		// *** DiDiC On-Disk Tests ***
@@ -70,7 +78,7 @@ public class ClusteringExample {
 		// **************************************************
 		// *** DiDiC In-Memory Experimental Updated Paper ***
 		// **************************************************
-		do_mem_didic_exp_paper_uk_2_opt_balanced_T11B11();
+		// do_mem_didic_exp_paper_uk_2_opt_balanced_T11B11();
 	}
 
 	private static void do_disk_didic_test_2_opt_balanced_T11B11()
@@ -91,9 +99,10 @@ public class ClusteringExample {
 		String inputPtnPath = String.format("%s%s.%d.ptn", ptnDir, inputPtn,
 				clusterCount);
 
+		cleanDir(databaseDir);
 		NeoFromFile neoGenerator = new NeoFromFile(databaseDir);
 
-		neoGenerator.writeNeo(inputGraphPath, inputPtnPath);
+		neoGenerator.writeNeoFromChaco(inputGraphPath, inputPtnPath);
 
 		AlgDiskDiDiC didic = new AlgDiskDiDiC();
 
@@ -127,9 +136,10 @@ public class ClusteringExample {
 		String inputPtnPath = String.format("%s%s.%d.ptn", ptnDir, inputPtn,
 				clusterCount);
 
+		cleanDir(databaseDir);
 		NeoFromFile neoGenerator = new NeoFromFile(databaseDir);
 
-		neoGenerator.writeNeo(inputGraphPath, inputPtnPath);
+		neoGenerator.writeNeoFromChaco(inputGraphPath, inputPtnPath);
 
 		MemGraph memGraph = neoGenerator.readMemGraph();
 
@@ -165,9 +175,10 @@ public class ClusteringExample {
 		String inputPtnPath = String.format("%s%s.%d.ptn", ptnDir, inputPtn,
 				clusterCount);
 
+		cleanDir(databaseDir);
 		NeoFromFile neoGenerator = new NeoFromFile(databaseDir);
 
-		neoGenerator.writeNeo(inputGraphPath, inputPtnPath);
+		neoGenerator.writeNeoFromChaco(inputGraphPath, inputPtnPath);
 
 		MemGraph memGraph = neoGenerator.readMemGraph();
 
@@ -205,9 +216,10 @@ public class ClusteringExample {
 		String inputPtnPath = String.format("%s%s.%d.ptn", ptnDir, inputPtn,
 				clusterCount);
 
+		cleanDir(databaseDir);
 		NeoFromFile neoGenerator = new NeoFromFile(databaseDir);
 
-		neoGenerator.writeNeo(inputGraphPath, inputPtnPath);
+		neoGenerator.writeNeoFromChaco(inputGraphPath, inputPtnPath);
 
 		MemGraph memGraph = neoGenerator.readMemGraph();
 
@@ -245,10 +257,11 @@ public class ClusteringExample {
 		String inputPtnPath = String.format("%s%s.%d.ptn", ptnDir, inputPtn,
 				clusterCount);
 
+		cleanDir(databaseDir);
 		NeoFromFile neoGenerator = new NeoFromFile(databaseDir);
 
 		try {
-			neoGenerator.writeNeo(inputGraphPath, inputPtnPath);
+			neoGenerator.writeNeoFromChaco(inputGraphPath, inputPtnPath);
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		}
@@ -287,9 +300,10 @@ public class ClusteringExample {
 		String inputPtnPath = String.format("%s%s.%d.ptn", ptnDir, inputPtn,
 				clusterCount);
 
+		cleanDir(databaseDir);
 		NeoFromFile neoGenerator = new NeoFromFile(databaseDir);
 
-		neoGenerator.writeNeo(inputGraphPath, inputPtnPath);
+		neoGenerator.writeNeoFromChaco(inputGraphPath, inputPtnPath);
 
 		MemGraph memGraph = neoGenerator.readMemGraph();
 
@@ -319,16 +333,49 @@ public class ClusteringExample {
 
 		String inputGraphPath = String.format("%s%s.graph", graphDir,
 				inputGraph);
-		// String inputPtnPath = String.format("%s%s.%d.ptn", ptnDir, inputPtn,
-		// 1);
+
+		cleanDir(databaseDir);
+		NeoFromFile neoGenerator = new NeoFromFile(databaseDir);
+
+		neoGenerator.writeNeoFromChaco(inputGraphPath, ClusterInitType.SINGLE,
+				(byte) -1);
+
+		AlgDiskEvoPartition esp = new AlgDiskEvoPartition();
+
+		Supervisor espSupervisor = new SupervisorBase(SNAPSHOT_PERIOD,
+				LONG_SNAPSHOT_PERIOD, inputGraph, graphDir, ptnDir, metDir);
+
+		ConfEvoPartition config = new ConfEvoPartition();
+		config.setP(0.9);
+		config.setTheta(0.01);
+		config.setConductance(0.001);
+
+		esp.start(databaseDir, config, espSupervisor);
+	}
+
+	private static void do_esp_exp_forest_fire_single() throws Exception {
+		String inputGraph = "forest-fire-100";
+
+		String databaseDir = String.format("var/%s", inputGraph);
+
+		String graphDir = "graphs/";
+		String ptnDir = "partitionings/";
+		String metDir = "metrics/ESP Exp - forest-fire-100 Single/";
+
+		String inputGraphPath = String.format("%s%s.graph", graphDir,
+				inputGraph);
+
+		cleanDir(databaseDir);
+		cleanDir(metDir);
 
 		NeoFromFile neoGenerator = new NeoFromFile(databaseDir);
 
-		// neoGenerator.writeNeo(inputGraphPath, inputPtnPath);
-		neoGenerator
-				.writeNeo(inputGraphPath, ClusterInitType.SINGLE, (byte) -1);
+		neoGenerator.writeNeoFromChaco(inputGraphPath, ClusterInitType.SINGLE,
+				(byte) -1);
+		// neoGenerator
+		// .writeNeoFromGML("/home/alex/workspace/graph_cluster_utils/graphs/esp.gml");
 
-		AlgDiskEvoPartition esp = new AlgDiskEvoPartition();
+		AlgDiskEvoPartitionExp esp = new AlgDiskEvoPartitionExp();
 
 		Supervisor espSupervisor = new SupervisorBase(SNAPSHOT_PERIOD,
 				LONG_SNAPSHOT_PERIOD, inputGraph, graphDir, ptnDir, metDir);
@@ -359,9 +406,10 @@ public class ClusteringExample {
 		String inputPtnPath = String.format("%s%s.%d.ptn", ptnDir, inputPtn,
 				clusterCount);
 
+		cleanDir(databaseDir);
 		NeoFromFile neoGenerator = new NeoFromFile(databaseDir);
 
-		neoGenerator.writeNeo(inputGraphPath, inputPtnPath);
+		neoGenerator.writeNeoFromChaco(inputGraphPath, inputPtnPath);
 
 		MemGraph memGraph = neoGenerator.readMemGraph();
 
@@ -399,9 +447,10 @@ public class ClusteringExample {
 		String inputPtnPath = String.format("%s%s.%d.ptn", ptnDir, inputPtn,
 				clusterCount);
 
+		cleanDir(databaseDir);
 		NeoFromFile neoGenerator = new NeoFromFile(databaseDir);
 
-		neoGenerator.writeNeo(inputGraphPath, inputPtnPath);
+		neoGenerator.writeNeoFromChaco(inputGraphPath, inputPtnPath);
 
 		MemGraph memGraph = neoGenerator.readMemGraph();
 
@@ -439,9 +488,10 @@ public class ClusteringExample {
 		String inputPtnPath = String.format("%s%s.%d.ptn", ptnDir, inputPtn,
 				clusterCount);
 
+		cleanDir(databaseDir);
 		NeoFromFile neoGenerator = new NeoFromFile(databaseDir);
 
-		neoGenerator.writeNeo(inputGraphPath, inputPtnPath);
+		neoGenerator.writeNeoFromChaco(inputGraphPath, inputPtnPath);
 
 		MemGraph memGraph = neoGenerator.readMemGraph();
 
@@ -477,9 +527,10 @@ public class ClusteringExample {
 		String inputPtnPath = String.format("%s%s.%d.ptn", ptnDir, inputPtn,
 				clusterCount);
 
+		cleanDir(databaseDir);
 		NeoFromFile neoGenerator = new NeoFromFile(databaseDir);
 
-		neoGenerator.writeNeo(inputGraphPath, inputPtnPath);
+		neoGenerator.writeNeoFromChaco(inputGraphPath, inputPtnPath);
 
 		MemGraph memGraph = neoGenerator.readMemGraph();
 
@@ -515,9 +566,10 @@ public class ClusteringExample {
 		// String inputPtnPath = String.format("%s%s.%d.ptn", ptnDir, inputPtn,
 		// clusterCount);
 
+		cleanDir(databaseDir);
 		NeoFromFile neoGenerator = new NeoFromFile(databaseDir);
 
-		// neoGenerator.writeNeo(inputGraphPath, inputPtnPath);
+		// neoGenerator.writeNeoFromChaco(inputGraphPath, inputPtnPath);
 
 		MemGraph memGraph = neoGenerator.readMemGraph();
 
@@ -553,9 +605,10 @@ public class ClusteringExample {
 		String inputPtnPath = String.format("%s%s.%d.ptn", ptnDir, inputPtn,
 				clusterCount);
 
+		cleanDir(databaseDir);
 		NeoFromFile neoGenerator = new NeoFromFile(databaseDir);
 
-		neoGenerator.writeNeo(inputGraphPath, inputPtnPath);
+		neoGenerator.writeNeoFromChaco(inputGraphPath, inputPtnPath);
 
 		MemGraph memGraph = neoGenerator.readMemGraph();
 
@@ -591,9 +644,10 @@ public class ClusteringExample {
 		String inputPtnPath = String.format("%s%s.%d.ptn", ptnDir, inputPtn,
 				clusterCount);
 
+		cleanDir(databaseDir);
 		NeoFromFile neoGenerator = new NeoFromFile(databaseDir);
 
-		neoGenerator.writeNeo(inputGraphPath, inputPtnPath);
+		neoGenerator.writeNeoFromChaco(inputGraphPath, inputPtnPath);
 
 		MemGraph memGraph = neoGenerator.readMemGraph();
 
@@ -629,9 +683,10 @@ public class ClusteringExample {
 		String inputPtnPath = String.format("%s%s.%d.ptn", ptnDir, inputPtn,
 				clusterCount);
 
+		cleanDir(databaseDir);
 		NeoFromFile neoGenerator = new NeoFromFile(databaseDir);
 
-		neoGenerator.writeNeo(inputGraphPath, inputPtnPath);
+		neoGenerator.writeNeoFromChaco(inputGraphPath, inputPtnPath);
 
 		MemGraph memGraph = neoGenerator.readMemGraph();
 
@@ -647,6 +702,47 @@ public class ClusteringExample {
 		config.setFOSBIterations(11);
 
 		didic.start(databaseDir, config, didicSupervisor, memGraph);
+	}
+
+	public static void cleanDir(String path) {
+		deleteDir(path);
+		File dir = new File(path);
+		dir.mkdir();
+	}
+
+	public static void deleteDir(String path) {
+		File dir = new File(path);
+
+		if (dir.exists() == false)
+			return;
+
+		Stack<File> dirStack = new Stack<File>();
+		dirStack.push(dir);
+
+		boolean containsSubFolder;
+		while (!dirStack.isEmpty()) {
+			File currDir = dirStack.peek();
+			containsSubFolder = false;
+
+			String[] fileArray = currDir.list();
+			for (int i = 0; i < fileArray.length; i++) {
+				String fileName = currDir.getAbsolutePath() + File.separator
+						+ fileArray[i];
+				File file = new File(fileName);
+				if (file.isDirectory()) {
+					dirStack.push(file);
+					containsSubFolder = true;
+				} else {
+					file.delete(); // delete file
+				}
+			}
+
+			if (!containsSubFolder) {
+				dirStack.pop(); // remove curr dir from stack
+				currDir.delete(); // delete curr dir
+			}
+		}
+
 	}
 
 }

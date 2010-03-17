@@ -22,13 +22,14 @@ public class DSEvoPartition {
 	private Long outDeg = new Long(0);
 
 	private Random rng;
-	private ContinuousUniformGenerator randGen = null;
+	private ContinuousUniformGenerator uniGen = null;
 
 	public DSEvoPartition(Node x, Random rng) throws Exception {
 		addNodetoS(x);
+		this.volume = new Long(0);
 		this.cost = this.volume;
 		this.rng = rng;
-		this.randGen = new ContinuousUniformGenerator(0.0, 1.0, this.rng);
+		this.uniGen = new ContinuousUniformGenerator(0.0, 1.0, this.rng);
 	}
 
 	public ArrayList<Long> getS() {
@@ -43,16 +44,16 @@ public class DSEvoPartition {
 	public Double getConductance() {
 		System.out.printf(
 				"\t\t\t\t<DSNibbleESP.getConductance> outDegS[%d], volS[%d]\n",
-				this.outDeg, this.volume);
+				outDeg, volume);
 
-		if (this.outDeg == 0)
+		if (outDeg == 0)
 			return 0.0;
 
-		return (double) this.outDeg / (double) this.volume;
+		return (double) outDeg / (double) volume;
 	}
 
 	public Long getVolume() {
-		return this.volume;
+		return volume;
 	}
 
 	// Select next starting vertex, v, with probability p(v,u)
@@ -68,7 +69,7 @@ public class DSEvoPartition {
 
 		for (Relationship e : previousV.getRelationships(Direction.OUTGOING)) {
 			Node u = e.getEndNode();
-			Integer colorU = (Integer) u.getProperty("color");
+			Byte colorU = (Byte) u.getProperty("color");
 			if (colorU == -1)
 				neighbours.add(e.getEndNode());
 		}
@@ -78,7 +79,7 @@ public class DSEvoPartition {
 		if (neighboursSize == 0)
 			return previousV;
 
-		int randIndex = (int) (this.randGen.nextValue() * ((neighboursSize * 2) - 1));
+		int randIndex = (int) (uniGen.nextValue() * ((neighboursSize * 2) - 1));
 
 		if (randIndex >= neighboursSize)
 			return previousV;
@@ -87,8 +88,10 @@ public class DSEvoPartition {
 	}
 
 	// Uniform random value from [0,probNodeInS(v)]
+	// -> Compute probYinS(X)
+	// -> Select random threshold Z = [0,probNodeInS(v)]
 	public double getZ(Node v) {
-		return this.randGen.nextValue() * probNodeInS(v);
+		return uniGen.nextValue() * probNodeInS(v);
 	}
 
 	// Populate D, set difference between current St-1 & St
@@ -108,7 +111,7 @@ public class DSEvoPartition {
 			Node v = transNeo.getNodeById(entry.getKey());
 
 			// Lookup probNodeInS(v) & compare with Z
-			if (probNodeInS(v) > Z) {
+			if (probNodeInS(v) >= Z) {
 
 				// Add to D only if not already in S
 				if (nodeInS(v) == false)
@@ -128,9 +131,9 @@ public class DSEvoPartition {
 
 		// Compute cost(St)
 		// cost = oldCost + volume(symmetricDiff(St-1,St)) + outDeg(St-1)
-		// = oldCost + volume(D) + outDeg(St-1)
-		// this.cost += this.volume + this.outDeg; // NOTE OLD
-		this.cost += getVolumeD(D) + this.outDeg; // NOTE NEW
+		// ---> = oldCost + volume(D) + outDeg(St-1)
+		cost += getVolumeD(D) + outDeg; // NOTE NEW
+		// cost += volume + outDeg; // NOTE OLD
 
 		return D;
 	}
@@ -171,7 +174,7 @@ public class DSEvoPartition {
 			Node u = ve.getEndNode();
 
 			// Only consider vertices that have not been partitioned yet
-			Integer colorU = (Integer) u.getProperty("color");
+			Byte colorU = (Byte) u.getProperty("color");
 			if (colorU != -1)
 				continue;
 
@@ -182,9 +185,9 @@ public class DSEvoPartition {
 				// Update edgesFromVToS
 				// computeEdgesFromNodeToS(v) works too, but more efficient here
 				edgesFromVToS++;
-				this.outDeg--;
+				outDeg--;
 			} else
-				this.outDeg++;
+				outDeg++;
 
 			long edgesFromUToS = computeEdgesFromNodeToS(u);
 			long degU = deg(u);
@@ -239,7 +242,7 @@ public class DSEvoPartition {
 			Node u = ve.getEndNode();
 
 			// Only consider vertices that have not been partitioned yet
-			Integer color = (Integer) u.getProperty("color");
+			Byte color = (Byte) u.getProperty("color");
 			if (color != -1)
 				continue;
 
@@ -247,9 +250,9 @@ public class DSEvoPartition {
 
 			if (uInS == true) {
 				edgesFromVToS++;
-				this.outDeg--;
+				outDeg--;
 			} else
-				this.outDeg++;
+				outDeg++;
 
 			long edgesFromUToS = computeEdgesFromNodeToS(u);
 			long degU = deg(u);
@@ -305,7 +308,7 @@ public class DSEvoPartition {
 	// for (Relationship ve : v.getRelationships(Direction.OUTGOING)) {
 	// Node u = ve.getEndNode();
 	//
-	// Integer color = (Integer) u.getProperty("color");
+	// Byte color = (Byte) u.getProperty("color");
 	//
 	// // Only consider vertices that have not been partitioned yet
 	// if (color != -1)
@@ -350,12 +353,12 @@ public class DSEvoPartition {
 	// // Update out degree of S
 	// if (nodeInS(v) == true) {
 	// // v was just added to S
-	// this.outDeg -= edgesFromVToS;
-	// this.outDeg += edgesFromVToNotS;
+	// outDeg -= edgesFromVToS;
+	// outDeg += edgesFromVToNotS;
 	// } else {
 	// // v was just removed from S
-	// this.outDeg += edgesFromVToS;
-	// this.outDeg -= edgesFromVToNotS;
+	// outDeg += edgesFromVToS;
+	// outDeg -= edgesFromVToNotS;
 	// }
 	//
 	// // Determine if nodeInB(v)
@@ -410,7 +413,7 @@ public class DSEvoPartition {
 
 		for (Relationship e : v.getRelationships(Direction.OUTGOING)) {
 			// Only consider vertices that have not been partitioned yet
-			Integer colorV = (Integer) e.getEndNode().getProperty("color");
+			Byte colorV = (Byte) e.getEndNode().getProperty("color");
 			if (colorV == -1) {
 				deg++;
 			}
@@ -444,7 +447,7 @@ public class DSEvoPartition {
 			S.add(v.getId());
 
 			// Compute volume(St) = sum( deg(v elementOf St) )
-			this.volume += deg(v);
+			volume += deg(v);
 
 			updateBAfterAdd(v);
 		} else
@@ -460,7 +463,7 @@ public class DSEvoPartition {
 			S.remove(v.getId());
 
 			// Compute volume(St) = sum( deg(v elementOf St) )
-			this.volume -= deg(v);
+			volume -= deg(v);
 
 			updateBAfterRemove(v);
 		} else
