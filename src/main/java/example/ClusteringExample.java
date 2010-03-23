@@ -36,7 +36,8 @@ public class ClusteringExample {
 		// **************************************
 		// *** ESP Experimental Version Tests ***
 		// **************************************
-		do_esp_exp_forest_fire_single();
+		// do_esp_exp_forest_fire_single();
+		do_esp_exp_uk_single();
 
 		// ***************************
 		// *** DiDiC On-Disk Tests ***
@@ -384,6 +385,41 @@ public class ClusteringExample {
 		config.setP(0.9);
 		config.setTheta(0.01);
 		config.setConductance(0.001);
+
+		esp.start(databaseDir, config, espSupervisor);
+	}
+
+	private static void do_esp_exp_uk_single() throws Exception {
+		byte clusterCount = 16;
+		String inputGraph = "add20";
+
+		String databaseDir = String.format("var/%s", inputGraph);
+
+		String graphDir = "graphs/";
+		String ptnDir = "partitionings/";
+		String metDir = "metrics/ESP Exp - add20 Single/";
+
+		String inputGraphPath = String.format("%s%s.graph", graphDir,
+				inputGraph);
+
+		cleanDir(databaseDir);
+		cleanDir(metDir);
+
+		NeoFromFile neoGenerator = new NeoFromFile(databaseDir);
+
+		neoGenerator.writeNeoFromChaco(inputGraphPath, ClusterInitType.SINGLE,
+				(byte) -1);
+
+		AlgDiskEvoPartitionExp esp = new AlgDiskEvoPartitionExp();
+
+		Supervisor espSupervisor = new SupervisorBase(SNAPSHOT_PERIOD,
+				LONG_SNAPSHOT_PERIOD, inputGraph, graphDir, ptnDir, metDir);
+
+		ConfEvoPartition config = new ConfEvoPartition();
+		config.setP(0.9);
+		config.setTheta(0.01);
+		config.setConductance(0.001);
+		config.setClusterCount((long) 128);
 
 		esp.start(databaseDir, config, espSupervisor);
 	}

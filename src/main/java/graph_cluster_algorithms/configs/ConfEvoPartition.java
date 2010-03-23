@@ -5,6 +5,7 @@ public class ConfEvoPartition {
 	private Double theta = new Double(0); // TODO better default value
 	private Double p = new Double(0); // TODO better default value
 	private Double conductance = new Double(0); // TODO better default value
+	private Long clusterCount = new Long(1);
 
 	public ConfEvoPartition() {
 	}
@@ -32,6 +33,14 @@ public class ConfEvoPartition {
 
 	public Double getConductance() {
 		return conductance;
+	}
+
+	public Long getClusterCount() {
+		return clusterCount;
+	}
+
+	public void setClusterCount(Long minClusterVolume) {
+		this.clusterCount = minClusterVolume;
 	}
 
 	public void setConductance(Double conductance) {

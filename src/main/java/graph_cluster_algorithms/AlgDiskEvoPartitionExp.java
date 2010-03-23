@@ -36,6 +36,7 @@ public class AlgDiskEvoPartitionExp {
 	private IndexService transIndexService = null;
 
 	private Supervisor supervisor = null;
+	private ConfEvoPartition config = null;
 
 	private Random rng = null;
 	private ExponentialGenerator expGenB = null;
@@ -49,6 +50,7 @@ public class AlgDiskEvoPartitionExp {
 			Supervisor supervisor) throws Exception {
 		this.databaseDir = databaseDir;
 		this.supervisor = supervisor;
+		this.config = config;
 		// this.rng = new Random(); // Slow & poor randomness
 		this.rng = new MersenneTwisterRNG(); // Fast & good randomness
 		// this.rng = new XORShiftRNG(); // Faster & good randomness
@@ -61,8 +63,8 @@ public class AlgDiskEvoPartitionExp {
 
 		this.nodes = getNodeDegrees();
 
-		// evoPartitionOld(config.getTheta(), config.getP());
-		evoPartition(config.getConductance(), config.getP());
+		// evoPartitionOld(this.config.getTheta(), this.config.getP());
+		evoPartition(this.config.getConductance(), this.config.getP());
 
 		closeTransServices();
 
@@ -86,11 +88,14 @@ public class AlgDiskEvoPartitionExp {
 
 		Long volumeWj = volumeG;
 
-		System.out.printf("evoPartition[conduct=%f,p=%f]\n", conductance, p);
-
 		// NOTE Experimental!
-		Byte k = 4;
-		Long clusterVolume = volumeG / k;
+		Long minClusterVolume = volumeG / config.getClusterCount();
+
+		System.out
+				.printf(
+						"evoPartition[conduct=%f,p=%f,clusterCount=%d,minClusterVolume=%d]\n",
+						conductance, p, config.getClusterCount(),
+						minClusterVolume);
 
 		// while ((j < jMax) && (volumeWj >= (3.0 / 4.0) * (double) volumeG)) {
 		while (volumeWj >= (1.0 / 4.0) * (double) volumeG) {
@@ -110,7 +115,7 @@ public class AlgDiskEvoPartitionExp {
 
 				// -> D(j) = evoNibble(G[W(j-1)], conductance)
 				DSEvoPartition Dj = evoNibble(conductance, volumeWj,
-						clusterVolume);
+						minClusterVolume);
 
 				// -> Set j = j+1
 				j++;
@@ -141,7 +146,7 @@ public class AlgDiskEvoPartitionExp {
 
 		}
 
-		allocateAllocated();
+		allocateUnallocated();
 
 		// System.out
 		// .printf(
@@ -161,14 +166,15 @@ public class AlgDiskEvoPartitionExp {
 	}
 
 	private DSEvoPartition evoNibble(Double conductance, Long volumeWj,
-			Long clusterVolume) throws Exception {
+			Long minClusterVolume) throws Exception {
 
 		// Precompute for efficiency
 		Double log2VolumeWj = Math.log(volumeWj) / Math.log(2);
 		Double logVolumeWj = Math.log(volumeWj);
 
 		// T = Floor(conductance^-1 / 100)
-		Double T = Math.floor(Math.pow(conductance, -1) / 100.0);
+		// Double T = Math.floor(Math.pow(conductance, -1) / 100.0);
+		Double T = (double) 500;
 
 		// thetaT = Sqrt(4.T^-1.log(volume(G)) )
 		Double thetaT = Math.sqrt(4.0 * Math.pow(T, -1) * logVolumeWj);
@@ -202,16 +208,19 @@ public class AlgDiskEvoPartitionExp {
 		System.out.printf("\t\t         [v=%d,j=%f,jMax=%f,y=%f,Bj=%f]\n", v
 				.getId(), j, jMax, y, Bj);
 
-		DSEvoPartition sAndB = genSample(v, T, Bj, thetaT, clusterVolume);
+		DSEvoPartition sAndB = genSample(v, T, Bj, thetaT, minClusterVolume);
 
 		System.out
 				.printf(
-						"\t\t<evoNibble> genSample() -> S: conductS[%f]<=3thetaT[%f] , volS[%d]<=3/4volG[%f]\n",
-						sAndB.getConductance(), 3 * thetaT, sAndB.getVolume(),
-						(3.0 / 4.0) * volumeWj);
+						"\t\t<evoNibble> genSample() -> S: conductS[%f]<=3thetaT[%f] , minVol[%d]<volS[%d]<=3/4volG[%f]\n",
+						sAndB.getConductance(), 3 * thetaT, minClusterVolume,
+						sAndB.getVolume(), (3.0 / 4.0) * volumeWj);
 
-		if ((sAndB.getConductance() <= 3 * thetaT)
-				&& (sAndB.getVolume() > clusterVolume)
+		// if ((sAndB.getConductance() <= 3 * thetaT)
+		// && (sAndB.getVolume() > minClusterVolume)
+		// && (sAndB.getVolume() <= (3.0 / 4.0) * volumeWj))
+		// return sAndB;
+		if ((sAndB.getVolume() > minClusterVolume)
 				&& (sAndB.getVolume() <= (3.0 / 4.0) * volumeWj))
 			return sAndB;
 
@@ -229,13 +238,15 @@ public class AlgDiskEvoPartitionExp {
 	// OUTPUT
 	// ----> St : Set sampled from volume-biased Evolving Set Process
 	private DSEvoPartition genSample(Node x, Double T, Double B, Double thetaT,
-			Long clusterVolume) throws Exception {
+			Long minClusterVolume) throws Exception {
 
 		// FIXME Remove later, only useful for testing
 		// thetaT = 0.3;
 
-		System.out.printf("\t\t\tgenSample[x=%d,T=%f,B=%f,thetaT=%f]\n", x
-				.getId(), T, B, thetaT);
+		System.out
+				.printf(
+						"\t\t\tgenSample[x=%d,T=%f,B=%f,thetaT=%f,minClusterVolume=%d]\n",
+						x.getId(), T, B, thetaT, minClusterVolume);
 
 		DSEvoPartition sAndB = null; // S, B, volume, conductance
 		Node X = null; // Current random-walk position @ time t
@@ -284,108 +295,12 @@ public class AlgDiskEvoPartitionExp {
 				System.out.printf(
 						"\t\t\t<genSample> Phase1? costS[%d] > B[%f]\n", sAndB
 								.getCost(), B);
-				if (sAndB.getCost() > B) {
-
-					sAndB.printSAndB();
-
-					break;
-				}
-
-				// STAGE 2: update S to St by adding/removing vertices in D to S
-
-				// -> Compute conductance(St) = outDeg(St) / vol(St)
-				// -> IF conductance(St) < thetaT RETURN St
-				System.out
-						.printf(
-								"\t\t\t<genSample> Phase2? conductS[%f] < thetaT[%f]\n",
-								sAndB.getConductance(), thetaT);
-
-				sAndB.printSAndB();
-
-				if ((sAndB.getConductance() < thetaT)
-						&& (sAndB.getVolume() > clusterVolume))
-					break;
-			}
-		} catch (Exception ex) {
-			System.err.printf("<genSample> \n\t%s\n", ex.toString());
-			throw ex;
-		}
-
-		return sAndB;
-	}
-
-	// Simulates volume-biased Evolving Set Process
-	// Updates boundary of current set at each step
-	// Generates sample path of sets and outputs last set
-	//
-	// INPUT
-	// ----> x : Starting vertex
-	// ----> T>=0 : Time limit
-	// ----> B>=0 : Budget
-	// OUTPUT
-	// ----> St : Set sampled from volume-biased Evolving Set Process
-	private DSEvoPartition genSampleOld(Node x, Double T, Double B,
-			Double thetaT) throws Exception {
-
-		// FIXME Remove later, only useful for testing
-		// thetaT = 0.3;
-
-		System.out.printf("\t\t\tgenSample[x=%d,T=%f,B=%f,thetaT=%f]\n", x
-				.getId(), T, B, thetaT);
-
-		DSEvoPartition sAndB = null; // S, B, volume, conductance
-		Node X = null; // Current random-walk position @ time t
-		Double Z = new Double(0);
-		HashMap<Node, Boolean> D = new HashMap<Node, Boolean>();
-
-		// Init
-		// -> X = x0 = x
-		X = x;
-		// -> S = S0 = {x}
-		sAndB = new DSEvoPartition(X, rng);
-
-		sAndB.printSAndB();
-
-		System.out
-				.printf(
-						"\t\t\t<genSample> SB_Init: conductS=%f, costS=%d, volS=%d, X=%d\n",
-						sAndB.getConductance(), sAndB.getCost(), sAndB
-								.getVolume(), X.getId());
-
-		try {
-			// ForEach Step t <= T
-			for (int t = 0; t < T; t++) {
-
-				// STAGE 1: compute St-1 to St difference
-
-				// -> X = Choose X with p(Xt-1,Xt)
-				X = sAndB.getNextV(X);
-
-				// -> Compute probYinS(X)
-				// -> Select random threshold Z = uniformRand[0,probNodeInS(v)]
-				Z = sAndB.getZ(X);
-
-				System.out.printf(
-						"\t\t\t<genSample> t[%d], nextX[%d], Z[%f]\n", t, X
-								.getId(), Z);
-
-				// -> Define St = {y | probYinS(y,St-1) >= Z}
-				// -> D = Set different between St & St-1
-				// -> Update volume(St) & cost(S0,...,St)
-				// -> Add/remove vertices in D to/from St
-				// -> Update B(St-1) to B(St)
-				D = sAndB.updateBoundary(Z, transNeo);
-
-				// -> IF t==T OR cost()>B RETURN St = St-1 Diff D
-				System.out.printf(
-						"\t\t\t<genSample> Phase1? costS[%d] > B[%f]\n", sAndB
-								.getCost(), B);
-				if (sAndB.getCost() > B) {
-
-					sAndB.printSAndB();
-
-					break;
-				}
+				// if (sAndB.getCost() > B) {
+				//
+				// sAndB.printSAndB();
+				//
+				// break;
+				// }
 
 				// STAGE 2: update S to St by adding/removing vertices in D to S
 
@@ -398,7 +313,9 @@ public class AlgDiskEvoPartitionExp {
 
 				sAndB.printSAndB();
 
-				if (sAndB.getConductance() < thetaT)
+				// if ((sAndB.getConductance() < thetaT)
+				// && (sAndB.getVolume() > clusterVolume))
+				if (sAndB.getVolume() > minClusterVolume)
 					break;
 			}
 		} catch (Exception ex) {
@@ -528,7 +445,7 @@ public class AlgDiskEvoPartitionExp {
 		return volumeG;
 	}
 
-	private void allocateAllocated() {
+	private void allocateUnallocated() {
 		Byte defaultColor = (byte) -1;
 
 		while (nodes.size() > 0) {
