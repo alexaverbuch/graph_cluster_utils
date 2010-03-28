@@ -37,7 +37,7 @@ public class ClusteringExample {
 		// *** ESP Experimental Version Tests ***
 		// **************************************
 		// do_esp_exp_forest_fire_single();
-		do_esp_exp_uk_single();
+		// do_esp_exp_uk_single();
 
 		// ***************************
 		// *** DiDiC On-Disk Tests ***
@@ -80,6 +80,12 @@ public class ClusteringExample {
 		// *** DiDiC In-Memory Experimental Updated Paper ***
 		// **************************************************
 		// do_mem_didic_exp_paper_uk_2_opt_balanced_T11B11();
+
+		// *******************************************************************
+		// *** DiDiC In-Memory Using The Partitioned PGraphDatabaseService ***
+		// *******************************************************************
+		do_para_mem_didic_test_2_opt_balanced_T11B11();
+
 	}
 
 	private static void do_disk_didic_test_2_opt_balanced_T11B11()
@@ -734,6 +740,45 @@ public class ClusteringExample {
 		ConfDiDiC config = new ConfDiDiC(clusterCount);
 		config.setAllocType(ConfDiDiC.AllocType.OPT);
 		config.setMaxIterations(500);
+		config.setFOSTIterations(11);
+		config.setFOSBIterations(11);
+
+		didic.start(databaseDir, config, didicSupervisor, memGraph);
+	}
+
+	private static void do_para_mem_didic_test_2_opt_balanced_T11B11()
+			throws Exception {
+		byte clusterCount = 2;
+
+		String inputGraph = "test-cluster";
+		String inputPtn = "test-cluster-IN-BAL";
+
+		String databaseDir = String.format("var/%s-2-balanced", inputGraph);
+
+		String graphDir = "graphs/";
+		String ptnDir = "partitionings/";
+		String metDir = "metrics/Para Mem DiDiC - test 2 Opt Balanced T11 B11/";
+
+		String inputGraphPath = String.format("%s%s.graph", graphDir,
+				inputGraph);
+		String inputPtnPath = String.format("%s%s.%d.ptn", ptnDir, inputPtn,
+				clusterCount);
+
+		cleanDir(databaseDir);
+		NeoFromFile neoGenerator = new NeoFromFile(databaseDir);
+
+		neoGenerator.writeNeoFromChaco(inputGraphPath, inputPtnPath);
+
+		MemGraph memGraph = neoGenerator.readMemGraph();
+
+		AlgMemDiDiCExpPaper didic = new AlgMemDiDiCExpPaper();
+
+		Supervisor didicSupervisor = new SupervisorBase(SNAPSHOT_PERIOD,
+				LONG_SNAPSHOT_PERIOD, inputGraph, graphDir, ptnDir, metDir);
+
+		ConfDiDiC config = new ConfDiDiC(clusterCount);
+		config.setAllocType(ConfDiDiC.AllocType.OPT);
+		config.setMaxIterations(150);
 		config.setFOSTIterations(11);
 		config.setFOSBIterations(11);
 
