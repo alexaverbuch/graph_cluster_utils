@@ -20,6 +20,9 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.Stack;
 
+import pGraphService.PGraphDatabaseService;
+import pGraphService.PGraphDatabaseServiceImpl;
+
 public class ClusteringExample {
 
 	// Debugging Related
@@ -753,7 +756,10 @@ public class ClusteringExample {
 		String inputGraph = "test-cluster";
 		String inputPtn = "test-cluster-IN-BAL";
 
-		String databaseDir = String.format("var/%s-2-balanced", inputGraph);
+		String singleDatabaseDir = String.format("var/%s-2-balanced",
+				inputGraph);
+		String paraDatabaseDir = String.format("var/para-%s-2-balanced",
+				inputGraph);
 
 		String graphDir = "graphs/";
 		String ptnDir = "partitionings/";
@@ -764,25 +770,32 @@ public class ClusteringExample {
 		String inputPtnPath = String.format("%s%s.%d.ptn", ptnDir, inputPtn,
 				clusterCount);
 
-		cleanDir(databaseDir);
-		NeoFromFile neoGenerator = new NeoFromFile(databaseDir);
+		cleanDir(singleDatabaseDir);
+		cleanDir(paraDatabaseDir);
+
+		NeoFromFile neoGenerator = new NeoFromFile(singleDatabaseDir);
 
 		neoGenerator.writeNeoFromChaco(inputGraphPath, inputPtnPath);
 
 		MemGraph memGraph = neoGenerator.readMemGraph();
 
-		AlgMemDiDiCExpPaper didic = new AlgMemDiDiCExpPaper();
+		PGraphDatabaseService paraNeo = new PGraphDatabaseServiceImpl(
+				paraDatabaseDir, 1);
+		paraNeo.createDistribution(singleDatabaseDir);
+		paraNeo.shutdown();
 
-		Supervisor didicSupervisor = new SupervisorBase(SNAPSHOT_PERIOD,
-				LONG_SNAPSHOT_PERIOD, inputGraph, graphDir, ptnDir, metDir);
-
-		ConfDiDiC config = new ConfDiDiC(clusterCount);
-		config.setAllocType(ConfDiDiC.AllocType.OPT);
-		config.setMaxIterations(150);
-		config.setFOSTIterations(11);
-		config.setFOSBIterations(11);
-
-		didic.start(databaseDir, config, didicSupervisor, memGraph);
+		// AlgMemDiDiCExpPaper didic = new AlgMemDiDiCExpPaper();
+		//
+		// Supervisor didicSupervisor = new SupervisorBase(SNAPSHOT_PERIOD,
+		// LONG_SNAPSHOT_PERIOD, inputGraph, graphDir, ptnDir, metDir);
+		//
+		// ConfDiDiC config = new ConfDiDiC(clusterCount);
+		// config.setAllocType(ConfDiDiC.AllocType.OPT);
+		// config.setMaxIterations(150);
+		// config.setFOSTIterations(11);
+		// config.setFOSBIterations(11);
+		//
+		// didic.start(paraDatabaseDir, config, didicSupervisor, memGraph);
 	}
 
 	public static void cleanDir(String path) {
