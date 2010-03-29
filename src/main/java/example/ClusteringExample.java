@@ -8,12 +8,14 @@ import graph_cluster_algorithms.AlgDiskDiDiC;
 import graph_cluster_algorithms.AlgMemDiDiCExpFix;
 import graph_cluster_algorithms.AlgMemDiDiCExpPaper;
 import graph_cluster_algorithms.AlgMemDiDiCExpSync;
+import graph_cluster_algorithms.AlgParaMemDiDiC;
 import graph_cluster_algorithms.configs.ConfDiDiC;
 import graph_cluster_algorithms.configs.ConfEvoPartition;
 import graph_cluster_algorithms.supervisors.Supervisor;
 import graph_cluster_algorithms.supervisors.SupervisorBase;
 import graph_gen_utils.NeoFromFile;
 import graph_gen_utils.NeoFromFile.ClusterInitType;
+import graph_gen_utils.gml.GMLWriterUndirected;
 import graph_gen_utils.graph.MemGraph;
 
 import java.io.File;
@@ -777,25 +779,31 @@ public class ClusteringExample {
 
 		neoGenerator.writeNeoFromChaco(inputGraphPath, inputPtnPath);
 
+		// neoGenerator.writeGML("before.gml");
+
 		MemGraph memGraph = neoGenerator.readMemGraph();
 
 		PGraphDatabaseService paraNeo = new PGraphDatabaseServiceImpl(
 				paraDatabaseDir, 1);
 		paraNeo.createDistribution(singleDatabaseDir);
-		paraNeo.shutdown();
 
-		// AlgMemDiDiCExpPaper didic = new AlgMemDiDiCExpPaper();
-		//
-		// Supervisor didicSupervisor = new SupervisorBase(SNAPSHOT_PERIOD,
-		// LONG_SNAPSHOT_PERIOD, inputGraph, graphDir, ptnDir, metDir);
-		//
-		// ConfDiDiC config = new ConfDiDiC(clusterCount);
-		// config.setAllocType(ConfDiDiC.AllocType.OPT);
-		// config.setMaxIterations(150);
-		// config.setFOSTIterations(11);
-		// config.setFOSBIterations(11);
-		//
-		// didic.start(paraDatabaseDir, config, didicSupervisor, memGraph);
+		// GMLWriterUndirected gmlWriter = new GMLWriterUndirected();
+		// File afterGML = new File("after.gml");
+		// gmlWriter.write(paraNeo, afterGML);
+		// paraNeo.shutdown();
+
+		AlgParaMemDiDiC didic = new AlgParaMemDiDiC();
+
+		Supervisor didicSupervisor = new SupervisorBase(SNAPSHOT_PERIOD,
+				LONG_SNAPSHOT_PERIOD, inputGraph, graphDir, ptnDir, metDir);
+
+		ConfDiDiC config = new ConfDiDiC(clusterCount);
+		config.setAllocType(ConfDiDiC.AllocType.OPT);
+		config.setMaxIterations(150);
+		config.setFOSTIterations(11);
+		config.setFOSBIterations(11);
+
+		didic.start(paraDatabaseDir, config, didicSupervisor, memGraph);
 	}
 
 	public static void cleanDir(String path) {
