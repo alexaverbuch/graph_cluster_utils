@@ -184,6 +184,8 @@ public class AlgParaMemDiDiC {
 
 		try {
 
+			HashMap<Byte, ArrayList<Node>> clusters = new HashMap<Byte, ArrayList<Node>>();
+
 			for (Entry<Long, ArrayList<Double>> wC : w.entrySet()) {
 
 				MemNode memV = this.memGraph.getNode(wC.getKey());
@@ -210,13 +212,24 @@ public class AlgParaMemDiDiC {
 
 				Node v = transNeo.getNodeById(memV.getId());
 				v.setProperty("color", memV.getColor());
+
+				ArrayList<Node> cluster = clusters.get(memV.getColor());
+				if (cluster == null)
+					cluster = new ArrayList<Node>();
+				cluster.add(v);
+				clusters.put(memV.getColor(), cluster);
+			}
+
+			for (Byte color : clusters.keySet()) {
+				ArrayList<Node> cluster = clusters.get(color);
+				transNeo.moveNodes(cluster, color);
 			}
 
 			tx.success();
 
 		} catch (Exception ex) {
 			System.err.printf("<ERR: updateClusterAllocation>");
-			System.err.println(ex.toString());
+			ex.printStackTrace();
 		} finally {
 			tx.finish();
 		}
@@ -436,6 +449,10 @@ public class AlgParaMemDiDiC {
 		}
 
 		return result;
+	}
+
+	private String clustersToString(HashMap<Byte, ArrayList<Node>> clusters) {
+		return null;
 	}
 
 }

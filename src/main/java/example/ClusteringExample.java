@@ -757,16 +757,15 @@ public class ClusteringExample {
 		byte clusterCount = 2;
 
 		String inputGraph = "test-cluster";
-		String inputPtn = "test-cluster-IN-BAL";
+		String inputPtn = "test-cluster-IN-RAND";
 
-		String singleDatabaseDir = String.format("var/%s-2-balanced",
-				inputGraph);
-		String paraDatabaseDir = String.format("var/para-%s-2-balanced",
+		String singleDatabaseDir = String.format("var/%s-2-random", inputGraph);
+		String paraDatabaseDir = String.format("var/para-%s-2-random",
 				inputGraph);
 
 		String graphDir = "graphs/";
 		String ptnDir = "partitionings/";
-		String metDir = "metrics/Para Mem DiDiC - test 2 Opt Balanced T11 B11/";
+		String metDir = "metrics/Para Mem DiDiC - test 2 Opt Random T11 B11/";
 
 		String inputGraphPath = String.format("%s%s.graph", graphDir,
 				inputGraph);
@@ -779,9 +778,9 @@ public class ClusteringExample {
 
 		NeoFromFile neoGenerator = new NeoFromFile(singleDatabaseDir);
 
-		neoGenerator.writeNeoFromChaco(inputGraphPath, inputPtnPath);
-
-		// neoGenerator.writeGML("before.gml");
+		// neoGenerator.writeNeoFromChaco(inputGraphPath, inputPtnPath);
+		neoGenerator.writeNeoFromChaco(inputGraphPath, ClusterInitType.BALANCED,
+				(byte) 2);
 
 		MemGraph memGraph = neoGenerator.readMemGraph();
 
@@ -789,11 +788,6 @@ public class ClusteringExample {
 				paraDatabaseDir, 1);
 		paraNeo.createDistribution(singleDatabaseDir);
 		paraNeo.shutdown();
-
-		// GMLWriterUndirected gmlWriter = new GMLWriterUndirected();
-		// File afterGML = new File("after.gml");
-		// gmlWriter.write(paraNeo, afterGML);
-		// paraNeo.shutdown();
 
 		AlgParaMemDiDiC didic = new AlgParaMemDiDiC();
 
