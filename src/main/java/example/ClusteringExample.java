@@ -13,6 +13,7 @@ import graph_cluster_algorithms.configs.ConfDiDiC;
 import graph_cluster_algorithms.configs.ConfEvoPartition;
 import graph_cluster_algorithms.supervisors.Supervisor;
 import graph_cluster_algorithms.supervisors.SupervisorBase;
+import graph_cluster_algorithms.supervisors.SupervisorPara;
 import graph_gen_utils.NeoFromFile;
 import graph_gen_utils.NeoFromFile.ClusterInitType;
 import graph_gen_utils.gml.GMLWriterUndirected;
@@ -774,6 +775,7 @@ public class ClusteringExample {
 
 		cleanDir(singleDatabaseDir);
 		cleanDir(paraDatabaseDir);
+		cleanDir(metDir);
 
 		NeoFromFile neoGenerator = new NeoFromFile(singleDatabaseDir);
 
@@ -786,6 +788,7 @@ public class ClusteringExample {
 		PGraphDatabaseService paraNeo = new PGraphDatabaseServiceImpl(
 				paraDatabaseDir, 1);
 		paraNeo.createDistribution(singleDatabaseDir);
+		paraNeo.shutdown();
 
 		// GMLWriterUndirected gmlWriter = new GMLWriterUndirected();
 		// File afterGML = new File("after.gml");
@@ -794,7 +797,7 @@ public class ClusteringExample {
 
 		AlgParaMemDiDiC didic = new AlgParaMemDiDiC();
 
-		Supervisor didicSupervisor = new SupervisorBase(SNAPSHOT_PERIOD,
+		Supervisor didicSupervisor = new SupervisorPara(SNAPSHOT_PERIOD,
 				LONG_SNAPSHOT_PERIOD, inputGraph, graphDir, ptnDir, metDir);
 
 		ConfDiDiC config = new ConfDiDiC(clusterCount);
