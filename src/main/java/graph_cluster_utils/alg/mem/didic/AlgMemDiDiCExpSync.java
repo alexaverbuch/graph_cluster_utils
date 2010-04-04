@@ -1,69 +1,73 @@
-package graph_cluster_algorithms;
+package graph_cluster_utils.alg.mem.didic;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
-import org.neo4j.index.IndexService;
-import org.neo4j.index.lucene.LuceneIndexService;
-import org.neo4j.kernel.EmbeddedGraphDatabase;
 
-import graph_cluster_algorithms.configs.ConfDiDiC;
-import graph_cluster_algorithms.supervisors.Supervisor;
+import graph_cluster_utils.alg.config.Conf;
+import graph_cluster_utils.alg.config.ConfDiDiC;
+import graph_cluster_utils.alg.mem.AlgMem;
+import graph_cluster_utils.general.PropNames;
+import graph_cluster_utils.supervisor.Supervisor;
+import graph_gen_utils.memory_graph.MemGraph;
+import graph_gen_utils.memory_graph.MemNode;
+import graph_gen_utils.memory_graph.MemRel;
 
-import graph_gen_utils.graph.MemGraph;
-import graph_gen_utils.graph.MemNode;
-import graph_gen_utils.graph.MemRel;
-
-public class AlgMemDiDiCExpSync {
+/**
+ * Inherits from {@link AlgMem}.
+ * 
+ * Experimental implementation of the DiDiC clustering/partitioning algorithm,
+ * computed on an in-memory graph.
+ * 
+ * SYNCHRONY: This implementation ensures a medium level on synchrony. Nodes
+ * compute on the same time step at all times. Nodes compute on the same
+ * diffusion system (cluster/partition), same FOS/T iteration, and same FOS/B
+ * iteration most of the time.
+ * 
+ * @author Alex Averbuch
+ * @since 2010-04-01
+ */
+public class AlgMemDiDiCExpSync extends AlgMem {
 
 	private HashMap<Long, ArrayList<Double>> w = null; // Load Vec 1
 	private HashMap<Long, ArrayList<Double>> l = null; // Load Vec 2 ('drain')
 
-	private String databaseDir;
 	private ConfDiDiC config = null;
 
-	private MemGraph memGraph = null;
-
-	private GraphDatabaseService transNeo = null;
-	private IndexService transIndexService = null;
-
-	public void start(String databaseDir, ConfDiDiC confDiDiC,
-			Supervisor supervisor, MemGraph memGraph) {
+	public AlgMemDiDiCExpSync(String databaseDir, Supervisor supervisor,
+			MemGraph memGraph) {
+		super(databaseDir, supervisor, memGraph);
 
 		this.w = new HashMap<Long, ArrayList<Double>>();
 		this.l = new HashMap<Long, ArrayList<Double>>();
-		this.databaseDir = databaseDir;
-		this.config = confDiDiC;
-		this.memGraph = memGraph;
+	}
+
+	@Override
+	public void start(Conf config) {
+		this.config = (ConfDiDiC) config;
 
 		// PRINTOUT
 		System.out.println("\n*********DiDiC***********");
+
+		if (supervisor.isInitialSnapshot()) {
+			supervisor.doInitialSnapshot(this.config.getClusterCount(),
+					databaseDir);
+		}
 
 		openTransServices();
 
 		initLoadVectors();
 
-		if (supervisor.isInitialSnapshot()) {
-			closeTransServices();
-			supervisor.doInitialSnapshot(config.getClusterCount(), databaseDir);
-			openTransServices();
-		}
-
 		long time = System.currentTimeMillis();
 
 		// PRINTOUT
-		System.out
-				.printf(
-						"DiDiC [FOST_ITERS=%d, FOSB_ITERS=%d, MAX_CLUSTERS=%d, TIME_STEPS=%d]%n",
-						config.getFOSTIterations(), config.getFOSBIterations(),
-						config.getClusterCount(), config.getMaxIterations());
+		System.out.println(getConfigStr());
 
-		for (int timeStep = 0; timeStep < config.getMaxIterations(); timeStep++) {
+		for (int timeStep = 0; timeStep < this.config.getMaxIterations(); timeStep++) {
 
-			// FIXME REMOVE
+			// TODO For debugging only. Remove later
 			printLoadState(new Long[] {});
 
 			long timeStepTime = System.currentTimeMillis();
@@ -72,7 +76,7 @@ public class AlgMemDiDiCExpSync {
 			System.out.printf("\tFOS/T [TimeStep:%d, All Nodes]...", timeStep);
 
 			// For Every "Cluster System"
-			for (byte c = 0; c < config.getClusterCount(); c++) {
+			for (byte c = 0; c < this.config.getClusterCount(); c++) {
 
 				// FOS/T Primary Diffusion Algorithm
 				doFOST(c);
@@ -80,33 +84,29 @@ public class AlgMemDiDiCExpSync {
 			}
 
 			// PRINTOUT
-			long msTotal = System.currentTimeMillis() - timeStepTime;
-			long ms = msTotal % 1000;
-			long s = (msTotal / 1000) % 60;
-			long m = (msTotal / 1000) / 60;
-			System.out.printf(
-					"DiDiC Complete - Time Taken: %d(m):%d(s):%d(ms)%n", m, s,
-					ms);
+			System.out.printf("DiDiC Complete - Time Taken: %s",
+					getTimeStr(System.currentTimeMillis() - timeStepTime));
 
-			updateClusterAllocation(timeStep, config.getAllocType());
+			updateClusterAllocation(timeStep, this.config.getAllocType());
 
 			if (supervisor.isDynamism(timeStep)) {
 				closeTransServices();
 
 				// TODO: perform insertions/deletions to Neo4j instance
-				supervisor.doDynamism(this.databaseDir);
+				supervisor.doDynamism(databaseDir);
 
 				openTransServices();
 
-				// TODO: if graph has changed, DiDiC state must be updated
-				// adaptToGraphChanges()
-
+				// TODO if graph has changed, DiDiC state must be updated
+				// TODO put adaptToGraphChanges() in interface?
+				// TODO supervisor.doDynamism() returns change log?
+				// TODO supervisor.doDynamism() actually updates graph?
 			}
 
 			if (supervisor.isPeriodicSnapshot(timeStep)) {
 				closeTransServices();
 
-				supervisor.doPeriodicSnapshot(timeStep, config
+				supervisor.doPeriodicSnapshot(timeStep, this.config
 						.getClusterCount(), databaseDir);
 
 				openTransServices();
@@ -114,24 +114,18 @@ public class AlgMemDiDiCExpSync {
 
 		}
 
-		if (supervisor.isFinalSnapshot()) {
-			// TODO: take a final snapshot here
-			closeTransServices();
-
-			supervisor.doFinalSnapshot(config.getClusterCount(), databaseDir);
-
-			openTransServices();
-		}
-
 		closeTransServices();
 
+		if (supervisor.isFinalSnapshot()) {
+			// Take a final snapshot here
+			supervisor.doFinalSnapshot(this.config.getClusterCount(),
+					databaseDir);
+		}
+
 		// PRINTOUT
-		long msTotal = System.currentTimeMillis() - time;
-		long ms = msTotal % 1000;
-		long s = (msTotal / 1000) % 60;
-		long m = (msTotal / 1000) / 60;
-		System.out.printf("DiDiC Complete - Time Taken: %d(m):%d(s):%d(ms)%n",
-				m, s, ms);
+		System.out.printf("DiDiC Complete - Time Taken: %s", getTimeStr(System
+				.currentTimeMillis()
+				- time));
 
 		System.out.println("*********DiDiC***********\n");
 	}
@@ -167,7 +161,7 @@ public class AlgMemDiDiCExpSync {
 		}
 
 		// PRINTOUT
-		System.out.printf("%dms%n", System.currentTimeMillis() - time);
+		System.out.printf("%s", getTimeStr(System.currentTimeMillis() - time));
 	}
 
 	private void updateClusterAllocation(int timeStep,
@@ -209,22 +203,21 @@ public class AlgMemDiDiCExpSync {
 
 				memV.setColor(vNewColor);
 
-				Node v = transIndexService.getSingleNode("name", memV.getId()
-						.toString());
-				v.setProperty("color", memV.getColor());
+				Node v = transIndexService.getSingleNode(PropNames.NAME, memV
+						.getId().toString());
+				v.setProperty(PropNames.COLOR, memV.getColor());
 			}
 
 			tx.success();
 
-		} catch (Exception ex) {
-			System.err.printf("<ERR: updateClusterAllocation>");
-			System.err.println(ex.toString());
+		} catch (Exception e) {
+			e.printStackTrace();
 		} finally {
 			tx.finish();
 		}
 
 		// PRINTOUT
-		System.out.printf("%dms%n", System.currentTimeMillis() - time);
+		System.out.printf("%s", getTimeStr(System.currentTimeMillis() - time));
 	}
 
 	private void doFOST(byte c) {
@@ -403,38 +396,21 @@ public class AlgMemDiDiCExpSync {
 	}
 
 	// **************
-	// Neo4j Services Stuff
-	// **************
-
-	private void openTransServices() {
-		long time = System.currentTimeMillis();
-
-		// PRINTOUT
-		System.out.printf("Opening Transactional Services...");
-
-		transNeo = new EmbeddedGraphDatabase(databaseDir);
-		transIndexService = new LuceneIndexService(transNeo);
-
-		// PRINTOUT
-		System.out.printf("%dms%n", System.currentTimeMillis() - time);
-	}
-
-	private void closeTransServices() {
-		long time = System.currentTimeMillis();
-
-		// PRINTOUT
-		System.out.printf("Closing Transactional Services...");
-
-		transIndexService.shutdown();
-		transNeo.shutdown();
-
-		// PRINTOUT
-		System.out.printf("%dms%n", System.currentTimeMillis() - time);
-	}
-
-	// **************
 	// Printout Stuff
 	// **************
+
+	private String getConfigStr() {
+		return String
+				.format(
+						"DiDiC [FOST_ITERS=%d, FOSB_ITERS=%d, MAX_CLUSTERS=%d, TIME_STEPS=%d]%n",
+						config.getFOSTIterations(), config.getFOSBIterations(),
+						config.getClusterCount(), config.getMaxIterations());
+	}
+
+	private String getTotalVectorsStr() {
+		return String.format("\nTotalL = %f\nTotalW = %f\n\n", getTotalL(),
+				getTotalW());
+	}
 
 	private void printLoadState(Long[] vIds) {
 		System.out.printf("***\n");

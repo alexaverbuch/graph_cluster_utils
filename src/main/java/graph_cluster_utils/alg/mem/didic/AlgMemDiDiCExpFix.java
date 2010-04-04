@@ -1,75 +1,86 @@
-package graph_cluster_algorithms;
+package graph_cluster_utils.alg.mem.didic;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
-import org.neo4j.index.IndexService;
-import org.neo4j.index.lucene.LuceneIndexService;
-import org.neo4j.kernel.EmbeddedGraphDatabase;
 
-import graph_cluster_algorithms.configs.ConfDiDiC;
-import graph_cluster_algorithms.supervisors.Supervisor;
+import graph_cluster_utils.alg.config.Conf;
+import graph_cluster_utils.alg.config.ConfDiDiC;
+import graph_cluster_utils.alg.mem.AlgMem;
+import graph_cluster_utils.general.PropNames;
+import graph_cluster_utils.supervisor.Supervisor;
+import graph_gen_utils.memory_graph.MemGraph;
+import graph_gen_utils.memory_graph.MemNode;
+import graph_gen_utils.memory_graph.MemRel;
 
-import graph_gen_utils.graph.MemGraph;
-import graph_gen_utils.graph.MemNode;
-import graph_gen_utils.graph.MemRel;
-
-public class AlgMemDiDiCExpFix {
+/**
+ * WARNING: Not in a usable state!
+ * 
+ * Inherits from {@link AlgMem}.
+ * 
+ * Experimental implementation of the DiDiC clustering/partitioning algorithm,
+ * computed on an in-memory graph.
+ * 
+ * In the original DiDiC algorithm the sum of load vectors in the primary
+ * diffusion system (W) continually increases. As admitted by the authors this
+ * is not intentional. This implementation is an ongoing attempt (in
+ * collaboration with the authors) into resolving this issue.
+ * 
+ * More experimenting and modifications are still needed.
+ * 
+ * SYNCHRONY: N/A at this stage.
+ * 
+ * @author Alex Averbuch
+ * @since 2010-04-01
+ */
+public class AlgMemDiDiCExpFix extends AlgMem {
 
 	private HashMap<Long, ArrayList<Double>> w = null; // Load Vec 1
 	private HashMap<Long, ArrayList<Double>> l = null; // Load Vec 2 ('drain')
 
-	private String databaseDir;
 	private ConfDiDiC config = null;
 
-	private MemGraph memGraph = null;
-
-	private GraphDatabaseService transNeo = null;
-	private IndexService transIndexService = null;
-
-	// FIXME Remove
+	// NOTE Experimental
 	private double timeStepWeight = 1.0;
 
-	public void start(String databaseDir, ConfDiDiC confDiDiC,
-			Supervisor supervisor, MemGraph memGraph) {
+	public AlgMemDiDiCExpFix(String databaseDir, Supervisor supervisor,
+			MemGraph memGraph) {
+		super(databaseDir, supervisor, memGraph);
 
 		this.w = new HashMap<Long, ArrayList<Double>>();
 		this.l = new HashMap<Long, ArrayList<Double>>();
-		this.databaseDir = databaseDir;
-		this.config = confDiDiC;
-		this.memGraph = memGraph;
+	}
+
+	@Override
+	public void start(Conf config) {
+		this.config = (ConfDiDiC) config;
 
 		// PRINTOUT
 		System.out.println("\n*********DiDiC***********");
+
+		if (supervisor.isInitialSnapshot()) {
+			supervisor.doInitialSnapshot(this.config.getClusterCount(),
+					databaseDir);
+		}
 
 		openTransServices();
 
 		initLoadVectors();
 
-		if (supervisor.isInitialSnapshot()) {
-			closeTransServices();
-			supervisor.doInitialSnapshot(config.getClusterCount(), databaseDir);
-			openTransServices();
-		}
-
 		long time = System.currentTimeMillis();
 
 		// PRINTOUT
-		System.out
-				.printf(
-						"DiDiC [FOST_ITERS=%d, FOSB_ITERS=%d, MAX_CLUSTERS=%d, TIME_STEPS=%d]%n",
-						config.getFOSTIterations(), config.getFOSBIterations(),
-						config.getClusterCount(), config.getMaxIterations());
+		System.out.println(getConfigStr());
 
-		for (int timeStep = 0; timeStep < config.getMaxIterations(); timeStep++) {
+		for (int timeStep = 0; timeStep < this.config.getMaxIterations(); timeStep++) {
 
-			// FIXME Remove
+			// NOTE Experimental!
 			timeStepWeight = 1.0 + (0.5 * timeStep);
 
-			// FIXME REMOVE
+			// TODO For debugging only. Remove later
+			// PRINTOUT
 			System.out.printf("\nBefore FOST\n");
 			printLoadState(new Long[] { (long) 1, (long) 100, (long) 500 });
 
@@ -79,7 +90,7 @@ public class AlgMemDiDiCExpFix {
 			System.out.printf("\tFOS/T [TimeStep:%d, All Nodes]...", timeStep);
 
 			// For Every "Cluster System"
-			for (byte c = 0; c < config.getClusterCount(); c++) {
+			for (byte c = 0; c < this.config.getClusterCount(); c++) {
 
 				// FOS/T Primary Diffusion Algorithm
 				doFOST(c);
@@ -87,38 +98,34 @@ public class AlgMemDiDiCExpFix {
 			}
 
 			// PRINTOUT
-			long msTotal = System.currentTimeMillis() - timeStepTime;
-			long ms = msTotal % 1000;
-			long s = (msTotal / 1000) % 60;
-			long m = (msTotal / 1000) / 60;
-			System.out.printf(
-					"DiDiC Complete - Time Taken: %d(m):%d(s):%d(ms)%n", m, s,
-					ms);
+			System.out.printf("DiDiC Complete - Time Taken: %s",
+					getTimeStr(System.currentTimeMillis() - timeStepTime));
 
-			// FIXME REMOVE
+			// TODO For debugging only. Remove later
+			// PRINTOUT
 			System.out.printf("\nAfter FOST\n");
-			printLoadState(new Long[] { (long) 1, (long) 100, (long) 500,
-					(long) 1000 });
+			printLoadState(new Long[] { (long) 1, (long) 100, (long) 500 });
 
-			updateClusterAllocation(timeStep, config.getAllocType());
+			updateClusterAllocation(timeStep, this.config.getAllocType());
 
 			if (supervisor.isDynamism(timeStep)) {
 				closeTransServices();
 
 				// TODO: perform insertions/deletions to Neo4j instance
-				supervisor.doDynamism(this.databaseDir);
+				supervisor.doDynamism(databaseDir);
 
 				openTransServices();
 
-				// TODO: if graph has changed, DiDiC state must be updated
-				// adaptToGraphChanges()
-
+				// TODO if graph has changed, DiDiC state must be updated
+				// TODO put adaptToGraphChanges() in interface?
+				// TODO supervisor.doDynamism() returns change log?
+				// TODO supervisor.doDynamism() actually updates graph?
 			}
 
 			if (supervisor.isPeriodicSnapshot(timeStep)) {
 				closeTransServices();
 
-				supervisor.doPeriodicSnapshot(timeStep, config
+				supervisor.doPeriodicSnapshot(timeStep, this.config
 						.getClusterCount(), databaseDir);
 
 				openTransServices();
@@ -126,24 +133,18 @@ public class AlgMemDiDiCExpFix {
 
 		}
 
-		if (supervisor.isFinalSnapshot()) {
-			// TODO: take a final snapshot here
-			closeTransServices();
-
-			supervisor.doFinalSnapshot(config.getClusterCount(), databaseDir);
-
-			openTransServices();
-		}
-
 		closeTransServices();
 
+		if (supervisor.isFinalSnapshot()) {
+			// Take a final snapshot here
+			supervisor.doFinalSnapshot(this.config.getClusterCount(),
+					databaseDir);
+		}
+
 		// PRINTOUT
-		long msTotal = System.currentTimeMillis() - time;
-		long ms = msTotal % 1000;
-		long s = (msTotal / 1000) % 60;
-		long m = (msTotal / 1000) / 60;
-		System.out.printf("DiDiC Complete - Time Taken: %d(m):%d(s):%d(ms)%n",
-				m, s, ms);
+		System.out.printf("DiDiC Complete - Time Taken: %s", getTimeStr(System
+				.currentTimeMillis()
+				- time));
 
 		System.out.println("*********DiDiC***********\n");
 	}
@@ -179,7 +180,7 @@ public class AlgMemDiDiCExpFix {
 		}
 
 		// PRINTOUT
-		System.out.printf("%dms%n", System.currentTimeMillis() - time);
+		System.out.printf("%s", getTimeStr(System.currentTimeMillis() - time));
 	}
 
 	private void updateClusterAllocation(int timeStep,
@@ -221,31 +222,32 @@ public class AlgMemDiDiCExpFix {
 
 				memV.setColor(vNewColor);
 
-				Node v = transIndexService.getSingleNode("name", memV.getId()
-						.toString());
-				v.setProperty("color", memV.getColor());
+				Node v = transIndexService.getSingleNode(PropNames.NAME, memV
+						.getId().toString());
+				v.setProperty(PropNames.COLOR, memV.getColor());
 			}
 
 			tx.success();
 
-		} catch (Exception ex) {
-			System.err.printf("<ERR: updateClusterAllocation>");
-			System.err.println(ex.toString());
+		} catch (Exception e) {
+			e.printStackTrace();
 		} finally {
 			tx.finish();
 		}
 
 		// PRINTOUT
-		System.out.printf("%dms%n", System.currentTimeMillis() - time);
+		System.out.printf("%s", getTimeStr(System.currentTimeMillis() - time));
 	}
 
 	private void doFOST(byte c) {
 
+		// NOTE Experimental!
 		double moveFraction = 0.5;
 
 		for (int fostIter = 0; fostIter < config.getFOSTIterations(); fostIter++) {
 
-			// // For Every Node: Copy fraction of W back to L
+			// TODO Experimental! Remove later
+			// For Every Node: Copy fraction of W back to L
 			// for (MemNode v : memGraph.getAllNodes()) {
 			// ArrayList<Double> lV = l.get(v.getId());
 			// ArrayList<Double> wV = w.get(v.getId());
@@ -255,17 +257,10 @@ public class AlgMemDiDiCExpFix {
 			// wV.set(c, wVC - (wVC * moveFraction));
 			// }
 
-			// FIXME REMOVE
-			// System.out.println("--- Before FOSB---");
-			// printLoadState(new Long[] { (long) 1, (long) 500 });
-
 			// FOS/B (Secondary/Drain) Diffusion Algorithm
 			doFOSB(c);
 
-			// FIXME REMOVE
-			// System.out.println("--- Before L -> W ---");
-			// printLoadState(new Long[] {});
-
+			// NOTE Experimental!
 			// For Every Node: Copy fraction of L to W
 			for (MemNode v : memGraph.getAllNodes()) {
 				ArrayList<Double> lV = l.get(v.getId());
@@ -276,7 +271,8 @@ public class AlgMemDiDiCExpFix {
 				wV.set(c, wVC + (lVC * moveFraction));
 			}
 
-			// // For Every Node: Copy fraction of L to W
+			// TODO Experimental! Remove later
+			// For Every Node: Copy fraction of L to W
 			// for (MemNode v : memGraph.getAllNodes()) {
 			// ArrayList<Double> lV = l.get(v.getId());
 			// ArrayList<Double> wV = w.get(v.getId());
@@ -285,10 +281,6 @@ public class AlgMemDiDiCExpFix {
 			// lV.set(c, lVC - (lVC * (moveFraction / (1 + moveFraction))));
 			// wV.set(c, wVC + (lVC * (moveFraction / (1 + moveFraction))));
 			// }
-
-			// FIXME REMOVE
-			// System.out.println("--- Before FOST---");
-			// printLoadState(new Long[] {});
 
 			// For Every Node: FOS/T Primary Diffusion Algorithm
 			for (MemNode v : memGraph.getAllNodes()) {
@@ -319,10 +311,7 @@ public class AlgMemDiDiCExpFix {
 
 			}
 
-			// FIXME REMOVE
-			// System.out.println("--- Before W -> L ---");
-			// printLoadState(new Long[] {});
-
+			// NOTE Experimental!
 			// For Every Node: Copy fraction of W back to L
 			for (MemNode v : memGraph.getAllNodes()) {
 				ArrayList<Double> lV = l.get(v.getId());
@@ -332,10 +321,6 @@ public class AlgMemDiDiCExpFix {
 				lV.set(c, lVC + (wVC * (moveFraction / (1 + moveFraction))));
 				wV.set(c, wVC - (wVC * (moveFraction / (1 + moveFraction))));
 			}
-
-			// FIXME REMOVE
-			// System.out.println("--- After W -> L ---");
-			// printLoadState(new Long[] {});
 
 		}
 
@@ -424,6 +409,7 @@ public class AlgMemDiDiCExpFix {
 
 		for (byte c = 0; c < wC.size(); c++) {
 
+			// NOTE Experimental!
 			// double loadTotal = wC.get(c)
 			// + (lC.get(c) * config.getFOSBIterations());
 			// double loadTotal = (2 * wC.get(c)) + lC.get(c);
@@ -453,6 +439,7 @@ public class AlgMemDiDiCExpFix {
 
 		for (byte c = 0; c < wC.size(); c++) {
 
+			// NOTE Experimental!
 			// double loadTotal = wC.get(c)
 			// + (lC.get(c) * config.getFOSBIterations());
 			// double loadTotal = (2 * wC.get(c)) + lC.get(c);
@@ -485,38 +472,21 @@ public class AlgMemDiDiCExpFix {
 	}
 
 	// **************
-	// Neo4j Services Stuff
-	// **************
-
-	private void openTransServices() {
-		long time = System.currentTimeMillis();
-
-		// PRINTOUT
-		System.out.printf("Opening Transactional Services...");
-
-		transNeo = new EmbeddedGraphDatabase(databaseDir);
-		transIndexService = new LuceneIndexService(transNeo);
-
-		// PRINTOUT
-		System.out.printf("%dms%n", System.currentTimeMillis() - time);
-	}
-
-	private void closeTransServices() {
-		long time = System.currentTimeMillis();
-
-		// PRINTOUT
-		System.out.printf("Closing Transactional Services...");
-
-		transIndexService.shutdown();
-		transNeo.shutdown();
-
-		// PRINTOUT
-		System.out.printf("%dms%n", System.currentTimeMillis() - time);
-	}
-
-	// **************
 	// Printout Stuff
 	// **************
+
+	private String getConfigStr() {
+		return String
+				.format(
+						"DiDiC [FOST_ITERS=%d, FOSB_ITERS=%d, MAX_CLUSTERS=%d, TIME_STEPS=%d]%n",
+						config.getFOSTIterations(), config.getFOSBIterations(),
+						config.getClusterCount(), config.getMaxIterations());
+	}
+
+	private String getTotalVectorsStr() {
+		return String.format("\nTotalL = %f\nTotalW = %f\n\n", getTotalL(),
+				getTotalW());
+	}
 
 	private double getTotalW() {
 		double result = 0.0;

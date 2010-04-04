@@ -1,66 +1,81 @@
-package graph_cluster_algorithms;
+package graph_cluster_utils.alg.mem.didic;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map.Entry;
 
+import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 
 import pGraphService.PGraphDatabaseService;
 import pGraphService.PGraphDatabaseServiceImpl;
 
-import graph_cluster_algorithms.configs.ConfDiDiC;
-import graph_cluster_algorithms.supervisors.Supervisor;
+import graph_cluster_utils.alg.config.Conf;
+import graph_cluster_utils.alg.config.ConfDiDiC;
+import graph_cluster_utils.alg.mem.AlgMem;
+import graph_cluster_utils.general.PropNames;
+import graph_cluster_utils.supervisor.Supervisor;
+import graph_gen_utils.memory_graph.MemGraph;
+import graph_gen_utils.memory_graph.MemNode;
+import graph_gen_utils.memory_graph.MemRel;
 
-import graph_gen_utils.graph.MemGraph;
-import graph_gen_utils.graph.MemNode;
-import graph_gen_utils.graph.MemRel;
+/**
+ * Inherits from {@link AlgMem}. Basic implementation of the DiDiC
+ * clustering/partitioning algorithm, computed on an in-memory graph.
+ * 
+ * The unique aspect of this implementation is that is flushes changes to a
+ * partitioned Neo4j instance using {@link PGraphDatabaseService} rather than
+ * using the traditional {@link GraphDatabaseService} interface.
+ * 
+ * SYNCHRONY: This implementation ensures a low level on synchrony. Nodes
+ * compute on the same time step at all times. Nodes compute on the same
+ * diffusion system (cluster/partition) and same FOS/T iteration most of the
+ * time, and very rarely on the same FOS/B iteration.
+ * 
+ * @author Alex Averbuch
+ * @since 2010-04-01
+ */
 
-public class AlgParaMemDiDiC {
+public class AlgMemPartDiDiC extends AlgMem {
 
 	private HashMap<Long, ArrayList<Double>> w = null; // Load Vec 1
 	private HashMap<Long, ArrayList<Double>> l = null; // Load Vec 2 ('drain')
 
-	private String databaseDir;
 	private ConfDiDiC config = null;
 
-	private MemGraph memGraph = null;
+	protected PGraphDatabaseService transNeo = null;
 
-	private PGraphDatabaseService transNeo = null;
+	public AlgMemPartDiDiC(String databaseDir, Supervisor supervisor,
+			MemGraph memGraph) {
+		super(databaseDir, supervisor, memGraph);
 
-	public void start(String databaseDir, ConfDiDiC confDiDiC,
-			Supervisor supervisor, MemGraph memGraph) {
+		this.w = new HashMap<Long, ArrayList<Double>>();
+		this.l = new HashMap<Long, ArrayList<Double>>();
+	}
 
-		w = new HashMap<Long, ArrayList<Double>>();
-		l = new HashMap<Long, ArrayList<Double>>();
-		this.databaseDir = databaseDir;
-		this.config = confDiDiC;
-		this.memGraph = memGraph;
+	@Override
+	public void start(Conf config) {
+		this.config = (ConfDiDiC) config;
 
 		// PRINTOUT
 		System.out.println("\n*********DiDiC***********");
+
+		if (supervisor.isInitialSnapshot()) {
+			supervisor.doInitialSnapshot(this.config.getClusterCount(),
+					databaseDir);
+		}
 
 		openTransServices();
 
 		initLoadVectors();
 
-		if (supervisor.isInitialSnapshot()) {
-			closeTransServices();
-			supervisor.doInitialSnapshot(config.getClusterCount(), databaseDir);
-			openTransServices();
-		}
-
 		long time = System.currentTimeMillis();
 
 		// PRINTOUT
-		System.out
-				.printf(
-						"DiDiC [FOST_ITERS=%d, FOSB_ITERS=%d, MAX_CLUSTERS=%d, TIME_STEPS=%d]%n",
-						config.getFOSTIterations(), config.getFOSBIterations(),
-						config.getClusterCount(), config.getMaxIterations());
+		System.out.println(getConfigStr());
 
-		for (int timeStep = 0; timeStep < config.getMaxIterations(); timeStep++) {
+		for (int timeStep = 0; timeStep < this.config.getMaxIterations(); timeStep++) {
 
 			long timeStepTime = System.currentTimeMillis();
 
@@ -68,10 +83,10 @@ public class AlgParaMemDiDiC {
 			System.out.printf("\tFOS/T [TimeStep:%d, All Nodes]...", timeStep);
 
 			// For Every "Cluster System"
-			for (byte c = 0; c < config.getClusterCount(); c++) {
+			for (byte c = 0; c < this.config.getClusterCount(); c++) {
 
 				// For Every Node
-				for (MemNode v : this.memGraph.getAllNodes()) {
+				for (MemNode v : memGraph.getAllNodes()) {
 
 					// FOS/T Primary Diffusion Algorithm
 					doFOST(v, c);
@@ -81,33 +96,29 @@ public class AlgParaMemDiDiC {
 			}
 
 			// PRINTOUT
-			long msTotal = System.currentTimeMillis() - timeStepTime;
-			long ms = msTotal % 1000;
-			long s = (msTotal / 1000) % 60;
-			long m = (msTotal / 1000) / 60;
-			System.out.printf(
-					"DiDiC Complete - Time Taken: %d(m):%d(s):%d(ms)%n", m, s,
-					ms);
+			System.out.printf("DiDiC Complete - Time Taken: %s",
+					getTimeStr(System.currentTimeMillis() - timeStepTime));
 
-			updateClusterAllocation(timeStep, config.getAllocType());
+			updateClusterAllocation(timeStep, this.config.getAllocType());
 
 			if (supervisor.isDynamism(timeStep)) {
 				closeTransServices();
 
 				// TODO: perform insertions/deletions to Neo4j instance
-				supervisor.doDynamism(this.databaseDir);
+				supervisor.doDynamism(databaseDir);
 
 				openTransServices();
 
-				// TODO: if graph has changed, DiDiC state must be updated
-				// adaptToGraphChanges()
-
+				// TODO if graph has changed, DiDiC state must be updated
+				// TODO put adaptToGraphChanges() in interface?
+				// TODO supervisor.doDynamism() returns change log?
+				// TODO supervisor.doDynamism() actually updates graph?
 			}
 
 			if (supervisor.isPeriodicSnapshot(timeStep)) {
 				closeTransServices();
 
-				supervisor.doPeriodicSnapshot(timeStep, config
+				supervisor.doPeriodicSnapshot(timeStep, this.config
 						.getClusterCount(), databaseDir);
 
 				openTransServices();
@@ -115,24 +126,18 @@ public class AlgParaMemDiDiC {
 
 		}
 
-		if (supervisor.isFinalSnapshot()) {
-			// TODO: take a final snapshot here
-			closeTransServices();
-
-			supervisor.doFinalSnapshot(config.getClusterCount(), databaseDir);
-
-			openTransServices();
-		}
-
 		closeTransServices();
 
+		if (supervisor.isFinalSnapshot()) {
+			// Take a final snapshot here
+			supervisor.doFinalSnapshot(this.config.getClusterCount(),
+					databaseDir);
+		}
+
 		// PRINTOUT
-		long msTotal = System.currentTimeMillis() - time;
-		long ms = msTotal % 1000;
-		long s = (msTotal / 1000) % 60;
-		long m = (msTotal / 1000) / 60;
-		System.out.printf("DiDiC Complete - Time Taken: %d(m):%d(s):%d(ms)%n",
-				m, s, ms);
+		System.out.printf("DiDiC Complete - Time Taken: %s", getTimeStr(System
+				.currentTimeMillis()
+				- time));
 
 		System.out.println("*********DiDiC***********\n");
 	}
@@ -143,7 +148,7 @@ public class AlgParaMemDiDiC {
 		// PRINTOUT
 		System.out.printf("Initialising Load Vectors...");
 
-		for (MemNode v : this.memGraph.getAllNodes()) {
+		for (MemNode v : memGraph.getAllNodes()) {
 
 			byte vColor = v.getColor();
 
@@ -168,7 +173,7 @@ public class AlgParaMemDiDiC {
 		}
 
 		// PRINTOUT
-		System.out.printf("%dms%n", System.currentTimeMillis() - time);
+		System.out.printf("%s", getTimeStr(System.currentTimeMillis() - time));
 	}
 
 	private void updateClusterAllocation(int timeStep,
@@ -188,7 +193,7 @@ public class AlgParaMemDiDiC {
 
 			for (Entry<Long, ArrayList<Double>> wC : w.entrySet()) {
 
-				MemNode memV = this.memGraph.getNode(wC.getKey());
+				MemNode memV = memGraph.getNode(wC.getKey());
 
 				Byte vNewColor = memV.getColor();
 
@@ -211,7 +216,7 @@ public class AlgParaMemDiDiC {
 				memV.setColor(vNewColor);
 
 				Node v = transNeo.getNodeById(memV.getId());
-				v.setProperty("color", memV.getColor());
+				v.setProperty(PropNames.COLOR, memV.getColor());
 
 				ArrayList<Node> cluster = clusters.get(memV.getColor());
 				if (cluster == null)
@@ -220,25 +225,35 @@ public class AlgParaMemDiDiC {
 				clusters.put(memV.getColor(), cluster);
 			}
 
-			for (Byte color : clusters.keySet()) {
-				ArrayList<Node> cluster = clusters.get(color);
-				transNeo.moveNodes(cluster, color);
-			}
+			// TODO For debugging only. Remove later
+			// System.out.println(clustersToString(clusters));
+
+			// NOTE Move All Nodes
+			// for (Byte color : clusters.keySet()) {
+			// ArrayList<Node> cluster = clusters.get(color);
+			// transNeo.moveNodes(cluster, color);
+			// }
+
+			// NOTE Move 1 Node
+			// Byte color = clusters.keySet().iterator().next();
+			// Node v = clusters.get(color).get(0);
+			// ArrayList<Node> moveNodes = new ArrayList<Node>();
+			// moveNodes.add(v);
+			// System.out.println("Color=" + color + ", Node=" + v.getId());
+			// transNeo.moveNodes(moveNodes, color);
 
 			tx.success();
 
-		} catch (Exception ex) {
-			System.err.printf("<ERR: updateClusterAllocation>");
-			ex.printStackTrace();
+		} catch (Exception e) {
+			e.printStackTrace();
 		} finally {
 			tx.finish();
 		}
 
 		// PRINTOUT
-		System.out.printf("%dms%n", System.currentTimeMillis() - time);
+		System.out.printf("%s", getTimeStr(System.currentTimeMillis() - time));
 	}
 
-	// MUST call from inside Transaction
 	private void doFOST(MemNode v, byte c) {
 
 		ArrayList<Double> lV = l.get(v.getId());
@@ -256,7 +271,7 @@ public class AlgParaMemDiDiC {
 			// FOS/T Primary Diffusion Algorithm
 			for (MemRel e : v.getNeighbours()) {
 
-				MemNode u = this.memGraph.getNode(e.getEndNodeId());
+				MemNode u = memGraph.getNode(e.getEndNodeId());
 
 				ArrayList<Double> wU = w.get(u.getId());
 
@@ -276,7 +291,6 @@ public class AlgParaMemDiDiC {
 
 	}
 
-	// MUST call from inside Transaction
 	private void doFOSB(MemNode v, byte c) {
 		ArrayList<Double> lV = l.get(v.getId());
 
@@ -290,7 +304,7 @@ public class AlgParaMemDiDiC {
 			// FOS/B Diffusion Algorithm
 			for (MemRel e : v.getNeighbours()) {
 
-				MemNode u = this.memGraph.getNode(e.getEndNodeId());
+				MemNode u = memGraph.getNode(e.getEndNodeId());
 
 				ArrayList<Double> lU = l.get(u.getId());
 
@@ -309,7 +323,6 @@ public class AlgParaMemDiDiC {
 
 	}
 
-	// MUST call from inside Transaction
 	private double alphaE(MemNode u, MemNode v) {
 		// alphaE = 1/max{deg(u),deg(v)};
 		int uDeg = u.getNeighbourCount();
@@ -320,7 +333,6 @@ public class AlgParaMemDiDiC {
 		return 1.0 / (double) max;
 	}
 
-	// MUST call from inside Transaction
 	// Optimized version. Find vDeg once only
 	private double alphaE(MemNode u, double vDeg) {
 		// alphaE = 1/max{deg(u),deg(v)};
@@ -329,7 +341,6 @@ public class AlgParaMemDiDiC {
 		return 1.0 / Math.max(uDeg, vDeg);
 	}
 
-	// MUST call from inside Transaction
 	private double benefit(MemNode v, byte c) {
 		if (v.getColor() == c)
 			return config.getBenefitHigh();
@@ -337,7 +348,6 @@ public class AlgParaMemDiDiC {
 			return config.getBenefitLow();
 	}
 
-	// MUST call from inside Transaction
 	// Switch between algorithms depending on time-step
 	private byte allocateCluster(MemNode v, ArrayList<Double> wC, int timeStep) {
 		// Choose cluster with largest load vector
@@ -387,12 +397,11 @@ public class AlgParaMemDiDiC {
 		return maxC;
 	}
 
-	// MUST call from inside Transaction
 	// v has at least 1 edge to given cluster
 	private boolean intDegNotZero(MemNode v, byte c) {
 		for (MemRel e : v.getNeighbours()) {
 
-			MemNode u = this.memGraph.getNode(e.getEndNodeId());
+			MemNode u = memGraph.getNode(e.getEndNodeId());
 			byte uColor = u.getColor();
 
 			if (c == uColor)
@@ -403,19 +412,19 @@ public class AlgParaMemDiDiC {
 		return false;
 	}
 
-	private void openTransServices() {
+	protected void openTransServices() {
 		long time = System.currentTimeMillis();
 
 		// PRINTOUT
 		System.out.printf("Opening Transactional Services...");
 
-		transNeo = new PGraphDatabaseServiceImpl(this.databaseDir, 1);
+		transNeo = new PGraphDatabaseServiceImpl(databaseDir, 1);
 
 		// PRINTOUT
 		System.out.printf("%dms%n", System.currentTimeMillis() - time);
 	}
 
-	private void closeTransServices() {
+	protected void closeTransServices() {
 		long time = System.currentTimeMillis();
 
 		// PRINTOUT
@@ -425,6 +434,23 @@ public class AlgParaMemDiDiC {
 
 		// PRINTOUT
 		System.out.printf("%dms%n", System.currentTimeMillis() - time);
+	}
+
+	// **************
+	// Printout Stuff
+	// **************
+
+	private String getConfigStr() {
+		return String
+				.format(
+						"DiDiC [FOST_ITERS=%d, FOSB_ITERS=%d, MAX_CLUSTERS=%d, TIME_STEPS=%d]%n",
+						config.getFOSTIterations(), config.getFOSBIterations(),
+						config.getClusterCount(), config.getMaxIterations());
+	}
+
+	private String getTotalVectorsStr() {
+		return String.format("\nTotalL = %f\nTotalW = %f\n\n", getTotalL(),
+				getTotalW());
 	}
 
 	private double getTotalW() {
@@ -452,7 +478,19 @@ public class AlgParaMemDiDiC {
 	}
 
 	private String clustersToString(HashMap<Byte, ArrayList<Node>> clusters) {
-		return null;
+		String clustersStr = "";
+
+		for (Byte color : clusters.keySet()) {
+
+			String clusterStr = String.format("%d:\t", color);
+			for (Node v : clusters.get(color))
+				clusterStr = String.format("%s %s", clusterStr, v.getId());
+
+			clustersStr = String.format("%s%s\n", clustersStr, clusterStr);
+
+		}
+
+		return clustersStr;
 	}
 
 }

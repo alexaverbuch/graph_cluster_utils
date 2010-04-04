@@ -1,4 +1,10 @@
-package graph_cluster_algorithms;
+package graph_cluster_utils.alg.disk.esp;
+
+import graph_cluster_utils.alg.config.Conf;
+import graph_cluster_utils.alg.config.ConfEvoPartition;
+import graph_cluster_utils.alg.disk.AlgDisk;
+import graph_cluster_utils.general.PropNames;
+import graph_cluster_utils.supervisor.Supervisor;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -6,36 +12,45 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 import java.util.TreeMap;
-import java.util.Map.Entry;
 
 import org.neo4j.graphdb.Direction;
-import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
-import org.neo4j.index.IndexService;
-import org.neo4j.index.lucene.LuceneIndexService;
-import org.neo4j.kernel.EmbeddedGraphDatabase;
 
 import org.uncommons.maths.random.MersenneTwisterRNG;
 import org.uncommons.maths.random.ExponentialGenerator;
 import org.uncommons.maths.random.XORShiftRNG;
 
-import graph_cluster_algorithms.configs.ConfEvoPartition;
-import graph_cluster_algorithms.structs.DSEvoPartition;
-import graph_cluster_algorithms.supervisors.Supervisor;
+/**
+ * WARNING: Not in a usable state!
+ * 
+ * Inherits from {@link AlgDisk}.
+ * 
+ * This is a simplified implementation of the Evolving Set Process
+ * clustering/partitioning algorithm.
+ * 
+ * The number of parameters has been reduced to only what is deemed necessary.
+ * Some variants have been relaxed and/or removed. Also, a modification has been
+ * added to allocate unallocated nodes to partitions/clusters after the
+ * algorithm terminates.
+ * 
+ * Changes made to this implementation are on based on suggestions made by the
+ * algorithm author(s) during ongoing email communications.
+ * 
+ * This implementation is still not mature enough to be used. It's success is
+ * too topology dependent and more debugging/experimenting is necessary.
+ * 
+ * It is computed directly on a Neo4j instance.
+ * 
+ * @author Alex Averbuch
+ * @since 2010-04-01
+ */
+public class AlgDiskEvoPartitionExp extends AlgDisk {
 
-public class AlgDiskEvoPartition {
-
-	// ESP Related
 	private final static Double CONST_B = 5.0;
 
-	private String databaseDir;
-
-	private GraphDatabaseService transNeo = null;
-	private IndexService transIndexService = null;
-
-	private Supervisor supervisor = null;
+	private ConfEvoPartition config = null;
 
 	private Random rng = null;
 	private ExponentialGenerator expGenB = null;
@@ -45,15 +60,20 @@ public class AlgDiskEvoPartition {
 
 	private byte clusterColor = -1;
 
-	public void start(String databaseDir, ConfEvoPartition config,
-			Supervisor supervisor) throws Exception {
-		this.databaseDir = databaseDir;
-		this.supervisor = supervisor;
+	public AlgDiskEvoPartitionExp(String databaseDir, Supervisor supervisor) {
+		super(databaseDir, supervisor);
+
 		// this.rng = new Random(); // Slow & poor randomness
 		this.rng = new MersenneTwisterRNG(); // Fast & good randomness
 		// this.rng = new XORShiftRNG(); // Faster & good randomness
+
 		this.expGenB = new ExponentialGenerator(CONST_B, this.rng);
 		this.expGenVertex = new ExponentialGenerator(5.0, this.rng);
+	}
+
+	@Override
+	public void start(Conf config) {
+		this.config = (ConfEvoPartition) config;
 
 		this.supervisor.doInitialSnapshot(-1, this.databaseDir);
 
@@ -61,8 +81,7 @@ public class AlgDiskEvoPartition {
 
 		this.nodes = getNodeDegrees();
 
-		// evoPartitionOld(config.getTheta(), config.getP());
-		evoPartition(config.getConductance(), config.getP());
+		evoPartition(this.config.getConductance(), this.config.getP());
 
 		closeTransServices();
 
@@ -70,8 +89,7 @@ public class AlgDiskEvoPartition {
 	}
 
 	// p is used to find jMax. Smaller p -> larger jMax
-	// theta
-	private void evoPartition(Double conductance, Double p) throws Exception {
+	private void evoPartition(Double conductance, Double p) {
 
 		// Set W(j) = W(0) = V
 		Long volumeG = getVolumeG((byte) -1);
@@ -86,13 +104,25 @@ public class AlgDiskEvoPartition {
 
 		Long volumeWj = volumeG;
 
-		System.out.printf("evoPartition[conduct=%f,p=%f]\n", conductance, p);
+		// NOTE Experimental!
+		Long minClusterVolume = volumeG / config.getClusterCount();
 
-		while ((j < jMax) && (volumeWj >= (3.0 / 4.0) * (double) volumeG)) {
+		System.out
+				.printf(
+						"evoPartition[conduct=%f,p=%f,clusterCount=%d,minClusterVolume=%d]\n",
+						conductance, p, config.getClusterCount(),
+						minClusterVolume);
 
+		// while ((j < jMax) && (volumeWj >= (3.0 / 4.0) * (double) volumeG)) {
+		while (volumeWj >= (1.0 / 4.0) * (double) volumeG) {
+
+			// System.out.printf(
+			// "evoPartition[j=%d,jMax=%f,volWj=%d, 3/4volG[%f]]\n%s\n",
+			// j, jMax, volumeWj, (3.0 / 4.0) * (double) volumeG,
+			// nodesToStr());
 			System.out.printf(
-					"evoPartition[j=%d,jMax=%f,volWj=%d, 3/4volG[%f]]\n%s\n",
-					j, jMax, volumeWj, (3.0 / 4.0) * (double) volumeG,
+					"evoPartition[j=%d,jMax=%f,volWj=%d, 1/4volG[%f]]\n%s\n",
+					j, jMax, volumeWj, (1.0 / 4.0) * (double) volumeG,
 					nodesToStr());
 
 			Transaction tx = transNeo.beginTx();
@@ -100,7 +130,8 @@ public class AlgDiskEvoPartition {
 			try {
 
 				// -> D(j) = evoNibble(G[W(j-1)], conductance)
-				DSEvoPartition Dj = evoNibble(conductance, volumeWj);
+				DataStructEvoPartition Dj = evoNibble(conductance, volumeWj,
+						minClusterVolume);
 
 				// -> Set j = j+1
 				j++;
@@ -122,115 +153,38 @@ public class AlgDiskEvoPartition {
 					System.out.printf(
 							"\n\tevoNibble returned. D(%d) = null!\n\n", j);
 
-			} catch (Exception ex) {
-				System.err.printf("<evoPartition> \n\t%s\n", ex.toString());
-				throw ex;
+			} catch (Exception e) {
+				e.printStackTrace();
 			} finally {
 				tx.finish();
 			}
 
 		}
 
-		System.out
-				.printf(
-						"\nevoPartition[volWj=%d, 3/4volG[%f], volG[%d]]\n%s\n\n",
-						volumeWj, (3.0 / 4.0) * (double) volumeG, volumeG,
-						nodesToStr());
-
-		// Set D = D(1) U ... U D(j)
-		// NOTE In this implementation vertices are colored rather than removed
-		// NOTE There is no need to perform a Union operation
-		// TODO Tidy up the unallocated vertices here?
-	}
-
-	// p is used to find jMax. Smaller p -> larger jMax
-	// theta
-	private void evoPartitionOld(Double theta, Double p) throws Exception {
-
-		// Set W(j) = W(0) = V
-		Long volumeG = getVolumeG((byte) -1);
-
-		Long m = volumeG / 2;
-
-		// Set j = 0
-		Integer j = 0;
-
-		// Set conductance = theta/7
-		Double conductance = theta / 7;
-
-		// [WHILE] j < 12.m.Ceil( lg(1/p) ) [AND] volumeWj >= (3/4)volumeG
-		Double jMax = 12 * m * Math.ceil(Math.log10(1.0 / p));
-
-		Long volumeWj = volumeG;
-
-		System.out.printf("evoPartition[theta=%f,p=%f]\n", theta, p);
-		System.out.printf("            [conduct=%f,jMax=%f,volWj=%d]\n",
-				conductance, jMax, volumeWj);
-
-		while ((j < jMax) && (volumeWj >= (3.0 / 4.0) * (double) volumeG)) {
-
-			System.out.printf(
-					"evoPartition[j=%d,jMax=%f,volWj=%d, 3/4volG[%f]]\n%s\n",
-					j, jMax, volumeWj, (3.0 / 4.0) * (double) volumeG,
-					nodesToStr());
-
-			Transaction tx = transNeo.beginTx();
-
-			try {
-
-				// -> D(j) = evoNibble(G[W(j-1)], conductance)
-				DSEvoPartition Dj = evoNibble(conductance, volumeWj);
-
-				j++;
-
-				// -> Set j = j+1
-				if (Dj != null) {
-					System.out.printf(
-							"\n\tevoNibble returned. |D%d|[%d], volD%d[%d]\n",
-							j, Dj.getS().size(), j, Dj.getVolume());
-					System.out.printf("\t%s\n\n", dToStr(Dj.getS()));
-
-					// -> W(j) = W(j-1) - D(j)
-					clusterColor++;
-					updateClusterAlloc(Dj.getS(), clusterColor);
-
-					volumeWj -= Dj.getVolume();
-
-					tx.success();
-				} else
-					System.out.printf(
-							"\n\tevoNibble returned. D(%d) = null!\n\n", j);
-
-			} catch (Exception ex) {
-				System.err.printf("<evoPartition> \n\t%s\n", ex.toString());
-				throw ex;
-			} finally {
-				tx.finish();
-			}
-
-		}
+		// Tidy up the unallocated vertices here
+		allocateUnallocated();
 
 		System.out
 				.printf(
-						"\nevoPartition[volWj=%d, 3/4volG[%f], volG[%d]]\n%s\n\n",
-						volumeWj, (3.0 / 4.0) * (double) volumeG, volumeG,
+						"\nevoPartition[volWj=%d, 1/4volG[%f], volG[%d]]\n%s\n\n",
+						volumeWj, (1.0 / 4.0) * (double) volumeG, volumeG,
 						nodesToStr());
 
 		// Set D = D(1) U ... U D(j)
-		// NOTE In this implementation vertices are colored rather than removed
-		// NOTE There is no need to perform a Union operation
-		// TODO Tidy up the unallocated vertices here?
+		// In this implementation vertices are colored rather than removed,
+		// so there is no need to perform a Union operation
 	}
 
-	private DSEvoPartition evoNibble(Double conductance, Long volumeWj)
-			throws Exception {
+	private DataStructEvoPartition evoNibble(Double conductance, Long volumeWj,
+			Long minClusterVolume) {
 
 		// Precompute for efficiency
 		Double log2VolumeWj = Math.log(volumeWj) / Math.log(2);
 		Double logVolumeWj = Math.log(volumeWj);
 
 		// T = Floor(conductance^-1 / 100)
-		Double T = Math.floor(Math.pow(conductance, -1) / 100.0);
+		// Double T = Math.floor(Math.pow(conductance, -1) / 100.0);
+		Double T = (double) 500;
 
 		// thetaT = Sqrt(4.T^-1.log(volume(G)) )
 		Double thetaT = Math.sqrt(4.0 * Math.pow(T, -1) * logVolumeWj);
@@ -249,7 +203,7 @@ public class AlgDiskEvoPartition {
 		// -> Let j be an integer in the range [0,jMax]
 		// -> Choose budget with probability P(J=j) = constB.2^-j
 		// ----> Where constB is a proportionality constant
-		// NOTE Exponential & appropriate mean similar to constB.2^-j
+		// NOTE Exponential distribution has similar charateristics
 		Double j = expGenB.nextValue() * jMax;
 		if (j > jMax) // Exponential distribution may return > 1.0
 			j = 0.0; // If so, default to most probable j value
@@ -264,15 +218,21 @@ public class AlgDiskEvoPartition {
 		System.out.printf("\t\t         [v=%d,j=%f,jMax=%f,y=%f,Bj=%f]\n", v
 				.getId(), j, jMax, y, Bj);
 
-		DSEvoPartition sAndB = genSample(v, T, Bj, thetaT);
+		DataStructEvoPartition sAndB = genSample(v, T, Bj, thetaT,
+				minClusterVolume);
 
 		System.out
 				.printf(
-						"\t\t<evoNibble> genSample() -> S: conductS[%f]<=3thetaT[%f] , volS[%d]<=3/4volG[%f]\n",
-						sAndB.getConductance(), 3 * thetaT, sAndB.getVolume(),
-						(3.0 / 4.0) * volumeWj);
+						"\t\t<evoNibble> genSample() -> S: conductS[%f]<=3thetaT[%f] , minVol[%d]<volS[%d]<=3/4volG[%f]\n",
+						sAndB.getConductance(), 3 * thetaT, minClusterVolume,
+						sAndB.getVolume(), (3.0 / 4.0) * volumeWj);
 
-		if ((sAndB.getConductance() <= 3 * thetaT)
+		// NOTE Experimental!
+		// if ((sAndB.getConductance() <= 3 * thetaT)
+		// && (sAndB.getVolume() > minClusterVolume)
+		// && (sAndB.getVolume() <= (3.0 / 4.0) * volumeWj))
+		// return sAndB;
+		if ((sAndB.getVolume() > minClusterVolume)
 				&& (sAndB.getVolume() <= (3.0 / 4.0) * volumeWj))
 			return sAndB;
 
@@ -289,25 +249,24 @@ public class AlgDiskEvoPartition {
 	// ----> B>=0 : Budget
 	// OUTPUT
 	// ----> St : Set sampled from volume-biased Evolving Set Process
-	private DSEvoPartition genSample(Node x, Double T, Double B, Double thetaT)
-			throws Exception {
+	private DataStructEvoPartition genSample(Node x, Double T, Double B,
+			Double thetaT, Long minClusterVolume) {
 
-		// FIXME Remove later, only useful for testing
-		// thetaT = 0.3;
+		System.out
+				.printf(
+						"\t\t\tgenSample[x=%d,T=%f,B=%f,thetaT=%f,minClusterVolume=%d]\n",
+						x.getId(), T, B, thetaT, minClusterVolume);
 
-		System.out.printf("\t\t\tgenSample[x=%d,T=%f,B=%f,thetaT=%f]\n", x
-				.getId(), T, B, thetaT);
-
-		DSEvoPartition sAndB = null; // S, B, volume, conductance
+		DataStructEvoPartition sAndB = null; // S, B, volume, conductance
 		Node X = null; // Current random-walk position @ time t
 		Double Z = new Double(0);
 		HashMap<Node, Boolean> D = new HashMap<Node, Boolean>();
 
-		// Init
+		// Inititialization
 		// -> X = x0 = x
 		X = x;
 		// -> S = S0 = {x}
-		sAndB = new DSEvoPartition(X, rng);
+		sAndB = new DataStructEvoPartition(X, rng);
 
 		sAndB.printSAndB();
 
@@ -345,12 +304,14 @@ public class AlgDiskEvoPartition {
 				System.out.printf(
 						"\t\t\t<genSample> Phase1? costS[%d] > B[%f]\n", sAndB
 								.getCost(), B);
-				if (sAndB.getCost() > B) {
 
-					sAndB.printSAndB();
-
-					break;
-				}
+				// NOTE Experimental!
+				// if (sAndB.getCost() > B) {
+				//
+				// sAndB.printSAndB();
+				//
+				// break;
+				// }
 
 				// STAGE 2: update S to St by adding/removing vertices in D to S
 
@@ -363,12 +324,14 @@ public class AlgDiskEvoPartition {
 
 				sAndB.printSAndB();
 
-				if (sAndB.getConductance() < thetaT)
+				// NOTE Experimental!
+				// if ((sAndB.getConductance() < thetaT)
+				// && (sAndB.getVolume() > clusterVolume))
+				if (sAndB.getVolume() > minClusterVolume)
 					break;
 			}
-		} catch (Exception ex) {
-			System.err.printf("<genSample> \n\t%s\n", ex.toString());
-			throw ex;
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 
 		return sAndB;
@@ -381,12 +344,11 @@ public class AlgDiskEvoPartition {
 		for (Long vID : Dj) {
 
 			Node v = transNeo.getNodeById(vID);
-			v.setProperty("color", j);
+			v.setProperty(PropNames.COLOR, j);
 
 			if (nodes.remove(vID) == false) {
-				System.out.println(nodes.contains(vID));
-				throw new Exception(
-						"<updateClusterAlloc> Could not remove vID from nodes!");
+				throw new Exception(String.format(
+						"Could not remove node %d from nodes", vID));
 			}
 
 		}
@@ -395,7 +357,7 @@ public class AlgDiskEvoPartition {
 
 	// Choose random vertex from remaining (unpartitioned) vertices
 	// Choose vertex with probability P(X=x) = d(x)/volume(G)
-	private Node getRandomNode() throws Exception {
+	private Node getRandomNode() {
 		Double randVal = expGenVertex.nextValue();
 
 		long randIndex = Math.round(randVal * (nodes.size() - 1));
@@ -411,7 +373,7 @@ public class AlgDiskEvoPartition {
 		return transNeo.getNodeById(nodes.get((int) randIndex));
 	}
 
-	private ArrayList<Long> getNodeDegrees() throws Exception {
+	private ArrayList<Long> getNodeDegrees() {
 		HashMap<Long, Integer> unsortedNodeDegs = new HashMap<Long, Integer>();
 		ValueComparator degreeComparator = new ValueComparator(unsortedNodeDegs);
 		TreeMap<Long, Integer> sortedNodeDegs = new TreeMap<Long, Integer>(
@@ -426,8 +388,7 @@ public class AlgDiskEvoPartition {
 
 					Integer vDeg = 0;
 
-					for (Relationship e : v
-							.getRelationships(Direction.OUTGOING))
+					for (Relationship e : v.getRelationships(Direction.BOTH))
 						vDeg++;
 
 					unsortedNodeDegs.put(v.getId(), vDeg);
@@ -435,9 +396,8 @@ public class AlgDiskEvoPartition {
 				}
 			}
 
-		} catch (Exception ex) {
-			System.err.printf("<getNodeDegrees> \n\t%s\n", ex.toString());
-			throw ex;
+		} catch (Exception e) {
+			e.printStackTrace();
 		} finally {
 			tx.finish();
 		}
@@ -448,14 +408,6 @@ public class AlgDiskEvoPartition {
 		for (Long vID : sortedNodeDegs.keySet()) {
 			sortedNodes.add(vID);
 		}
-
-		// TODO REMOVE!!!
-		System.out.printf("\nAll Nodes Sorted By Degree:\n");
-		for (Entry<Long, Integer> nodeDeg : sortedNodeDegs.entrySet()) {
-			System.out.printf("\tNodeId[%d]\tDegree[%d]\n", nodeDeg.getKey(),
-					nodeDeg.getValue());
-		}
-		System.out.println();
 
 		return sortedNodes;
 	}
@@ -473,24 +425,62 @@ public class AlgDiskEvoPartition {
 
 			for (Node v : transNeo.getAllNodes()) {
 				// Only count nodes that have not yet been partitioned
-				if ((v.getId() != 0) && (v.getProperty("color") == color)) {
+				if ((v.getId() != 0)
+						&& (v.getProperty(PropNames.COLOR) == color)) {
 
-					for (Relationship e : v
-							.getRelationships(Direction.OUTGOING)) {
-						if (e.getEndNode().getProperty("color") == color)
+					for (Relationship e : v.getRelationships(Direction.BOTH)) {
+						if (e.getOtherNode(v).getProperty(PropNames.COLOR) == color)
 							volumeG++;
 					}
 
 				}
 			}
 
-		} catch (Exception ex) {
-			System.err.printf("<getVolumeG> \n\t%s\n", ex.toString());
+		} catch (Exception e) {
+			e.printStackTrace();
 		} finally {
 			tx.finish();
 		}
 
 		return volumeG;
+	}
+
+	private void allocateUnallocated() {
+		Byte defaultColor = (byte) -1;
+
+		while (nodes.size() > 0) {
+			Transaction tx = transNeo.beginTx();
+
+			try {
+
+				for (Node v : transNeo.getAllNodes()) {
+					// Only count nodes that have not yet been partitioned
+					if ((v.getId() != 0)
+							&& (v.getProperty(PropNames.COLOR) == defaultColor)) {
+
+						for (Relationship e : v
+								.getRelationships(Direction.BOTH)) {
+							Byte vColor = (Byte) e.getOtherNode(v).getProperty(
+									PropNames.COLOR);
+							if (vColor != defaultColor) {
+								v.setProperty(PropNames.COLOR, vColor);
+								nodes.remove(v.getId());
+								break;
+							}
+						}
+
+					}
+				}
+
+				tx.success();
+
+			} catch (Exception e) {
+				e.printStackTrace();
+			} finally {
+				tx.finish();
+			}
+		}
+
 	}
 
 	private String nodesToStr() {
@@ -514,32 +504,6 @@ public class AlgDiskEvoPartition {
 		return dToStr;
 	}
 
-	private void openTransServices() {
-		long time = System.currentTimeMillis();
-
-		// PRINTOUT
-		System.out.printf("Opening Transactional Services...");
-
-		transNeo = new EmbeddedGraphDatabase(databaseDir);
-		transIndexService = new LuceneIndexService(transNeo);
-
-		// PRINTOUT
-		System.out.printf("%dms%n", System.currentTimeMillis() - time);
-	}
-
-	private void closeTransServices() {
-		long time = System.currentTimeMillis();
-
-		// PRINTOUT
-		System.out.printf("Closing Transactional Services...");
-
-		transIndexService.shutdown();
-		transNeo.shutdown();
-
-		// PRINTOUT
-		System.out.printf("%dms%n", System.currentTimeMillis() - time);
-	}
-
 	class ValueComparator implements Comparator<Object> {
 
 		private Map<Long, Integer> base;
@@ -552,7 +516,7 @@ public class AlgDiskEvoPartition {
 
 			if ((Integer) base.get(a) < (Integer) base.get(b)) {
 				return 1;
-				// NOTE "equal" case is avoided as duplicates should be kept
+				// "equal" case is avoided as duplicates should be kept
 				// } else if ((Integer) base.get(a) == (Integer) base.get(b)) {
 				// return 0;
 			} else {
