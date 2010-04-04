@@ -1,6 +1,13 @@
-package graph_cluster_algorithms.configs;
+package graph_cluster_utils.alg.config;
 
-public class ConfEvoPartition {
+/**
+ * Inherits from {@link Conf}. Contains configuration parameters for the
+ * Evolving Set Process clustering/partitioning algorithm.
+ * 
+ * @author Alex Averbuch
+ * @since 2010-04-01
+ */
+public class ConfEvoPartition extends Conf {
 
 	private Double theta = new Double(0); // TODO better default value
 	private Double p = new Double(0); // TODO better default value

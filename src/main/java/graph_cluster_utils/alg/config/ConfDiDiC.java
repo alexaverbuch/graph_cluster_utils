@@ -1,6 +1,13 @@
-package graph_cluster_algorithms.configs;
+package graph_cluster_utils.alg.config;
 
-public class ConfDiDiC {
+/**
+ * Inherits from {@link Conf}. Contains configuration parameters for the DiDiC
+ * clustering/partitioning algorithm.
+ * 
+ * @author Alex Averbuch
+ * @since 2010-04-01
+ */
+public class ConfDiDiC extends Conf {
 
 	// DiDiC Related Constants
 	private int FOSTIterations = 11; // Primary Diffusion
@@ -45,8 +52,8 @@ public class ConfDiDiC {
 			byte clusterCount, AllocType allocType, int hybridSwitchPoint,
 			long clusterSizeOff, long clusterSizeOn) throws Exception {
 		super();
-		FOSTIterations = fOSTIterations;
-		FOSBIterations = fOSBIterations;
+		this.FOSTIterations = fOSTIterations;
+		this.FOSBIterations = fOSBIterations;
 		this.benefitLow = benefitLow;
 		this.benefitHigh = benefitHigh;
 		this.defClusterVal = defClusterVal;
