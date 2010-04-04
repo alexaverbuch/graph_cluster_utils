@@ -1,25 +1,30 @@
-package graph_cluster_algorithms.supervisors;
+package graph_cluster_utils.supervisor;
 
 import java.io.File;
 
 import pGraphService.PGraphDatabaseService;
 import pGraphService.PGraphDatabaseServiceImpl;
 
-import graph_gen_utils.NeoFromFile;
-import graph_gen_utils.NeoFromFile.ChacoType;
-import graph_gen_utils.chaco.ChacoWriterUnweighted;
-import graph_gen_utils.gml.GMLWriterUndirected;
 import graph_gen_utils.metrics.MetricsWriterUnweighted;
+import graph_gen_utils.writer.chaco.ChacoPtnWriterUnweighted;
+import graph_gen_utils.writer.gml.GMLWriterUndirectedFull;
 
-public class SupervisorPara extends Supervisor {
+/**
+ * Implementation of {@link Supervisor}. Assumes a partitioned Neo4j instance (
+ * {@link PGraphDatabaseService}) is being used.
+ * 
+ * @author Alex Averbuch
+ * @since 2010-04-01
+ */
+public class SupervisorPart extends Supervisor {
 
 	private int snapshotPeriod = -1;
 	private int longSnapshotPeriod = -1;
 	private String graphName = "";
 	private String resultsDir = "";
 
-	public SupervisorPara(int snapshotPeriod, int longSnapshotPeriod,
-			String graphName, String graphDir, String ptnDir, String resultsDir) {
+	public SupervisorPart(int snapshotPeriod, int longSnapshotPeriod,
+			String graphName, String resultsDir) {
 		super();
 		this.snapshotPeriod = snapshotPeriod;
 		this.longSnapshotPeriod = longSnapshotPeriod;
@@ -67,12 +72,15 @@ public class SupervisorPara extends Supervisor {
 
 			File chacoFile = new File(outGraph);
 			File ptnFile = new File(outPtn);
-			ChacoWriterUnweighted chacoWriter = new ChacoWriterUnweighted();
-			chacoWriter.write(transNeo, chacoFile, ptnFile);
+
+			ChacoPtnWriterUnweighted chacoWriter = new ChacoPtnWriterUnweighted(
+					chacoFile, ptnFile);
+			chacoWriter.write(transNeo);
 
 			File gmlFile = new File(outGml);
-			GMLWriterUndirected gmlWriter = new GMLWriterUndirected();
-			gmlWriter.write(transNeo, gmlFile);
+			GMLWriterUndirectedFull gmlWriter = new GMLWriterUndirectedFull(
+					gmlFile);
+			gmlWriter.write(transNeo);
 
 			transNeo.shutdown();
 
@@ -108,8 +116,9 @@ public class SupervisorPara extends Supervisor {
 
 			if ((timeStep % longSnapshotPeriod) == 0) {
 				File gmlFile = new File(outGml);
-				GMLWriterUndirected gmlWriter = new GMLWriterUndirected();
-				gmlWriter.write(transNeo, gmlFile);
+				GMLWriterUndirectedFull gmlWriter = new GMLWriterUndirectedFull(
+						gmlFile);
+				gmlWriter.write(transNeo);
 			}
 
 			transNeo.shutdown();
@@ -144,8 +153,9 @@ public class SupervisorPara extends Supervisor {
 					null);
 
 			File gmlFile = new File(outGml);
-			GMLWriterUndirected gmlWriter = new GMLWriterUndirected();
-			gmlWriter.write(transNeo, gmlFile);
+			GMLWriterUndirectedFull gmlWriter = new GMLWriterUndirectedFull(
+					gmlFile);
+			gmlWriter.write(transNeo);
 
 			transNeo.shutdown();
 

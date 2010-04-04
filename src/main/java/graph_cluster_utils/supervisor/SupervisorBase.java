@@ -1,25 +1,30 @@
-package graph_cluster_algorithms.supervisors;
+package graph_cluster_utils.supervisor;
+
+import org.neo4j.graphdb.GraphDatabaseService;
 
 import graph_gen_utils.NeoFromFile;
 import graph_gen_utils.NeoFromFile.ChacoType;
 
+/**
+ * Implementation of {@link Supervisor}. Assumes a normal Neo4j instance (
+ * {@link GraphDatabaseService}) is being used.
+ * 
+ * @author Alex Averbuch
+ * @since 2010-04-01
+ */
 public class SupervisorBase extends Supervisor {
 
 	private int snapshotPeriod = -1;
 	private int longSnapshotPeriod = -1;
 	private String graphName = "";
-	private String graphDir = "";
-	private String ptnDir = "";
 	private String resultsDir = "";
 
 	public SupervisorBase(int snapshotPeriod, int longSnapshotPeriod,
-			String graphName, String graphDir, String ptnDir, String resultsDir) {
+			String graphName, String resultsDir) {
 		super();
 		this.snapshotPeriod = snapshotPeriod;
 		this.longSnapshotPeriod = longSnapshotPeriod;
 		this.graphName = graphName;
-		this.graphDir = graphDir;
-		this.ptnDir = ptnDir;
 		this.resultsDir = resultsDir;
 	}
 
@@ -91,7 +96,7 @@ public class SupervisorBase extends Supervisor {
 					graphName, clusterCount, timeStep);
 
 			if ((timeStep % longSnapshotPeriod) == 0)
-				neoCreator.writeGML(outGml);
+				neoCreator.writeGMLBasic(outGml);
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -121,7 +126,7 @@ public class SupervisorBase extends Supervisor {
 			String outGml = String.format("%s%s.%d.gml", resultsDir, graphName,
 					clusterCount);
 
-			neoCreator.writeGML(outGml);
+			neoCreator.writeGMLBasic(outGml);
 
 		} catch (Exception e) {
 			e.printStackTrace();
