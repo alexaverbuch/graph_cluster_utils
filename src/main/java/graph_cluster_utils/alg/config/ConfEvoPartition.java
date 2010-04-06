@@ -74,4 +74,14 @@ public class ConfEvoPartition extends Conf {
 		this.p = p;
 	}
 
+	@Override
+	public String toString() {
+		return String.format("K%d p%f cond", clusterCount, p, conductance);
+	}
+
+	@Override
+	public String toStringDetailed() {
+		return toString();
+	}
+
 }

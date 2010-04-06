@@ -153,4 +153,29 @@ public class ConfDiDiC extends Conf {
 		this.hybridSwitchPoint = hybridSwitchPoint;
 	}
 
+	@Override
+	public String toString() {
+		String allocTypeStr = "Base";
+
+		switch (allocType) {
+		case BASE:
+			allocTypeStr = "Base";
+			break;
+		case OPT:
+			allocTypeStr = "Opt";
+			break;
+		case HYBRID:
+			allocTypeStr = "Hybrid";
+			break;
+		}
+
+		return String.format("K%d %s T%dB%d", clusterCount, allocTypeStr,
+				FOSTIterations, FOSBIterations);
+	}
+
+	@Override
+	public String toStringDetailed() {
+		return String.format("%s BLow%dBHigh%d Off%dOn%d", toString(),
+				benefitLow, benefitHigh, clusterSizeOff, clusterSizeOn);
+	}
 }

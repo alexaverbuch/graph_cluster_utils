@@ -8,5 +8,6 @@ package graph_cluster_utils.alg.config;
  * @since 2010-04-01
  */
 public abstract class Conf {
-
+	public abstract String toString();
+	public abstract String toStringDetailed();
 }
