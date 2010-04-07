@@ -22,6 +22,7 @@ import graph_gen_utils.memory_graph.MemGraph;
 import graph_gen_utils.memory_graph.MemNode;
 import graph_gen_utils.memory_graph.MemRel;
 import graph_gen_utils.partitioner.Partitioner;
+import graph_gen_utils.partitioner.PartitionerAsBalanced;
 import graph_gen_utils.partitioner.PartitionerAsRandom;
 import graph_gen_utils.partitioner.PartitionerAsSingle;
 
@@ -87,12 +88,12 @@ public class ClusteringExample {
 		// *** DiDiC In-Memory Experimental Sync ***
 		// ****************************************
 		// do_mem_didic_exp_sync_uk_2_opt_balanced_T11B11();
+		do_mem_didic_exp_sync_romania_2_opt_balanced_T11B11();
 
 		// **************************************************
 		// *** DiDiC In-Memory Experimental Updated Paper ***
 		// **************************************************
 		// do_mem_didic_exp_paper_uk_2_opt_balanced_T11B11();
-		do_mem_didic_exp_paper_uk_2_opt_balanced_T11B11_new();
 		// do_mem_didic_exp_paper_imdb_2_base_random_T11B11();
 		// do_mem_didic_exp_paper_test0_2_opt_balanced_T11B11();
 
@@ -163,7 +164,7 @@ public class ClusteringExample {
 
 		neoGenerator.writeNeoFromChacoAndPtn(inputGraphPath, inputPtnPath);
 
-		MemGraph memGraph = neoGenerator.readMemGraphDirected();
+		MemGraph memGraph = neoGenerator.readMemGraphUndirected();
 
 		Supervisor didicSupervisor = new SupervisorBase(SNAPSHOT_PERIOD,
 				LONG_SNAPSHOT_PERIOD, inputGraph, metDir);
@@ -203,7 +204,7 @@ public class ClusteringExample {
 
 		neoGenerator.writeNeoFromChacoAndPtn(inputGraphPath, inputPtnPath);
 
-		MemGraph memGraph = neoGenerator.readMemGraphDirected();
+		MemGraph memGraph = neoGenerator.readMemGraphUndirected();
 
 		Supervisor didicSupervisor = new SupervisorBase(SNAPSHOT_PERIOD,
 				LONG_SNAPSHOT_PERIOD, inputGraph, metDir);
@@ -245,7 +246,7 @@ public class ClusteringExample {
 
 		neoGenerator.writeNeoFromChacoAndPtn(inputGraphPath, inputPtnPath);
 
-		MemGraph memGraph = neoGenerator.readMemGraphDirected();
+		MemGraph memGraph = neoGenerator.readMemGraphUndirected();
 
 		Supervisor didicSupervisor = new SupervisorBase(SNAPSHOT_PERIOD,
 				LONG_SNAPSHOT_PERIOD, inputGraph, metDir);
@@ -291,7 +292,7 @@ public class ClusteringExample {
 			e.printStackTrace();
 		}
 
-		MemGraph memGraph = neoGenerator.readMemGraphDirected();
+		MemGraph memGraph = neoGenerator.readMemGraphUndirected();
 
 		Supervisor didicSupervisor = new SupervisorBase(SNAPSHOT_PERIOD,
 				LONG_SNAPSHOT_PERIOD, inputGraph, metDir);
@@ -331,7 +332,7 @@ public class ClusteringExample {
 
 		neoGenerator.writeNeoFromChacoAndPtn(inputGraphPath, inputPtnPath);
 
-		MemGraph memGraph = neoGenerator.readMemGraphDirected();
+		MemGraph memGraph = neoGenerator.readMemGraphUndirected();
 
 		Supervisor didicSupervisor = new SupervisorBase(SNAPSHOT_PERIOD,
 				LONG_SNAPSHOT_PERIOD, inputGraph, metDir);
@@ -476,7 +477,7 @@ public class ClusteringExample {
 
 		neoGenerator.writeNeoFromChacoAndPtn(inputGraphPath, inputPtnPath);
 
-		MemGraph memGraph = neoGenerator.readMemGraphDirected();
+		MemGraph memGraph = neoGenerator.readMemGraphUndirected();
 
 		Supervisor didicSupervisor = new SupervisorBase(SNAPSHOT_PERIOD,
 				LONG_SNAPSHOT_PERIOD, inputGraph, metDir);
@@ -518,7 +519,7 @@ public class ClusteringExample {
 
 		neoGenerator.writeNeoFromChacoAndPtn(inputGraphPath, inputPtnPath);
 
-		MemGraph memGraph = neoGenerator.readMemGraphDirected();
+		MemGraph memGraph = neoGenerator.readMemGraphUndirected();
 
 		Supervisor didicSupervisor = new SupervisorBase(SNAPSHOT_PERIOD,
 				LONG_SNAPSHOT_PERIOD, inputGraph, metDir);
@@ -560,7 +561,7 @@ public class ClusteringExample {
 
 		neoGenerator.writeNeoFromChacoAndPtn(inputGraphPath, inputPtnPath);
 
-		MemGraph memGraph = neoGenerator.readMemGraphDirected();
+		MemGraph memGraph = neoGenerator.readMemGraphUndirected();
 
 		Supervisor didicSupervisor = new SupervisorBase(SNAPSHOT_PERIOD,
 				LONG_SNAPSHOT_PERIOD, inputGraph, metDir);
@@ -600,7 +601,7 @@ public class ClusteringExample {
 
 		neoGenerator.writeNeoFromChacoAndPtn(inputGraphPath, inputPtnPath);
 
-		MemGraph memGraph = neoGenerator.readMemGraphDirected();
+		MemGraph memGraph = neoGenerator.readMemGraphUndirected();
 
 		Supervisor didicSupervisor = new SupervisorBase(SNAPSHOT_PERIOD,
 				LONG_SNAPSHOT_PERIOD, inputGraph, metDir);
@@ -640,7 +641,7 @@ public class ClusteringExample {
 
 		// neoGenerator.writeNeoFromChaco(inputGraphPath, inputPtnPath);
 
-		MemGraph memGraph = neoGenerator.readMemGraphDirected();
+		MemGraph memGraph = neoGenerator.readMemGraphUndirected();
 
 		Supervisor didicSupervisor = new SupervisorBase(SNAPSHOT_PERIOD,
 				LONG_SNAPSHOT_PERIOD, inputGraph, metDir);
@@ -680,7 +681,7 @@ public class ClusteringExample {
 
 		neoGenerator.writeNeoFromChacoAndPtn(inputGraphPath, inputPtnPath);
 
-		MemGraph memGraph = neoGenerator.readMemGraphDirected();
+		MemGraph memGraph = neoGenerator.readMemGraphUndirected();
 
 		Supervisor didicSupervisor = new SupervisorBase(SNAPSHOT_PERIOD,
 				LONG_SNAPSHOT_PERIOD, inputGraph, metDir);
@@ -720,10 +721,39 @@ public class ClusteringExample {
 
 		neoGenerator.writeNeoFromChacoAndPtn(inputGraphPath, inputPtnPath);
 
-		MemGraph memGraph = neoGenerator.readMemGraphDirected();
+		MemGraph memGraph = neoGenerator.readMemGraphUndirected();
 
 		Supervisor didicSupervisor = new SupervisorBase(SNAPSHOT_PERIOD,
 				LONG_SNAPSHOT_PERIOD, inputGraph, metDir);
+
+		AlgMemDiDiCExpSync didic = new AlgMemDiDiCExpSync(databaseDir,
+				didicSupervisor, memGraph);
+
+		ConfDiDiC config = new ConfDiDiC(clusterCount);
+		config.setAllocType(ConfDiDiC.AllocType.OPT);
+		config.setMaxIterations(500);
+		config.setFOSTIterations(11);
+		config.setFOSBIterations(11);
+
+		didic.start(config);
+	}
+
+	private static void do_mem_didic_exp_sync_romania_2_opt_balanced_T11B11()
+			throws Exception {
+		byte clusterCount = 2;
+
+		String databaseDir = String.format("var/%s-2-balanced", "romania");
+
+		String metDir = "metrics/Mem DiDiC Exp Sync - romania 2 Opt Balanced T11 B11/";
+
+		NeoFromFile neoGenerator = new NeoFromFile(databaseDir);
+		Partitioner partitioner = new PartitionerAsBalanced((byte) 2);
+		neoGenerator.applyPtnToNeo(partitioner);
+
+		MemGraph memGraph = neoGenerator.readMemGraphUndirected();
+
+		Supervisor didicSupervisor = new SupervisorBase(SNAPSHOT_PERIOD,
+				LONG_SNAPSHOT_PERIOD, "romania", metDir);
 
 		AlgMemDiDiCExpSync didic = new AlgMemDiDiCExpSync(databaseDir,
 				didicSupervisor, memGraph);
@@ -749,46 +779,6 @@ public class ClusteringExample {
 		String graphDir = "graphs/";
 		String ptnDir = "partitionings/";
 		String metDir = "metrics/Mem DiDiC Exp Paper - uk 2 Opt Balanced T11 B11/";
-
-		String inputGraphPath = String.format("%s%s.graph", graphDir,
-				inputGraph);
-		String inputPtnPath = String.format("%s%s.%d.ptn", ptnDir, inputPtn,
-				clusterCount);
-
-		DirUtils.cleanDir(databaseDir);
-		NeoFromFile neoGenerator = new NeoFromFile(databaseDir);
-
-		neoGenerator.writeNeoFromChacoAndPtn(inputGraphPath, inputPtnPath);
-
-		MemGraph memGraph = neoGenerator.readMemGraphDirected();
-
-		Supervisor didicSupervisor = new SupervisorBase(SNAPSHOT_PERIOD,
-				LONG_SNAPSHOT_PERIOD, inputGraph, metDir);
-
-		AlgMemDiDiCExpPaper didic = new AlgMemDiDiCExpPaper(databaseDir,
-				didicSupervisor, memGraph);
-
-		ConfDiDiC config = new ConfDiDiC(clusterCount);
-		config.setAllocType(ConfDiDiC.AllocType.OPT);
-		config.setMaxIterations(500);
-		config.setFOSTIterations(11);
-		config.setFOSBIterations(11);
-
-		didic.start(config);
-	}
-
-	private static void do_mem_didic_exp_paper_uk_2_opt_balanced_T11B11_new()
-			throws Exception {
-		byte clusterCount = 2;
-
-		String inputGraph = "uk";
-		String inputPtn = "uk-IN-BAL";
-
-		String databaseDir = String.format("var/%s-2-balanced", inputGraph);
-
-		String graphDir = "graphs/";
-		String ptnDir = "partitionings/";
-		String metDir = "metrics/Mem DiDiC Exp Paper - uk 2 Opt Balanced T11 B11 - New/";
 
 		String inputGraphPath = String.format("%s%s.graph", graphDir,
 				inputGraph);
@@ -935,7 +925,7 @@ public class ClusteringExample {
 		Partitioner partitioner = new PartitionerAsRandom((byte) 2);
 		neoGenerator.writeNeoFromChacoAndPtn(inputGraphPath, partitioner);
 
-		MemGraph memGraph = neoGenerator.readMemGraphDirected();
+		MemGraph memGraph = neoGenerator.readMemGraphUndirected();
 
 		PGraphDatabaseService paraNeo = new PGraphDatabaseServiceImpl(
 				paraDatabaseDir, 1);
