@@ -1,31 +1,18 @@
-package graph_cluster_utils.alg.disk.esp;
+package graph_cluster_utils.alg.esp;
 
 import graph_cluster_utils.alg.config.Conf;
 import graph_cluster_utils.alg.config.ConfEvoPartition;
-import graph_cluster_utils.alg.disk.AlgDisk;
-import graph_cluster_utils.general.PropNames;
-import graph_cluster_utils.supervisor.Supervisor;
+import graph_cluster_utils.logger.Logger;
 
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
-import java.util.Map;
-import java.util.Random;
-import java.util.TreeMap;
-
-import org.neo4j.graphdb.Direction;
+import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
-
-import org.uncommons.maths.random.MersenneTwisterRNG;
-import org.uncommons.maths.random.ExponentialGenerator;
-import org.uncommons.maths.random.XORShiftRNG;
 
 /**
  * WARNING: Not in a usable state!
  * 
- * Inherits from {@link AlgDisk}.
+ * Inherits from {@link AlgEvoPartition}.
  * 
  * This is a simplified implementation of the Evolving Set Process
  * clustering/partitioning algorithm.
@@ -46,46 +33,23 @@ import org.uncommons.maths.random.XORShiftRNG;
  * @author Alex Averbuch
  * @since 2010-04-01
  */
-public class AlgDiskEvoPartitionExp extends AlgDisk {
+public class AlgEvoPartitionExp extends AlgEvoPartition {
 
-	private final static Double CONST_B = 5.0;
-
-	private ConfEvoPartition config = null;
-
-	private Random rng = null;
-	private ExponentialGenerator expGenB = null;
-	private ExponentialGenerator expGenVertex = null;
-
-	private ArrayList<Long> nodes = null;
-
-	private byte clusterColor = -1;
-
-	public AlgDiskEvoPartitionExp(String databaseDir, Supervisor supervisor) {
-		super(databaseDir, supervisor);
-
-		// this.rng = new Random(); // Slow & poor randomness
-		this.rng = new MersenneTwisterRNG(); // Fast & good randomness
-		// this.rng = new XORShiftRNG(); // Faster & good randomness
-
-		this.expGenB = new ExponentialGenerator(CONST_B, this.rng);
-		this.expGenVertex = new ExponentialGenerator(5.0, this.rng);
+	public AlgEvoPartitionExp(GraphDatabaseService transNeo, Logger logger) {
+		super(transNeo, logger);
 	}
 
 	@Override
 	public void start(Conf config) {
 		this.config = (ConfEvoPartition) config;
 
-		this.supervisor.doInitialSnapshot(-1, this.databaseDir);
-
-		openTransServices();
+		this.logger.doInitialSnapshot(transNeo, -1);
 
 		this.nodes = getNodeDegrees();
 
 		evoPartition(this.config.getConductance(), this.config.getP());
 
-		closeTransServices();
-
-		this.supervisor.doFinalSnapshot(-1, this.databaseDir);
+		this.logger.doFinalSnapshot(transNeo, -1);
 	}
 
 	// p is used to find jMax. Smaller p -> larger jMax
@@ -260,7 +224,7 @@ public class AlgDiskEvoPartitionExp extends AlgDisk {
 		DataStructEvoPartition sAndB = null; // S, B, volume, conductance
 		Node X = null; // Current random-walk position @ time t
 		Double Z = new Double(0);
-		HashMap<Node, Boolean> D = new HashMap<Node, Boolean>();
+		HashMap<Node, Boolean> D = null;
 
 		// Inititialization
 		// -> X = x0 = x
@@ -335,194 +299,6 @@ public class AlgDiskEvoPartitionExp extends AlgDisk {
 		}
 
 		return sAndB;
-	}
-
-	// Color all nodes in Dj with color j
-	private void updateClusterAlloc(ArrayList<Long> Dj, Byte j)
-			throws Exception {
-
-		for (Long vID : Dj) {
-
-			Node v = transNeo.getNodeById(vID);
-			v.setProperty(PropNames.COLOR, j);
-
-			if (nodes.remove(vID) == false) {
-				throw new Exception(String.format(
-						"Could not remove node %d from nodes", vID));
-			}
-
-		}
-
-	}
-
-	// Choose random vertex from remaining (unpartitioned) vertices
-	// Choose vertex with probability P(X=x) = d(x)/volume(G)
-	private Node getRandomNode() {
-		Double randVal = expGenVertex.nextValue();
-
-		long randIndex = Math.round(randVal * (nodes.size() - 1));
-
-		// Exponential distribution can result in randIndex > 1.0
-		// Default to node with highest degree in this case
-		if (randIndex >= nodes.size())
-			randIndex = 0;
-
-		if (nodes.size() == 0)
-			return null;
-
-		return transNeo.getNodeById(nodes.get((int) randIndex));
-	}
-
-	private ArrayList<Long> getNodeDegrees() {
-		HashMap<Long, Integer> unsortedNodeDegs = new HashMap<Long, Integer>();
-		ValueComparator degreeComparator = new ValueComparator(unsortedNodeDegs);
-		TreeMap<Long, Integer> sortedNodeDegs = new TreeMap<Long, Integer>(
-				degreeComparator);
-
-		Transaction tx = transNeo.beginTx();
-
-		try {
-
-			for (Node v : transNeo.getAllNodes()) {
-				if (v.getId() != 0) {
-
-					Integer vDeg = 0;
-
-					for (Relationship e : v.getRelationships(Direction.BOTH))
-						vDeg++;
-
-					unsortedNodeDegs.put(v.getId(), vDeg);
-
-				}
-			}
-
-		} catch (Exception e) {
-			e.printStackTrace();
-		} finally {
-			tx.finish();
-		}
-
-		sortedNodeDegs.putAll(unsortedNodeDegs);
-
-		ArrayList<Long> sortedNodes = new ArrayList<Long>();
-		for (Long vID : sortedNodeDegs.keySet()) {
-			sortedNodes.add(vID);
-		}
-
-		return sortedNodes;
-	}
-
-	// Calculate volume of a given colour/partitioned graph
-	// volume(G) = sum( deg(v elementOf St) )
-	// volume(G) DOES NOT mean edgeCount(G)
-	// edgeCount(G) = m = volume(G)/2
-	private Long getVolumeG(Byte color) {
-		Long volumeG = new Long(0);
-
-		Transaction tx = transNeo.beginTx();
-
-		try {
-
-			for (Node v : transNeo.getAllNodes()) {
-				// Only count nodes that have not yet been partitioned
-				if ((v.getId() != 0)
-						&& (v.getProperty(PropNames.COLOR) == color)) {
-
-					for (Relationship e : v.getRelationships(Direction.BOTH)) {
-						if (e.getOtherNode(v).getProperty(PropNames.COLOR) == color)
-							volumeG++;
-					}
-
-				}
-			}
-
-		} catch (Exception e) {
-			e.printStackTrace();
-		} finally {
-			tx.finish();
-		}
-
-		return volumeG;
-	}
-
-	private void allocateUnallocated() {
-		Byte defaultColor = (byte) -1;
-
-		while (nodes.size() > 0) {
-			Transaction tx = transNeo.beginTx();
-
-			try {
-
-				for (Node v : transNeo.getAllNodes()) {
-					// Only count nodes that have not yet been partitioned
-					if ((v.getId() != 0)
-							&& (v.getProperty(PropNames.COLOR) == defaultColor)) {
-
-						for (Relationship e : v
-								.getRelationships(Direction.BOTH)) {
-							Byte vColor = (Byte) e.getOtherNode(v).getProperty(
-									PropNames.COLOR);
-							if (vColor != defaultColor) {
-								v.setProperty(PropNames.COLOR, vColor);
-								nodes.remove(v.getId());
-								break;
-							}
-						}
-
-					}
-				}
-
-				tx.success();
-
-			} catch (Exception e) {
-				e.printStackTrace();
-			} finally {
-				tx.finish();
-			}
-		}
-
-	}
-
-	private String nodesToStr() {
-		String nodesToStr = "[ ";
-
-		for (Long vID : nodes) {
-			nodesToStr += String.format("%d ", vID);
-		}
-		nodesToStr += "]";
-
-		return nodesToStr;
-	}
-
-	private String dToStr(ArrayList<Long> D) {
-		String dToStr = "[ ";
-		for (Long vID : D) {
-			dToStr += String.format("%d ", vID);
-		}
-		dToStr += "]";
-
-		return dToStr;
-	}
-
-	class ValueComparator implements Comparator<Object> {
-
-		private Map<Long, Integer> base;
-
-		public ValueComparator(Map<Long, Integer> base) {
-			this.base = base;
-		}
-
-		public int compare(Object a, Object b) {
-
-			if ((Integer) base.get(a) < (Integer) base.get(b)) {
-				return 1;
-				// "equal" case is avoided as duplicates should be kept
-				// } else if ((Integer) base.get(a) == (Integer) base.get(b)) {
-				// return 0;
-			} else {
-				return -1;
-			}
-		}
 	}
 
 }

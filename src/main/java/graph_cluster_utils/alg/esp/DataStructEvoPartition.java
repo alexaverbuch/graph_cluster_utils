@@ -1,6 +1,6 @@
-package graph_cluster_utils.alg.disk.esp;
+package graph_cluster_utils.alg.esp;
 
-import graph_cluster_utils.general.PropNames;
+import graph_gen_utils.general.Consts;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -80,7 +80,7 @@ public class DataStructEvoPartition {
 
 		for (Relationship e : previousV.getRelationships(Direction.BOTH)) {
 			Node u = e.getOtherNode(previousV);
-			Byte colorU = (Byte) u.getProperty(PropNames.COLOR);
+			Byte colorU = (Byte) u.getProperty(Consts.COLOR);
 			if (colorU == -1)
 				neighbours.add(e.getOtherNode(previousV));
 		}
@@ -186,7 +186,7 @@ public class DataStructEvoPartition {
 			Node u = ve.getOtherNode(v);
 
 			// Only consider vertices that have not been partitioned yet
-			Byte colorU = (Byte) u.getProperty(PropNames.COLOR);
+			Byte colorU = (Byte) u.getProperty(Consts.COLOR);
 			if (colorU != -1)
 				continue;
 
@@ -253,7 +253,7 @@ public class DataStructEvoPartition {
 			Node u = ve.getOtherNode(v);
 
 			// Only consider vertices that have not been partitioned yet
-			Byte color = (Byte) u.getProperty(PropNames.COLOR);
+			Byte color = (Byte) u.getProperty(Consts.COLOR);
 			if (color != -1)
 				continue;
 
@@ -334,7 +334,7 @@ public class DataStructEvoPartition {
 
 		for (Relationship e : v.getRelationships(Direction.BOTH)) {
 			// Only consider vertices that have not been partitioned yet
-			Byte colorV = (Byte) e.getOtherNode(v).getProperty(PropNames.COLOR);
+			Byte colorV = (Byte) e.getOtherNode(v).getProperty(Consts.COLOR);
 			if (colorV == -1) {
 				deg++;
 			}
