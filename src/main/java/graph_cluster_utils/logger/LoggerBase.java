@@ -1,4 +1,4 @@
-package graph_cluster_utils.supervisor;
+package graph_cluster_utils.logger;
 
 import org.neo4j.graphdb.GraphDatabaseService;
 
@@ -6,20 +6,22 @@ import graph_gen_utils.NeoFromFile;
 import graph_gen_utils.NeoFromFile.ChacoType;
 
 /**
- * Implementation of {@link Supervisor}. Assumes a normal Neo4j instance (
- * {@link GraphDatabaseService}) is being used.
+ * Generic implementation of {@link Logger}.
+ * 
+ * Logs .gml, .graph, .ptn, and .met files from given
+ * {@link GraphDatabaseService}
  * 
  * @author Alex Averbuch
  * @since 2010-04-01
  */
-public class SupervisorBase extends Supervisor {
+public class LoggerBase extends Logger {
 
 	private int snapshotPeriod = -1;
 	private int longSnapshotPeriod = -1;
 	private String graphName = "";
 	private String resultsDir = "";
 
-	public SupervisorBase(int snapshotPeriod, int longSnapshotPeriod,
+	public LoggerBase(int snapshotPeriod, int longSnapshotPeriod,
 			String graphName, String resultsDir) {
 		super();
 		this.snapshotPeriod = snapshotPeriod;
@@ -29,21 +31,13 @@ public class SupervisorBase extends Supervisor {
 	}
 
 	@Override
-	public boolean isDynamism(int timeStep) {
-		return false;
-	}
-
-	@Override
-	public void doDynamism(String databaseDir) {
-	}
-
-	@Override
 	public boolean isInitialSnapshot() {
 		return true;
 	}
 
 	@Override
-	public void doInitialSnapshot(int clusterCount, String databaseDir) {
+	public void doInitialSnapshot(GraphDatabaseService transNeo,
+			int clusterCount) {
 
 		try {
 
@@ -56,15 +50,13 @@ public class SupervisorBase extends Supervisor {
 			String outPtn = String.format("%s%s.%d.ptn", resultsDir, graphName,
 					clusterCount);
 
-			// Create NeoFromFile and assign DB location
-			NeoFromFile neoCreator = new NeoFromFile(databaseDir);
-
 			// Write graph metrics to file
-			neoCreator.writeMetricsCSV(outMetrics);
+			NeoFromFile.writeMetricsCSV(transNeo, outMetrics);
 
 			// Write chaco file and initial partitioning to file
 			// .ptn file can be used in future simulations for consistency
-			neoCreator.writeChacoAndPtn(outGraph, ChacoType.UNWEIGHTED, outPtn);
+			NeoFromFile.writeChacoAndPtn(transNeo, outGraph,
+					ChacoType.UNWEIGHTED, outPtn);
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -78,25 +70,22 @@ public class SupervisorBase extends Supervisor {
 	}
 
 	@Override
-	public void doPeriodicSnapshot(long timeStep, int clusterCount,
-			String databaseDir) {
+	public void doPeriodicSnapshot(GraphDatabaseService transNeo,
+			long timeStep, int clusterCount) {
 
 		try {
 
 			String outMetrics = String.format("%s%s.%d.met", resultsDir,
 					graphName, clusterCount);
 
-			// Create NeoFromFile and assign DB location
-			NeoFromFile neoCreator = new NeoFromFile(databaseDir);
-
 			// Write graph metrics to file
-			neoCreator.appendMetricsCSV(outMetrics, timeStep);
+			NeoFromFile.appendMetricsCSV(transNeo, outMetrics, timeStep);
 
 			String outGml = String.format("%s%s.%d.%d.gml", resultsDir,
 					graphName, clusterCount, timeStep);
 
 			if ((timeStep % longSnapshotPeriod) == 0)
-				neoCreator.writeGMLBasic(outGml);
+				NeoFromFile.writeGMLBasic(transNeo, outGml);
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -110,27 +99,25 @@ public class SupervisorBase extends Supervisor {
 	}
 
 	@Override
-	public void doFinalSnapshot(int clusterCount, String databaseDir) {
+	public void doFinalSnapshot(GraphDatabaseService transNeo, int clusterCount) {
 
 		try {
 
 			String outMetrics = String.format("%s%s.%d.met", resultsDir,
 					graphName, clusterCount);
 
-			// Create NeoFromFile and assign DB location
-			NeoFromFile neoCreator = new NeoFromFile(databaseDir);
-
 			// Write graph metrics to file
-			neoCreator.appendMetricsCSV(outMetrics, null);
+			NeoFromFile.appendMetricsCSV(transNeo, outMetrics, null);
 
 			String outGml = String.format("%s%s.%d.gml", resultsDir, graphName,
 					clusterCount);
 
-			neoCreator.writeGMLBasic(outGml);
+			NeoFromFile.writeGMLBasic(transNeo, outGml);
 
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 
 	}
+
 }
