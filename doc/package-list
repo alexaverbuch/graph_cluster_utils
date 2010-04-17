@@ -1,9 +1,5 @@
 graph_cluster_utils.alg
 graph_cluster_utils.alg.config
-graph_cluster_utils.alg.disk
-graph_cluster_utils.alg.disk.didic
-graph_cluster_utils.alg.disk.esp
-graph_cluster_utils.alg.mem
-graph_cluster_utils.alg.mem.didic
-graph_cluster_utils.general
-graph_cluster_utils.supervisor
+graph_cluster_utils.alg.didic
+graph_cluster_utils.alg.esp
+graph_cluster_utils.logger
