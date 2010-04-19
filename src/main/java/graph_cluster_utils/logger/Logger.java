@@ -1,14 +1,14 @@
 package graph_cluster_utils.logger;
 
-import graph_cluster_utils.alg.Alg;
+import graph_cluster_utils.ptn_alg.PtnAlg;
 
 import org.neo4j.graphdb.GraphDatabaseService;
 
 /**
  * Base class of all supervisors.
  * 
- * Loggers are passed to {@link Alg} implementations. They're used to delegate
- * logging operations to.
+ * Loggers are passed to {@link PtnAlg} implementations. They're used to
+ * delegate logging operations to.
  * 
  * @author Alex Averbuch
  * @since 2010-04-01
@@ -18,7 +18,7 @@ public abstract class Logger {
 	/**
 	 * Checks if initial logging/snapshot should be performed.
 	 */
-	public abstract boolean isInitialSnapshot();
+	protected abstract boolean isInitialSnapshot();
 
 	/**
 	 * Perform logging/snapshot of the state of the current Neo4j instance. This
@@ -42,7 +42,7 @@ public abstract class Logger {
 	 * @param timeStep
 	 *            represents the algorithms current iteration
 	 */
-	public abstract boolean isPeriodicSnapshot(long timeStep);
+	protected abstract boolean isPeriodicSnapshot(long timeStep);
 
 	/**
 	 * Perform logging/snapshot of the state of the current Neo4j instance. This
@@ -66,7 +66,7 @@ public abstract class Logger {
 	/**
 	 * Checks if final logging/snapshot should be performed.
 	 */
-	public abstract boolean isFinalSnapshot();
+	protected abstract boolean isFinalSnapshot();
 
 	/**
 	 * Perform logging/snapshot of the state of the current Neo4j instance. This

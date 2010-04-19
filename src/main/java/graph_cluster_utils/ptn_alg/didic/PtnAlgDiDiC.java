@@ -1,17 +1,24 @@
-package graph_cluster_utils.alg.didic;
+package graph_cluster_utils.ptn_alg.didic;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.Queue;
 
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 
-import graph_cluster_utils.alg.Alg;
-import graph_cluster_utils.alg.config.ConfDiDiC;
+import graph_cluster_utils.change_log.ChangeOp;
+import graph_cluster_utils.change_log.ChangeOpAddNode;
+import graph_cluster_utils.change_log.ChangeOpAddRelationship;
+import graph_cluster_utils.change_log.ChangeOpDeleteNode;
+import graph_cluster_utils.change_log.ChangeOpDeleteRelationship;
 import graph_cluster_utils.logger.Logger;
+import graph_cluster_utils.ptn_alg.PtnAlg;
+import graph_cluster_utils.ptn_alg.config.ConfDiDiC;
 import graph_gen_utils.general.Consts;
+import graph_gen_utils.memory_graph.MemGraph;
 
 /**
  * Base class of all DiDiC algorithm implementations. Provides common
@@ -20,18 +27,49 @@ import graph_gen_utils.general.Consts;
  * @author Alex Averbuch
  * @since 2010-04-01
  */
-public abstract class AlgDiDiC extends Alg {
+public abstract class PtnAlgDiDiC extends PtnAlg {
 
 	protected LinkedHashMap<Long, ArrayList<Double>> w = null; // Main Load Vec
 	protected LinkedHashMap<Long, ArrayList<Double>> l = null; // Drain Load Vec
 
 	protected ConfDiDiC config = null;
 
-	public AlgDiDiC(GraphDatabaseService transNeo, Logger logger) {
-		super(transNeo, logger);
+	public PtnAlgDiDiC(GraphDatabaseService transNeo, Logger logger,
+			Queue<ChangeOp> changeLog) {
+		super(transNeo, logger, changeLog);
 
 		this.w = new LinkedHashMap<Long, ArrayList<Double>>();
 		this.l = new LinkedHashMap<Long, ArrayList<Double>>();
+	}
+
+	@Override
+	protected void applyChangeLog() {
+//		ArrayList<Node> newNodes = new ArrayList<ChangeOp>();
+//
+//		while (changeLog.isEmpty() == false) {
+//			ChangeOp changeOp = changeLog.poll();
+//
+//			if (changeOp instanceof ChangeOpAddNode) {
+//				if (transNeo instanceof MemGraph)
+//					((MemGraph) transNeo)
+//							.setNextId(((ChangeOpAddNode) changeOp).getNodeId());
+//
+//				newNodes.add(transNeo.createNode());
+//				continue;
+//			}
+//
+//			if (changeOp instanceof ChangeOpDeleteNode) {
+//				continue;
+//			}
+//
+//			if (changeOp instanceof ChangeOpAddRelationship) {
+//				continue;
+//			}
+//
+//			if (changeOp instanceof ChangeOpDeleteRelationship) {
+//				continue;
+//			}
+//		}
 	}
 
 	protected void initLoadVectors() {

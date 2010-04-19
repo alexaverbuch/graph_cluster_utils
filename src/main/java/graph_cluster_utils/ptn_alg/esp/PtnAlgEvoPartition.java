@@ -1,9 +1,10 @@
-package graph_cluster_utils.alg.esp;
+package graph_cluster_utils.ptn_alg.esp;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Random;
 import java.util.TreeMap;
 
@@ -15,9 +16,10 @@ import org.neo4j.graphdb.Transaction;
 import org.uncommons.maths.random.ExponentialGenerator;
 import org.uncommons.maths.random.MersenneTwisterRNG;
 
-import graph_cluster_utils.alg.Alg;
-import graph_cluster_utils.alg.config.ConfEvoPartition;
+import graph_cluster_utils.change_log.ChangeOp;
 import graph_cluster_utils.logger.Logger;
+import graph_cluster_utils.ptn_alg.PtnAlg;
+import graph_cluster_utils.ptn_alg.config.ConfEvoPartition;
 import graph_gen_utils.general.Consts;
 
 /**
@@ -27,7 +29,7 @@ import graph_gen_utils.general.Consts;
  * @author Alex Averbuch
  * @since 2010-04-01
  */
-public abstract class AlgEvoPartition extends Alg {
+public abstract class PtnAlgEvoPartition extends PtnAlg {
 
 	protected final static Double CONST_B = 5.0;
 
@@ -41,8 +43,9 @@ public abstract class AlgEvoPartition extends Alg {
 
 	protected byte clusterColor = -1;
 
-	public AlgEvoPartition(GraphDatabaseService transNeo, Logger logger) {
-		super(transNeo, logger);
+	public PtnAlgEvoPartition(GraphDatabaseService transNeo, Logger logger,
+			Queue<ChangeOp> changeLog) {
+		super(transNeo, logger, changeLog);
 
 		// this.rng = new Random(); // Slow & poor randomness
 		this.rng = new MersenneTwisterRNG(); // Fast & good randomness
@@ -50,6 +53,11 @@ public abstract class AlgEvoPartition extends Alg {
 
 		this.expGenB = new ExponentialGenerator(CONST_B, this.rng);
 		this.expGenVertex = new ExponentialGenerator(5.0, this.rng);
+	}
+
+	@Override
+	public void applyChangeLog() {
+		// Do nothing, this is not a dynamic partitioning algorithm
 	}
 
 	// Color all nodes in Dj with color j

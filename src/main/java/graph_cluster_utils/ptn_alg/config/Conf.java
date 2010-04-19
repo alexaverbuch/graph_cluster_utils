@@ -1,4 +1,4 @@
-package graph_cluster_utils.alg.config;
+package graph_cluster_utils.ptn_alg.config;
 
 /**
  * Base class for all configuration classes. Provides algorithm specific

@@ -1,4 +1,4 @@
-package graph_cluster_utils.alg.esp;
+package graph_cluster_utils.ptn_alg.esp;
 
 import graph_gen_utils.general.Consts;
 

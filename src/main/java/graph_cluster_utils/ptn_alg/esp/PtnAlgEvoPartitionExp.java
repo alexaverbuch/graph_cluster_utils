@@ -1,10 +1,12 @@
-package graph_cluster_utils.alg.esp;
+package graph_cluster_utils.ptn_alg.esp;
 
-import graph_cluster_utils.alg.config.Conf;
-import graph_cluster_utils.alg.config.ConfEvoPartition;
+import graph_cluster_utils.change_log.ChangeOp;
 import graph_cluster_utils.logger.Logger;
+import graph_cluster_utils.ptn_alg.config.Conf;
+import graph_cluster_utils.ptn_alg.config.ConfEvoPartition;
 
 import java.util.HashMap;
+import java.util.Queue;
 
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -13,35 +15,42 @@ import org.neo4j.graphdb.Transaction;
 /**
  * WARNING: Not in a usable state!
  * 
- * Inherits from {@link AlgEvoPartition}.
+ * Inherits from {@link PtnAlgEvoPartition}.
  * 
- * This is intended to be a complete literal implementation of the Evolving Set
- * Process clustering/partitioning algorithm as described by the relevant
- * published papers and pseudo code.
+ * This is a simplified implementation of the Evolving Set Process
+ * clustering/partitioning algorithm.
  * 
- * This implementation is too complex/convoluted to be used in practice. For
- * this reason further development and debugging of this code is pending.
+ * The number of parameters has been reduced to only what is deemed necessary.
+ * Some variants have been relaxed and/or removed. Also, a modification has been
+ * added to allocate unallocated nodes to partitions/clusters after the
+ * algorithm terminates.
+ * 
+ * Changes made to this implementation are on based on suggestions made by the
+ * algorithm author(s) during ongoing email communications.
+ * 
+ * This implementation is still not mature enough to be used. It's success is
+ * too topology dependent and more debugging/experimenting is necessary.
  * 
  * It is computed directly on a Neo4j instance.
  * 
  * @author Alex Averbuch
  * @since 2010-04-01
  */
-public class AlgEvoPartitionBase extends AlgEvoPartition {
+public class PtnAlgEvoPartitionExp extends PtnAlgEvoPartition {
 
-	public AlgEvoPartitionBase(GraphDatabaseService transNeo, Logger logger) {
-		super(transNeo, logger);
+	public PtnAlgEvoPartitionExp(GraphDatabaseService transNeo, Logger logger,
+			Queue<ChangeOp> changeLog) {
+		super(transNeo, logger, changeLog);
 	}
 
 	@Override
-	public void start(Conf config) {
+	public void doPartition(Conf config) {
 		this.config = (ConfEvoPartition) config;
 
 		this.logger.doInitialSnapshot(transNeo, -1);
 
 		this.nodes = getNodeDegrees();
 
-		// evoPartitionOld(config.getTheta(), config.getP());
 		evoPartition(this.config.getConductance(), this.config.getP());
 
 		this.logger.doFinalSnapshot(transNeo, -1);
@@ -63,13 +72,25 @@ public class AlgEvoPartitionBase extends AlgEvoPartition {
 
 		Long volumeWj = volumeG;
 
-		System.out.printf("evoPartition[conduct=%f,p=%f]\n", conductance, p);
+		// NOTE Experimental!
+		Long minClusterVolume = volumeG / config.getClusterCount();
 
-		while ((j < jMax) && (volumeWj >= (3.0 / 4.0) * (double) volumeG)) {
+		System.out
+				.printf(
+						"evoPartition[conduct=%f,p=%f,clusterCount=%d,minClusterVolume=%d]\n",
+						conductance, p, config.getClusterCount(),
+						minClusterVolume);
 
+		// while ((j < jMax) && (volumeWj >= (3.0 / 4.0) * (double) volumeG)) {
+		while (volumeWj >= (1.0 / 4.0) * (double) volumeG) {
+
+			// System.out.printf(
+			// "evoPartition[j=%d,jMax=%f,volWj=%d, 3/4volG[%f]]\n%s\n",
+			// j, jMax, volumeWj, (3.0 / 4.0) * (double) volumeG,
+			// nodesToStr());
 			System.out.printf(
-					"evoPartition[j=%d,jMax=%f,volWj=%d, 3/4volG[%f]]\n%s\n",
-					j, jMax, volumeWj, (3.0 / 4.0) * (double) volumeG,
+					"evoPartition[j=%d,jMax=%f,volWj=%d, 1/4volG[%f]]\n%s\n",
+					j, jMax, volumeWj, (1.0 / 4.0) * (double) volumeG,
 					nodesToStr());
 
 			Transaction tx = transNeo.beginTx();
@@ -77,7 +98,8 @@ public class AlgEvoPartitionBase extends AlgEvoPartition {
 			try {
 
 				// -> D(j) = evoNibble(G[W(j-1)], conductance)
-				DataStructEvoPartition Dj = evoNibble(conductance, volumeWj);
+				DataStructEvoPartition Dj = evoNibble(conductance, volumeWj,
+						minClusterVolume);
 
 				// -> Set j = j+1
 				j++;
@@ -107,106 +129,30 @@ public class AlgEvoPartitionBase extends AlgEvoPartition {
 
 		}
 
-		System.out
-				.printf(
-						"\nevoPartition[volWj=%d, 3/4volG[%f], volG[%d]]\n%s\n\n",
-						volumeWj, (3.0 / 4.0) * (double) volumeG, volumeG,
-						nodesToStr());
-
-		// Set D = D(1) U ... U D(j)
-		// In this implementation vertices are colored rather than removed,
-		// So there is no need to perform a Union operation
-
-		// TODO Tidy up the unallocated vertices here?
-	}
-
-	// Literal implementation of pseudo code. Too complex/convoluted to be used
-	// p is used to find jMax. Smaller p -> larger jMax
-	private void evoPartitionOld(Double theta, Double p) {
-
-		// Set W(j) = W(0) = V
-		Long volumeG = getVolumeG((byte) -1);
-
-		Long m = volumeG / 2;
-
-		// Set j = 0
-		Integer j = 0;
-
-		// Set conductance = theta/7
-		Double conductance = theta / 7;
-
-		// [WHILE] j < 12.m.Ceil( lg(1/p) ) [AND] volumeWj >= (3/4)volumeG
-		Double jMax = 12 * m * Math.ceil(Math.log10(1.0 / p));
-
-		Long volumeWj = volumeG;
-
-		System.out.printf("evoPartition[theta=%f,p=%f]\n", theta, p);
-		System.out.printf("            [conduct=%f,jMax=%f,volWj=%d]\n",
-				conductance, jMax, volumeWj);
-
-		while ((j < jMax) && (volumeWj >= (3.0 / 4.0) * (double) volumeG)) {
-
-			System.out.printf(
-					"evoPartition[j=%d,jMax=%f,volWj=%d, 3/4volG[%f]]\n%s\n",
-					j, jMax, volumeWj, (3.0 / 4.0) * (double) volumeG,
-					nodesToStr());
-
-			Transaction tx = transNeo.beginTx();
-
-			try {
-
-				// -> D(j) = evoNibble(G[W(j-1)], conductance)
-				DataStructEvoPartition Dj = evoNibble(conductance, volumeWj);
-
-				j++;
-
-				// -> Set j = j+1
-				if (Dj != null) {
-					System.out.printf(
-							"\n\tevoNibble returned. |D%d|[%d], volD%d[%d]\n",
-							j, Dj.getS().size(), j, Dj.getVolume());
-					System.out.printf("\t%s\n\n", dToStr(Dj.getS()));
-
-					// -> W(j) = W(j-1) - D(j)
-					clusterColor++;
-					updateClusterAlloc(Dj.getS(), clusterColor);
-
-					volumeWj -= Dj.getVolume();
-
-					tx.success();
-				} else
-					System.out.printf(
-							"\n\tevoNibble returned. D(%d) = null!\n\n", j);
-
-			} catch (Exception e) {
-				e.printStackTrace();
-			} finally {
-				tx.finish();
-			}
-
-		}
+		// Tidy up the unallocated vertices here
+		allocateUnallocated();
 
 		System.out
 				.printf(
-						"\nevoPartition[volWj=%d, 3/4volG[%f], volG[%d]]\n%s\n\n",
-						volumeWj, (3.0 / 4.0) * (double) volumeG, volumeG,
+						"\nevoPartition[volWj=%d, 1/4volG[%f], volG[%d]]\n%s\n\n",
+						volumeWj, (1.0 / 4.0) * (double) volumeG, volumeG,
 						nodesToStr());
 
 		// Set D = D(1) U ... U D(j)
 		// In this implementation vertices are colored rather than removed,
 		// so there is no need to perform a Union operation
-
-		// TODO Tidy up the unallocated vertices here?
 	}
 
-	private DataStructEvoPartition evoNibble(Double conductance, Long volumeWj) {
+	private DataStructEvoPartition evoNibble(Double conductance, Long volumeWj,
+			Long minClusterVolume) {
 
 		// Precompute for efficiency
 		Double log2VolumeWj = Math.log(volumeWj) / Math.log(2);
 		Double logVolumeWj = Math.log(volumeWj);
 
 		// T = Floor(conductance^-1 / 100)
-		Double T = Math.floor(Math.pow(conductance, -1) / 100.0);
+		// Double T = Math.floor(Math.pow(conductance, -1) / 100.0);
+		Double T = (double) 500;
 
 		// thetaT = Sqrt(4.T^-1.log(volume(G)) )
 		Double thetaT = Math.sqrt(4.0 * Math.pow(T, -1) * logVolumeWj);
@@ -240,15 +186,21 @@ public class AlgEvoPartitionBase extends AlgEvoPartition {
 		System.out.printf("\t\t         [v=%d,j=%f,jMax=%f,y=%f,Bj=%f]\n", v
 				.getId(), j, jMax, y, Bj);
 
-		DataStructEvoPartition sAndB = genSample(v, T, Bj, thetaT);
+		DataStructEvoPartition sAndB = genSample(v, T, Bj, thetaT,
+				minClusterVolume);
 
 		System.out
 				.printf(
-						"\t\t<evoNibble> genSample() -> S: conductS[%f]<=3thetaT[%f] , volS[%d]<=3/4volG[%f]\n",
-						sAndB.getConductance(), 3 * thetaT, sAndB.getVolume(),
-						(3.0 / 4.0) * volumeWj);
+						"\t\t<evoNibble> genSample() -> S: conductS[%f]<=3thetaT[%f] , minVol[%d]<volS[%d]<=3/4volG[%f]\n",
+						sAndB.getConductance(), 3 * thetaT, minClusterVolume,
+						sAndB.getVolume(), (3.0 / 4.0) * volumeWj);
 
-		if ((sAndB.getConductance() <= 3 * thetaT)
+		// NOTE Experimental!
+		// if ((sAndB.getConductance() <= 3 * thetaT)
+		// && (sAndB.getVolume() > minClusterVolume)
+		// && (sAndB.getVolume() <= (3.0 / 4.0) * volumeWj))
+		// return sAndB;
+		if ((sAndB.getVolume() > minClusterVolume)
 				&& (sAndB.getVolume() <= (3.0 / 4.0) * volumeWj))
 			return sAndB;
 
@@ -266,17 +218,19 @@ public class AlgEvoPartitionBase extends AlgEvoPartition {
 	// OUTPUT
 	// ----> St : Set sampled from volume-biased Evolving Set Process
 	private DataStructEvoPartition genSample(Node x, Double T, Double B,
-			Double thetaT) {
+			Double thetaT, Long minClusterVolume) {
 
-		System.out.printf("\t\t\tgenSample[x=%d,T=%f,B=%f,thetaT=%f]\n", x
-				.getId(), T, B, thetaT);
+		System.out
+				.printf(
+						"\t\t\tgenSample[x=%d,T=%f,B=%f,thetaT=%f,minClusterVolume=%d]\n",
+						x.getId(), T, B, thetaT, minClusterVolume);
 
 		DataStructEvoPartition sAndB = null; // S, B, volume, conductance
 		Node X = null; // Current random-walk position @ time t
 		Double Z = new Double(0);
 		HashMap<Node, Boolean> D = null;
 
-		// Initialization
+		// Inititialization
 		// -> X = x0 = x
 		X = x;
 		// -> S = S0 = {x}
@@ -318,12 +272,14 @@ public class AlgEvoPartitionBase extends AlgEvoPartition {
 				System.out.printf(
 						"\t\t\t<genSample> Phase1? costS[%d] > B[%f]\n", sAndB
 								.getCost(), B);
-				if (sAndB.getCost() > B) {
 
-					sAndB.printSAndB();
-
-					break;
-				}
+				// NOTE Experimental!
+				// if (sAndB.getCost() > B) {
+				//
+				// sAndB.printSAndB();
+				//
+				// break;
+				// }
 
 				// STAGE 2: update S to St by adding/removing vertices in D to S
 
@@ -336,7 +292,10 @@ public class AlgEvoPartitionBase extends AlgEvoPartition {
 
 				sAndB.printSAndB();
 
-				if (sAndB.getConductance() < thetaT)
+				// NOTE Experimental!
+				// if ((sAndB.getConductance() < thetaT)
+				// && (sAndB.getVolume() > clusterVolume))
+				if (sAndB.getVolume() > minClusterVolume)
 					break;
 			}
 		} catch (Exception e) {

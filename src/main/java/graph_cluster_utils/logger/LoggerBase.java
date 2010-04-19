@@ -31,13 +31,16 @@ public class LoggerBase extends Logger {
 	}
 
 	@Override
-	public boolean isInitialSnapshot() {
+	protected boolean isInitialSnapshot() {
 		return true;
 	}
 
 	@Override
 	public void doInitialSnapshot(GraphDatabaseService transNeo,
 			int clusterCount) {
+
+		if (isInitialSnapshot() == false)
+			return;
 
 		try {
 
@@ -65,13 +68,16 @@ public class LoggerBase extends Logger {
 	}
 
 	@Override
-	public boolean isPeriodicSnapshot(long timeStep) {
+	protected boolean isPeriodicSnapshot(long timeStep) {
 		return (timeStep % snapshotPeriod) == 0;
 	}
 
 	@Override
 	public void doPeriodicSnapshot(GraphDatabaseService transNeo,
 			long timeStep, int clusterCount) {
+
+		if (isPeriodicSnapshot(timeStep) == false)
+			return;
 
 		try {
 
@@ -94,12 +100,15 @@ public class LoggerBase extends Logger {
 	}
 
 	@Override
-	public boolean isFinalSnapshot() {
+	protected boolean isFinalSnapshot() {
 		return true;
 	}
 
 	@Override
 	public void doFinalSnapshot(GraphDatabaseService transNeo, int clusterCount) {
+
+		if (isFinalSnapshot() == false)
+			return;
 
 		try {
 

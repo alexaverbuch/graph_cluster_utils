@@ -1,22 +1,24 @@
-package graph_cluster_utils.alg.didic;
+package graph_cluster_utils.ptn_alg.didic;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.Queue;
 
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 
-import graph_cluster_utils.alg.config.Conf;
-import graph_cluster_utils.alg.config.ConfDiDiC;
+import graph_cluster_utils.change_log.ChangeOp;
 import graph_cluster_utils.logger.Logger;
+import graph_cluster_utils.ptn_alg.config.Conf;
+import graph_cluster_utils.ptn_alg.config.ConfDiDiC;
 import graph_gen_utils.general.Consts;
 
 /**
  * Previously called: "AlgMemDiDiCExpPaper".
  * 
- * Inherits from {@link AlgDiDiC}.
+ * Inherits from {@link PtnAlgDiDiC}.
  * 
  * This is intended to be a complete literal implementation of the DiDiC
  * clustering/partitioning algorithm as described by the relevant published
@@ -29,30 +31,29 @@ import graph_gen_utils.general.Consts;
  * @author Alex Averbuch
  * @since 2010-04-01
  */
-public class AlgDiDiCPaper extends AlgDiDiC {
+public class PtnAlgDiDiCPaper extends PtnAlgDiDiC {
 
 	// Main Load Vec
 	private LinkedHashMap<Long, ArrayList<Double>> w_prev = null;
 	// Drain Load Vec
 	private LinkedHashMap<Long, ArrayList<Double>> l_prev = null;
 
-	public AlgDiDiCPaper(GraphDatabaseService transNeo, Logger logger) {
-		super(transNeo, logger);
+	public PtnAlgDiDiCPaper(GraphDatabaseService transNeo, Logger logger,
+			Queue<ChangeOp> changeLog) {
+		super(transNeo, logger, changeLog);
 		this.w_prev = new LinkedHashMap<Long, ArrayList<Double>>();
 		this.l_prev = new LinkedHashMap<Long, ArrayList<Double>>();
 	}
 
 	@Override
-	public void start(Conf config) {
+	public void doPartition(Conf config) {
 
 		this.config = (ConfDiDiC) config;
 
 		// PRINTOUT
 		System.out.println("\n*********DiDiC***********");
 
-		if (logger.isInitialSnapshot()) {
-			logger.doInitialSnapshot(transNeo, this.config.getClusterCount());
-		}
+		logger.doInitialSnapshot(transNeo, this.config.getClusterCount());
 
 		initLoadVectors();
 
@@ -85,17 +86,14 @@ public class AlgDiDiCPaper extends AlgDiDiC {
 
 			updateClusterAllocation(timeStep, this.config.getAllocType());
 
-			if (logger.isPeriodicSnapshot(timeStep)) {
-				logger.doPeriodicSnapshot(transNeo, timeStep, this.config
-						.getClusterCount());
-			}
+			logger.doPeriodicSnapshot(transNeo, timeStep, this.config
+					.getClusterCount());
+
+			applyChangeLog();
 
 		}
 
-		if (logger.isFinalSnapshot()) {
-			// Take a final snapshot here
-			logger.doFinalSnapshot(transNeo, this.config.getClusterCount());
-		}
+		logger.doFinalSnapshot(transNeo, this.config.getClusterCount());
 
 		// PRINTOUT
 		System.out.printf("%s", getTimeStr(System.currentTimeMillis() - time));
