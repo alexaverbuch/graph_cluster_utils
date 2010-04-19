@@ -3,11 +3,17 @@ package graph_cluster_utils.ptn_alg.didic;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.Queue;
+import java.util.Random;
 
+import org.neo4j.graphdb.Direction;
+import org.neo4j.graphdb.DynamicRelationshipType;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.Transaction;
+import org.uncommons.maths.random.ContinuousUniformGenerator;
+import org.uncommons.maths.random.MersenneTwisterRNG;
 
 import graph_cluster_utils.change_log.ChangeOp;
 import graph_cluster_utils.change_log.ChangeOpAddNode;
@@ -17,6 +23,7 @@ import graph_cluster_utils.change_log.ChangeOpDeleteRelationship;
 import graph_cluster_utils.logger.Logger;
 import graph_cluster_utils.ptn_alg.PtnAlg;
 import graph_cluster_utils.ptn_alg.config.ConfDiDiC;
+import graph_cluster_utils.simulation.ChangeOpEnd;
 import graph_gen_utils.general.Consts;
 import graph_gen_utils.memory_graph.MemGraph;
 
@@ -31,7 +38,8 @@ public abstract class PtnAlgDiDiC extends PtnAlg {
 
 	protected LinkedHashMap<Long, ArrayList<Double>> w = null; // Main Load Vec
 	protected LinkedHashMap<Long, ArrayList<Double>> l = null; // Drain Load Vec
-
+	protected Random rng = null;
+	private ContinuousUniformGenerator uniGen = null;
 	protected ConfDiDiC config = null;
 
 	public PtnAlgDiDiC(GraphDatabaseService transNeo, Logger logger,
@@ -40,39 +48,150 @@ public abstract class PtnAlgDiDiC extends PtnAlg {
 
 		this.w = new LinkedHashMap<Long, ArrayList<Double>>();
 		this.l = new LinkedHashMap<Long, ArrayList<Double>>();
+		this.rng = new MersenneTwisterRNG(); // Fast & good randomness
+		this.uniGen = new ContinuousUniformGenerator(0.0, 1.0, this.rng);
 	}
 
 	@Override
-	protected void applyChangeLog() {
-//		ArrayList<Node> newNodes = new ArrayList<ChangeOp>();
-//
-//		while (changeLog.isEmpty() == false) {
-//			ChangeOp changeOp = changeLog.poll();
-//
-//			if (changeOp instanceof ChangeOpAddNode) {
-//				if (transNeo instanceof MemGraph)
-//					((MemGraph) transNeo)
-//							.setNextId(((ChangeOpAddNode) changeOp).getNodeId());
-//
-//				newNodes.add(transNeo.createNode());
-//				continue;
-//			}
-//
-//			if (changeOp instanceof ChangeOpDeleteNode) {
-//				continue;
-//			}
-//
-//			if (changeOp instanceof ChangeOpAddRelationship) {
-//				continue;
-//			}
-//
-//			if (changeOp instanceof ChangeOpDeleteRelationship) {
-//				continue;
-//			}
-//		}
+	protected void applyChangeLog(int maxChanges) {
+
+		Transaction tx = transNeo.beginTx();
+
+		try {
+
+			int changes = 0;
+			ArrayList<Node> deletedNodes = new ArrayList<Node>();
+
+			while ((changeLog.isEmpty() == false) && (changes < maxChanges)) {
+				changes++;
+				ChangeOp changeOp = changeLog.poll();
+
+				if (changeOp instanceof ChangeOpAddNode) {
+					processChangeOpAddNode((ChangeOpAddNode) changeOp);
+					continue;
+				}
+
+				if (changeOp instanceof ChangeOpDeleteNode) {
+					Node deletedNode = processChangeOpDeleteNode(
+							(ChangeOpDeleteNode) changeOp, deletedNodes);
+					deletedNodes.add(deletedNode);
+					continue;
+				}
+
+				// FIXME Memory GraphDatabaseService currently NOT a multi-graph
+				// FIXME If Relationship A->B added & 1 exists, Relationship
+				// A->B will be overwritten (or Exception?)
+				if (changeOp instanceof ChangeOpAddRelationship) {
+					processChangeOpAddRelationship((ChangeOpAddRelationship) changeOp);
+					continue;
+				}
+
+				// FIXME Memory GraphDatabaseService currently NOT a multi-graph
+				// FIXME If Relationship A->B deleted, ALL A->B Relationships
+				// deleted
+				if (changeOp instanceof ChangeOpDeleteRelationship) {
+					processChangeOpDeleteRelationship((ChangeOpDeleteRelationship) changeOp);
+					continue;
+				}
+
+				if (changeOp instanceof ChangeOpEnd) {
+					break;
+				}
+			}
+
+			for (Node node : deletedNodes) {
+				for (Relationship rel : node.getRelationships()) {
+					rel.delete();
+				}
+
+				node.delete();
+			}
+
+			tx.success();
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			tx.finish();
+		}
+
 	}
 
-	protected void initLoadVectors() {
+	protected void processChangeOpAddNode(ChangeOpAddNode changeOp) {
+		if (transNeo instanceof MemGraph)
+			((MemGraph) transNeo).setNextId(changeOp.getNodeId());
+
+		Node node = transNeo.createNode();
+		Byte nodeColor = (byte) (uniGen.nextValue() * config.getClusterCount());
+		node.setProperty(Consts.COLOR, nodeColor);
+		initLoadVectors(node);
+	}
+
+	protected Node processChangeOpDeleteNode(ChangeOpDeleteNode changeOp,
+			ArrayList<Node> deletedNodes) {
+		Node node = transNeo.getNodeById(changeOp.getNodeId());
+		diffuseLoadToNeighbours(node, deletedNodes);
+		return node;
+	}
+
+	protected void processChangeOpAddRelationship(
+			ChangeOpAddRelationship changeOp) {
+		Node startNode = transNeo
+				.getNodeById(((ChangeOpAddRelationship) changeOp)
+						.getStartNodeId());
+		Node endNode = transNeo
+				.getNodeById(((ChangeOpAddRelationship) changeOp)
+						.getEndNodeId());
+		RelationshipType relType = DynamicRelationshipType
+				.withName(Consts.DEFAULT_REL_TYPE_STR);
+		startNode.createRelationshipTo(endNode, relType);
+	}
+
+	protected void processChangeOpDeleteRelationship(
+			ChangeOpDeleteRelationship changeOp) {
+		Node startNode = transNeo.getNodeById(changeOp.getStartNodeId());
+		Node endNode = transNeo.getNodeById(changeOp.getEndNodeId());
+		for (Relationship rel : startNode.getRelationships(Direction.OUTGOING)) {
+
+			if (rel.getEndNode().getId() == endNode.getId()) {
+				rel.delete();
+				break;
+			}
+
+		}
+	}
+
+	protected void diffuseLoadToNeighbours(Node node,
+			ArrayList<Node> deletedNodes) {
+		int neighbourCount = 0;
+		for (Relationship rel : node.getRelationships()) {
+			if (deletedNodes.contains(rel.getOtherNode(node)))
+				continue;
+			neighbourCount++;
+		}
+
+		ArrayList<Double> lV = l.get(node.getId());
+		ArrayList<Double> wV = w.get(node.getId());
+
+		for (byte i = 0; i < config.getClusterCount(); i++) {
+			double lVPerNeighbour = lV.get(i) / neighbourCount;
+			double wVPerNeighbour = wV.get(i) / neighbourCount;
+
+			for (Relationship rel : node.getRelationships()) {
+				Node otherNode = rel.getOtherNode(node);
+				if (deletedNodes.contains(otherNode))
+					continue;
+				ArrayList<Double> lVOther = l.get(otherNode.getId());
+				ArrayList<Double> wVOther = w.get(otherNode.getId());
+
+				lVOther.set(i, lVOther.get(i) + lVPerNeighbour);
+				wVOther.set(i, wVOther.get(i) + wVPerNeighbour);
+			}
+		}
+
+	}
+
+	protected void initLoadVectorsAll() {
 		long time = System.currentTimeMillis();
 
 		// PRINTOUT
@@ -83,25 +202,7 @@ public abstract class PtnAlgDiDiC extends PtnAlg {
 		try {
 			for (Node v : transNeo.getAllNodes()) {
 
-				byte vColor = (Byte) v.getProperty(Consts.COLOR);
-
-				ArrayList<Double> wV = new ArrayList<Double>();
-				ArrayList<Double> lV = new ArrayList<Double>();
-
-				for (byte i = 0; i < config.getClusterCount(); i++) {
-
-					if (vColor == i) {
-						wV.add(new Double(config.getDefClusterVal()));
-						lV.add(new Double(config.getDefClusterVal()));
-						continue;
-					}
-
-					wV.add(new Double(0));
-					lV.add(new Double(0));
-				}
-
-				w.put(v.getId(), wV);
-				l.put(v.getId(), lV);
+				initLoadVectors(v);
 
 			}
 		} catch (Exception e) {
@@ -114,7 +215,29 @@ public abstract class PtnAlgDiDiC extends PtnAlg {
 		System.out.printf("%s", getTimeStr(System.currentTimeMillis() - time));
 	}
 
-	protected void updateClusterAllocation(int timeStep,
+	protected void initLoadVectors(Node v) {
+		byte vColor = (Byte) v.getProperty(Consts.COLOR);
+
+		ArrayList<Double> wV = new ArrayList<Double>();
+		ArrayList<Double> lV = new ArrayList<Double>();
+
+		for (byte i = 0; i < config.getClusterCount(); i++) {
+
+			if (vColor == i) {
+				wV.add(new Double(config.getDefClusterVal()));
+				lV.add(new Double(config.getDefClusterVal()));
+				continue;
+			}
+
+			wV.add(new Double(0));
+			lV.add(new Double(0));
+		}
+
+		w.put(v.getId(), wV);
+		l.put(v.getId(), lV);
+	}
+
+	protected void updateClusterAllocationAll(int timeStep,
 			ConfDiDiC.AllocType allocType) {
 
 		long time = System.currentTimeMillis();
@@ -145,30 +268,7 @@ public abstract class PtnAlgDiDiC extends PtnAlg {
 					lastVisitedIndex = currentIndex;
 					transBuffer++;
 
-					Node memV = transNeo.getNodeById(wCkey);
-
-					ArrayList<Double> lV = l.get(wCkey);
-					ArrayList<Double> wV = w.get(wCkey);
-
-					Byte vNewColor = (Byte) memV.getProperty(Consts.COLOR);
-
-					switch (allocType) {
-					case BASE:
-						vNewColor = allocateClusterBasic(wV, lV);
-						break;
-
-					case OPT:
-						vNewColor = allocateClusterIntdeg(memV, wV, lV,
-								timeStep);
-						break;
-
-					case HYBRID:
-						vNewColor = allocateCluster(memV, wV, lV, timeStep);
-						break;
-
-					}
-
-					memV.setProperty(Consts.COLOR, vNewColor);
+					updateClusterAllocation(wCkey, timeStep, allocType);
 
 					// Periodic flush to reduce memory consumption
 					if (transBuffer % Consts.STORE_BUF == 0) {
@@ -189,6 +289,35 @@ public abstract class PtnAlgDiDiC extends PtnAlg {
 
 		// PRINTOUT
 		System.out.printf("%s", getTimeStr(System.currentTimeMillis() - time));
+
+	}
+
+	protected void updateClusterAllocation(long nodeId, int timeStep,
+			ConfDiDiC.AllocType allocType) {
+
+		Node memV = transNeo.getNodeById(nodeId);
+
+		ArrayList<Double> lV = l.get(nodeId);
+		ArrayList<Double> wV = w.get(nodeId);
+
+		Byte vNewColor = (Byte) memV.getProperty(Consts.COLOR);
+
+		switch (allocType) {
+		case BASE:
+			vNewColor = allocateClusterBasic(wV, lV);
+			break;
+
+		case OPT:
+			vNewColor = allocateClusterIntdeg(memV, wV, lV, timeStep);
+			break;
+
+		case HYBRID:
+			vNewColor = allocateCluster(memV, wV, lV, timeStep);
+			break;
+
+		}
+
+		memV.setProperty(Consts.COLOR, vNewColor);
 
 	}
 

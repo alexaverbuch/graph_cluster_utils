@@ -56,7 +56,7 @@ public abstract class PtnAlgEvoPartition extends PtnAlg {
 	}
 
 	@Override
-	public void applyChangeLog() {
+	protected void applyChangeLog(int maxChanges) {
 		// Do nothing, this is not a dynamic partitioning algorithm
 	}
 

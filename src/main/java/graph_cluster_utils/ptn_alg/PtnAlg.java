@@ -41,7 +41,7 @@ public abstract class PtnAlg {
 	 * Apply change log (CRUD) operations to the {@link GraphDatabaseService}
 	 * graph
 	 */
-	protected abstract void applyChangeLog();
+	protected abstract void applyChangeLog(int maxChanges);
 
 	protected String getTimeStr(long msTotal) {
 		long ms = msTotal % 1000;

@@ -54,7 +54,7 @@ public class PtnAlgDiDiCFix extends PtnAlgDiDiC {
 
 		logger.doInitialSnapshot(transNeo, this.config.getClusterCount());
 
-		initLoadVectors();
+		initLoadVectorsAll();
 
 		long time = System.currentTimeMillis();
 
@@ -95,7 +95,7 @@ public class PtnAlgDiDiCFix extends PtnAlgDiDiC {
 			System.out.println(printLoadStateStr(new Long[] { (long) 1,
 					(long) 100, (long) 500 }));
 
-			updateClusterAllocation(timeStep, this.config.getAllocType());
+			updateClusterAllocationAll(timeStep, this.config.getAllocType());
 
 			logger.doPeriodicSnapshot(transNeo, timeStep, this.config
 					.getClusterCount());

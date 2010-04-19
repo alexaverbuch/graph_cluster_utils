@@ -25,6 +25,10 @@ public class SimulationCoordinator implements Queue<ChangeOp> {
 		// Returns null when empty
 		this.changeLog = new ConcurrentLinkedQueue<ChangeOp>();
 
+		// LinkedBlockingQueue
+		// Synchronized
+		// Blocks when empty
+
 		this.ptnAlgThread = ptnAlgThread;
 		this.accessSimThread = accessSimThread;
 	}

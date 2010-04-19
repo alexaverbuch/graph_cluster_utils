@@ -45,7 +45,7 @@ public class PtnAlgDiDiCSync extends PtnAlgDiDiC {
 
 		logger.doInitialSnapshot(transNeo, this.config.getClusterCount());
 
-		initLoadVectors();
+		initLoadVectorsAll();
 
 		long time = System.currentTimeMillis();
 
@@ -74,7 +74,7 @@ public class PtnAlgDiDiCSync extends PtnAlgDiDiC {
 			System.out.printf("DiDiC Complete - Time Taken: %s",
 					getTimeStr(System.currentTimeMillis() - timeStepTime));
 
-			updateClusterAllocation(timeStep, this.config.getAllocType());
+			updateClusterAllocationAll(timeStep, this.config.getAllocType());
 
 			logger.doPeriodicSnapshot(transNeo, timeStep, this.config
 					.getClusterCount());

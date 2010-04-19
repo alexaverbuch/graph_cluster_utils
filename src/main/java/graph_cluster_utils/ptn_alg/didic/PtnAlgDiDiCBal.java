@@ -61,7 +61,7 @@ public class PtnAlgDiDiCBal extends PtnAlgDiDiC {
 
 		logger.doInitialSnapshot(transNeo, this.config.getClusterCount());
 
-		initLoadVectors();
+		initLoadVectorsAll();
 
 		long time = System.currentTimeMillis();
 
@@ -116,7 +116,7 @@ public class PtnAlgDiDiCBal extends PtnAlgDiDiC {
 			System.out.printf("DiDiC Complete - Time Taken: %s",
 					getTimeStr(System.currentTimeMillis() - timeStepTime));
 
-			updateClusterAllocation(timeStep, this.config.getAllocType());
+			updateClusterAllocationAll(timeStep, this.config.getAllocType());
 
 			logger.doPeriodicSnapshot(transNeo, timeStep, this.config
 					.getClusterCount());
@@ -134,7 +134,7 @@ public class PtnAlgDiDiCBal extends PtnAlgDiDiC {
 	}
 
 	@Override
-	protected void initLoadVectors() {
+	protected void initLoadVectorsAll() {
 		long time = System.currentTimeMillis();
 
 		// PRINTOUT
