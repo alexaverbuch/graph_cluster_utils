@@ -1,9 +1,13 @@
 package graph_cluster_utils.ptn_alg.didic;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.Queue;
 import java.util.Random;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+
+import javax.activation.UnsupportedDataTypeException;
 
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.DynamicRelationshipType;
@@ -20,12 +24,13 @@ import graph_cluster_utils.change_log.ChangeOpAddNode;
 import graph_cluster_utils.change_log.ChangeOpAddRelationship;
 import graph_cluster_utils.change_log.ChangeOpDeleteNode;
 import graph_cluster_utils.change_log.ChangeOpDeleteRelationship;
+import graph_cluster_utils.change_log.ChangeOpEnd;
 import graph_cluster_utils.logger.Logger;
 import graph_cluster_utils.ptn_alg.PtnAlg;
 import graph_cluster_utils.ptn_alg.config.ConfDiDiC;
-import graph_cluster_utils.simulation.ChangeOpEnd;
 import graph_gen_utils.general.Consts;
 import graph_gen_utils.memory_graph.MemGraph;
+import graph_gen_utils.memory_graph.MemNode;
 
 /**
  * Base class of all DiDiC algorithm implementations. Provides common
@@ -43,7 +48,7 @@ public abstract class PtnAlgDiDiC extends PtnAlg {
 	protected ConfDiDiC config = null;
 
 	public PtnAlgDiDiC(GraphDatabaseService transNeo, Logger logger,
-			Queue<ChangeOp> changeLog) {
+			LinkedBlockingQueue<ChangeOp> changeLog) {
 		super(transNeo, logger, changeLog);
 
 		this.w = new LinkedHashMap<Long, ArrayList<Double>>();
@@ -53,55 +58,87 @@ public abstract class PtnAlgDiDiC extends PtnAlg {
 	}
 
 	@Override
-	protected void applyChangeLog(int maxChanges) {
+	protected void applyChangeLog(int maxChanges, int maxTimeouts) {
+
+		// PRINTOUT
+		System.out.printf("Applying change log...");
+		long time = System.currentTimeMillis();
+
+		LinkedBlockingQueue<ChangeOp> blockingChangeLog = (LinkedBlockingQueue<ChangeOp>) changeLog;
 
 		Transaction tx = transNeo.beginTx();
 
 		try {
 
+			int timeouts = 0;
 			int changes = 0;
 			ArrayList<Node> deletedNodes = new ArrayList<Node>();
 
-			while ((changeLog.isEmpty() == false) && (changes < maxChanges)) {
-				changes++;
-				ChangeOp changeOp = changeLog.poll();
+			while (changes < maxChanges) {
+				ChangeOp changeOp = blockingChangeLog.poll(
+						Consts.CHANGELOG_TIMEOUT, TimeUnit.MILLISECONDS);
 
-				if (changeOp instanceof ChangeOpAddNode) {
+				if (changeOp == null) {
+					timeouts++;
+					if (timeouts > maxTimeouts) {
+						System.out.printf("TIMED OUT!! ");
+						break;
+					}
+
+					System.out.printf(".");
+					continue;
+				}
+
+				changes++;
+
+				if (changeOp.getClass().getName().equals(
+						ChangeOpAddNode.class.getName())) {
+
 					processChangeOpAddNode((ChangeOpAddNode) changeOp);
 					continue;
 				}
 
-				if (changeOp instanceof ChangeOpDeleteNode) {
-					Node deletedNode = processChangeOpDeleteNode(
-							(ChangeOpDeleteNode) changeOp, deletedNodes);
-					deletedNodes.add(deletedNode);
+				if (changeOp.getClass().getName().equals(
+						ChangeOpDeleteNode.class.getName())) {
+
+					processChangeOpDeleteNode((ChangeOpDeleteNode) changeOp,
+							deletedNodes);
 					continue;
 				}
 
-				// FIXME Memory GraphDatabaseService currently NOT a multi-graph
-				// FIXME If Relationship A->B added & 1 exists, Relationship
-				// A->B will be overwritten (or Exception?)
-				if (changeOp instanceof ChangeOpAddRelationship) {
+				if (changeOp.getClass().getName().equals(
+						ChangeOpAddRelationship.class.getName())) {
+
 					processChangeOpAddRelationship((ChangeOpAddRelationship) changeOp);
 					continue;
 				}
 
-				// FIXME Memory GraphDatabaseService currently NOT a multi-graph
-				// FIXME If Relationship A->B deleted, ALL A->B Relationships
-				// deleted
-				if (changeOp instanceof ChangeOpDeleteRelationship) {
+				if (changeOp.getClass().getName().equals(
+						ChangeOpDeleteRelationship.class.getName())) {
+
 					processChangeOpDeleteRelationship((ChangeOpDeleteRelationship) changeOp);
 					continue;
 				}
 
-				if (changeOp instanceof ChangeOpEnd) {
+				if (changeOp.getClass().getName().equals(
+						ChangeOpEnd.class.getName()))
 					break;
-				}
+
+				String errStr = String.format("%s not supported", changeOp
+						.getClass().getName());
+				throw new UnsupportedDataTypeException(errStr);
+
 			}
 
-			for (Node node : deletedNodes) {
+			Iterator<Node> deletedNodesIter = deletedNodes.iterator();
+			while (deletedNodesIter.hasNext()) {
+				Node node = deletedNodesIter.next();
+
+				System.out.printf("\nDeleting relationships for Node[%d]\n",
+						node.getId());
 				for (Relationship rel : node.getRelationships()) {
 					rel.delete();
+					System.out.printf("\n***\n");
 				}
 
 				node.delete();
@@ -115,52 +152,49 @@ public abstract class PtnAlgDiDiC extends PtnAlg {
 			tx.finish();
 		}
 
+		// PRINTOUT
+		System.out.printf("%s", getTimeStr(System.currentTimeMillis() - time));
 	}
 
 	protected void processChangeOpAddNode(ChangeOpAddNode changeOp) {
 		if (transNeo instanceof MemGraph)
-			((MemGraph) transNeo).setNextId(changeOp.getNodeId());
+			((MemGraph) transNeo).setNextNodeId(changeOp.getNodeId());
 
 		Node node = transNeo.createNode();
-		Byte nodeColor = (byte) (uniGen.nextValue() * config.getClusterCount());
-		node.setProperty(Consts.COLOR, nodeColor);
+		node.setProperty(Consts.COLOR, changeOp.getColor());
 		initLoadVectors(node);
 	}
 
 	protected Node processChangeOpDeleteNode(ChangeOpDeleteNode changeOp,
 			ArrayList<Node> deletedNodes) {
 		Node node = transNeo.getNodeById(changeOp.getNodeId());
+		deletedNodes.add(node);
 		diffuseLoadToNeighbours(node, deletedNodes);
+		l.remove(node.getId());
+		w.remove(node.getId());
 		return node;
 	}
 
 	protected void processChangeOpAddRelationship(
 			ChangeOpAddRelationship changeOp) {
-		Node startNode = transNeo
-				.getNodeById(((ChangeOpAddRelationship) changeOp)
-						.getStartNodeId());
-		Node endNode = transNeo
-				.getNodeById(((ChangeOpAddRelationship) changeOp)
-						.getEndNodeId());
+		Node startNode = transNeo.getNodeById(changeOp.getStartNodeId());
+		Node endNode = transNeo.getNodeById(changeOp.getEndNodeId());
 		RelationshipType relType = DynamicRelationshipType
 				.withName(Consts.DEFAULT_REL_TYPE_STR);
+
+		if (startNode instanceof MemNode)
+			((MemNode) startNode).setNextRelId(changeOp.getId());
+
 		startNode.createRelationshipTo(endNode, relType);
 	}
 
 	protected void processChangeOpDeleteRelationship(
 			ChangeOpDeleteRelationship changeOp) {
-		Node startNode = transNeo.getNodeById(changeOp.getStartNodeId());
-		Node endNode = transNeo.getNodeById(changeOp.getEndNodeId());
-		for (Relationship rel : startNode.getRelationships(Direction.OUTGOING)) {
-
-			if (rel.getEndNode().getId() == endNode.getId()) {
-				rel.delete();
-				break;
-			}
-
-		}
+		Relationship rel = transNeo.getRelationshipById(changeOp.getId());
+		rel.delete();
 	}
 
+	// NOTE Currently load is diffused EQUALLY (ignores edge weights)
 	protected void diffuseLoadToNeighbours(Node node,
 			ArrayList<Node> deletedNodes) {
 		int neighbourCount = 0;
@@ -431,27 +465,14 @@ public abstract class PtnAlgDiDiC extends PtnAlg {
 						config.getClusterCount(), config.getMaxIterations());
 	}
 
-	protected String printLoadStateStr(Long[] vIds) {
-		String result = "***\n";
+	protected String getTotalLoadStr() {
+		String result = "";
 
 		double totalL = getTotalL();
 		double totalW = getTotalW();
 
-		result = String.format("%sTotalL = %f, TotalW = %f, Total = %f\n",
+		return String.format("%sTotalL = %f, TotalW = %f, Total = %f\n",
 				result, totalL, totalW, totalL + totalW);
-
-		for (Long vId : vIds) {
-			result = String.format("%s\tVertex %d \n\t\tW = %s \n\t\tL = %s\n",
-					result, vId, getWVStr(vId), getLVStr(vId));
-
-		}
-
-		return String.format("%s***\n", result);
-	}
-
-	protected String getTotalVectorsStr() {
-		return String.format("\nTotalL = %f\nTotalW = %f\n\n", getTotalL(),
-				getTotalW());
 	}
 
 	protected double getTotalW() {
@@ -473,6 +494,32 @@ public abstract class PtnAlgDiDiC extends PtnAlg {
 			for (Double vLC : vL) {
 				result += vLC;
 			}
+		}
+
+		return result;
+	}
+
+	protected String getLoadVectorAllStr() {
+		String result = "";
+
+		for (Long vId : w.keySet()) {
+			if (w.containsKey(vId) == false)
+				continue;
+			result = String.format("%sVertex[%d] \n\tW = %s \n\tL = %s\n",
+					result, vId, getWVStr(vId), getLVStr(vId));
+		}
+
+		return result;
+	}
+
+	protected String getVectorStr(Long[] vIds) {
+		String result = "";
+
+		for (Long vId : vIds) {
+			if (w.containsKey(vId) == false)
+				continue;
+			result = String.format("%sVertex[%d] \n\tW = %s \n\tL = %s\n",
+					result, vId, getWVStr(vId), getLVStr(vId));
 		}
 
 		return result;

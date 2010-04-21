@@ -2,7 +2,7 @@ package graph_cluster_utils.ptn_alg.didic;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Queue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -46,7 +46,7 @@ public class PtnAlgDiDiCBal extends PtnAlgDiDiC {
 	private HashMap<Byte, Boolean> clusterActivated = null; // Number of
 
 	public PtnAlgDiDiCBal(GraphDatabaseService transNeo, Logger logger,
-			Queue<ChangeOp> changeLog) {
+			LinkedBlockingQueue<ChangeOp> changeLog) {
 		super(transNeo, logger, changeLog);
 		this.clusterSizes = new HashMap<Byte, Long>();
 		this.clusterActivated = new HashMap<Byte, Boolean>();
@@ -107,7 +107,7 @@ public class PtnAlgDiDiCBal extends PtnAlgDiDiC {
 			}
 
 			// TODO For debugging purposes. Remove later!
-			System.out.println(getTotalVectorsStr());
+			System.out.println(getTotalLoadStr());
 			System.out.printf("Min = %d, Max = %d\n", this.config
 					.getClusterSizeOn(), this.config.getClusterSizeOff());
 			System.out.printf("Clusters = %s\n", getClusterSizes());
@@ -121,7 +121,7 @@ public class PtnAlgDiDiCBal extends PtnAlgDiDiC {
 			logger.doPeriodicSnapshot(transNeo, timeStep, this.config
 					.getClusterCount());
 
-			applyChangeLog();
+			applyChangeLog(Integer.MAX_VALUE, Consts.CHANGELOG_MAX_TIMEOUTS);
 
 		}
 

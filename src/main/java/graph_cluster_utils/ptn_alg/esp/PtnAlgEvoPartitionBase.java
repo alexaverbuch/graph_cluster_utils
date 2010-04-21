@@ -6,7 +6,7 @@ import graph_cluster_utils.ptn_alg.config.Conf;
 import graph_cluster_utils.ptn_alg.config.ConfEvoPartition;
 
 import java.util.HashMap;
-import java.util.Queue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -32,7 +32,7 @@ import org.neo4j.graphdb.Transaction;
 public class PtnAlgEvoPartitionBase extends PtnAlgEvoPartition {
 
 	public PtnAlgEvoPartitionBase(GraphDatabaseService transNeo, Logger logger,
-			Queue<ChangeOp> changeLog) {
+			LinkedBlockingQueue<ChangeOp> changeLog) {
 		super(transNeo, logger, changeLog);
 	}
 

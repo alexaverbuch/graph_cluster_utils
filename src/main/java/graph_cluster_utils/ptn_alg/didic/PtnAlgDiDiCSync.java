@@ -1,7 +1,8 @@
 package graph_cluster_utils.ptn_alg.didic;
 
 import java.util.ArrayList;
-import java.util.Queue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -9,6 +10,11 @@ import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 
 import graph_cluster_utils.change_log.ChangeOp;
+import graph_cluster_utils.change_log.ChangeOpAddNode;
+import graph_cluster_utils.change_log.ChangeOpAddRelationship;
+import graph_cluster_utils.change_log.ChangeOpDeleteNode;
+import graph_cluster_utils.change_log.ChangeOpDeleteRelationship;
+import graph_cluster_utils.change_log.ChangeOpEnd;
 import graph_cluster_utils.logger.Logger;
 import graph_cluster_utils.ptn_alg.config.Conf;
 import graph_cluster_utils.ptn_alg.config.ConfDiDiC;
@@ -32,7 +38,7 @@ import graph_gen_utils.general.Consts;
 public class PtnAlgDiDiCSync extends PtnAlgDiDiC {
 
 	public PtnAlgDiDiCSync(GraphDatabaseService transNeo, Logger logger,
-			Queue<ChangeOp> changeLog) {
+			LinkedBlockingQueue<ChangeOp> changeLog) {
 		super(transNeo, logger, changeLog);
 	}
 
@@ -54,32 +60,36 @@ public class PtnAlgDiDiCSync extends PtnAlgDiDiC {
 
 		for (int timeStep = 0; timeStep < this.config.getMaxIterations(); timeStep++) {
 
-			// TODO For debugging only. Remove later
-			System.out.println(printLoadStateStr(new Long[] {}));
+			System.out.println(getLoadVectorAllStr());
 
-			long timeStepTime = System.currentTimeMillis();
-
-			// PRINTOUT
-			System.out.printf("\tFOS/T [TimeStep:%d, All Nodes]...", timeStep);
-
-			// For Every "Cluster System"
-			for (byte c = 0; c < this.config.getClusterCount(); c++) {
-
-				// FOS/T Primary Diffusion Algorithm
-				doFOST(c);
-
-			}
-
-			// PRINTOUT
-			System.out.printf("DiDiC Complete - Time Taken: %s",
-					getTimeStr(System.currentTimeMillis() - timeStepTime));
+			// TODO UNCOMMENT!!!
+			// // TODO For debugging only. Remove later
+			// System.out.println(getTotalVectorLoadStr());
+			//
+			// long timeStepTime = System.currentTimeMillis();
+			//
+			// // PRINTOUT
+			// System.out.printf("\tFOS/T [TimeStep:%d, All Nodes]...",
+			// timeStep);
+			//
+			// // For Every "Cluster System"
+			// for (byte c = 0; c < this.config.getClusterCount(); c++) {
+			//
+			// // FOS/T Primary Diffusion Algorithm
+			// doFOST(c);
+			//
+			// }
+			//
+			// // PRINTOUT
+			// System.out.printf("DiDiC Complete - Time Taken: %s",
+			// getTimeStr(System.currentTimeMillis() - timeStepTime));
 
 			updateClusterAllocationAll(timeStep, this.config.getAllocType());
 
 			logger.doPeriodicSnapshot(transNeo, timeStep, this.config
 					.getClusterCount());
 
-			applyChangeLog();
+			applyChangeLog(Integer.MAX_VALUE, Consts.CHANGELOG_MAX_TIMEOUTS);
 
 		}
 

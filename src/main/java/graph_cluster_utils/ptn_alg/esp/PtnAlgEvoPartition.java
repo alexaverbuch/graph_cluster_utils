@@ -4,9 +4,9 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Queue;
 import java.util.Random;
 import java.util.TreeMap;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -44,7 +44,7 @@ public abstract class PtnAlgEvoPartition extends PtnAlg {
 	protected byte clusterColor = -1;
 
 	public PtnAlgEvoPartition(GraphDatabaseService transNeo, Logger logger,
-			Queue<ChangeOp> changeLog) {
+			LinkedBlockingQueue<ChangeOp> changeLog) {
 		super(transNeo, logger, changeLog);
 
 		// this.rng = new Random(); // Slow & poor randomness
@@ -56,7 +56,7 @@ public abstract class PtnAlgEvoPartition extends PtnAlg {
 	}
 
 	@Override
-	protected void applyChangeLog(int maxChanges) {
+	protected void applyChangeLog(int maxChanges, int maxTimeouts) {
 		// Do nothing, this is not a dynamic partitioning algorithm
 	}
 

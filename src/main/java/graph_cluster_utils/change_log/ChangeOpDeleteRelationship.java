@@ -2,20 +2,19 @@ package graph_cluster_utils.change_log;
 
 public class ChangeOpDeleteRelationship extends ChangeOp {
 
-	private long startNodeId = 0;
-	private long endNodeId = 0;
+	private long id = -1;
 
-	public ChangeOpDeleteRelationship(long startNodeId, long endNodeId) {
-		this.startNodeId = startNodeId;
-		this.endNodeId = endNodeId;
+	public ChangeOpDeleteRelationship(long id) {
+		this.id = id;
 	}
 
-	public long getStartNodeId() {
-		return startNodeId;
+	public long getId() {
+		return id;
 	}
 
-	public long getEndNodeId() {
-		return endNodeId;
+	@Override
+	public String getChangeOpId() {
+		return this.getClass().getName();
 	}
 
 }

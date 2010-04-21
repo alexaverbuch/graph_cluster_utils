@@ -2,7 +2,7 @@ package graph_cluster_utils.ptn_alg.didic;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.Queue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -39,7 +39,7 @@ public class PtnAlgDiDiCPaper extends PtnAlgDiDiC {
 	private LinkedHashMap<Long, ArrayList<Double>> l_prev = null;
 
 	public PtnAlgDiDiCPaper(GraphDatabaseService transNeo, Logger logger,
-			Queue<ChangeOp> changeLog) {
+			LinkedBlockingQueue<ChangeOp> changeLog) {
 		super(transNeo, logger, changeLog);
 		this.w_prev = new LinkedHashMap<Long, ArrayList<Double>>();
 		this.l_prev = new LinkedHashMap<Long, ArrayList<Double>>();
@@ -67,7 +67,7 @@ public class PtnAlgDiDiCPaper extends PtnAlgDiDiC {
 			long timeStepTime = System.currentTimeMillis();
 
 			// TODO For debugging only. Remove later
-			System.out.println(printLoadStateStr(new Long[] {}));
+			System.out.println(getTotalLoadStr());
 
 			// PRINTOUT
 			System.out.printf("\tFOS/T [TimeStep:%d, All Nodes]...", timeStep);
@@ -89,7 +89,7 @@ public class PtnAlgDiDiCPaper extends PtnAlgDiDiC {
 			logger.doPeriodicSnapshot(transNeo, timeStep, this.config
 					.getClusterCount());
 
-			applyChangeLog();
+			applyChangeLog(Integer.MAX_VALUE, Consts.CHANGELOG_MAX_TIMEOUTS);
 
 		}
 

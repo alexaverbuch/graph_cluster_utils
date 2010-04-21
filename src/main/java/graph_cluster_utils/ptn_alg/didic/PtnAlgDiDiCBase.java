@@ -1,7 +1,7 @@
 package graph_cluster_utils.ptn_alg.didic;
 
 import java.util.ArrayList;
-import java.util.Queue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -31,7 +31,7 @@ import graph_gen_utils.general.Consts;
 public class PtnAlgDiDiCBase extends PtnAlgDiDiC {
 
 	public PtnAlgDiDiCBase(GraphDatabaseService transNeo, Logger logger,
-			Queue<ChangeOp> changeLog) {
+			LinkedBlockingQueue<ChangeOp> changeLog) {
 		super(transNeo, logger, changeLog);
 	}
 
@@ -89,7 +89,7 @@ public class PtnAlgDiDiCBase extends PtnAlgDiDiC {
 			logger.doPeriodicSnapshot(transNeo, timeStep, this.config
 					.getClusterCount());
 
-			applyChangeLog();
+			applyChangeLog(Integer.MAX_VALUE, Consts.CHANGELOG_MAX_TIMEOUTS);
 
 		}
 

@@ -1,6 +1,5 @@
 package graph_cluster_utils.ptn_alg;
 
-import java.util.LinkedList;
 import java.util.Queue;
 
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -41,7 +40,7 @@ public abstract class PtnAlg {
 	 * Apply change log (CRUD) operations to the {@link GraphDatabaseService}
 	 * graph
 	 */
-	protected abstract void applyChangeLog(int maxChanges);
+	protected abstract void applyChangeLog(int maxChanges, int maxTimeouts);
 
 	protected String getTimeStr(long msTotal) {
 		long ms = msTotal % 1000;

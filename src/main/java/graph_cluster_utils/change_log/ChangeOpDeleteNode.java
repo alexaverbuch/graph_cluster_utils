@@ -12,4 +12,9 @@ public class ChangeOpDeleteNode extends ChangeOp {
 		return nodeId;
 	}
 
+	@Override
+	public String getChangeOpId() {
+		return this.getClass().getName();
+	}
+
 }

@@ -1,7 +1,7 @@
 package graph_cluster_utils.ptn_alg.didic;
 
 import java.util.ArrayList;
-import java.util.Queue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -41,7 +41,7 @@ public class PtnAlgDiDiCFix extends PtnAlgDiDiC {
 	private double timeStepWeight = 1.0;
 
 	public PtnAlgDiDiCFix(GraphDatabaseService transNeo, Logger logger,
-			Queue<ChangeOp> changeLog) {
+			LinkedBlockingQueue<ChangeOp> changeLog) {
 		super(transNeo, logger, changeLog);
 	}
 
@@ -69,7 +69,7 @@ public class PtnAlgDiDiCFix extends PtnAlgDiDiC {
 			// TODO For debugging only. Remove later
 			// PRINTOUT
 			System.out.printf("\nBefore FOST\n");
-			System.out.println(printLoadStateStr(new Long[] { (long) 1,
+			System.out.println(getVectorStr(new Long[] { (long) 1,
 					(long) 100, (long) 500 }));
 
 			long timeStepTime = System.currentTimeMillis();
@@ -92,7 +92,7 @@ public class PtnAlgDiDiCFix extends PtnAlgDiDiC {
 			// TODO For debugging only. Remove later
 			// PRINTOUT
 			System.out.printf("\nAfter FOST\n");
-			System.out.println(printLoadStateStr(new Long[] { (long) 1,
+			System.out.println(getVectorStr(new Long[] { (long) 1,
 					(long) 100, (long) 500 }));
 
 			updateClusterAllocationAll(timeStep, this.config.getAllocType());
@@ -100,7 +100,7 @@ public class PtnAlgDiDiCFix extends PtnAlgDiDiC {
 			logger.doPeriodicSnapshot(transNeo, timeStep, this.config
 					.getClusterCount());
 
-			applyChangeLog();
+			applyChangeLog(Integer.MAX_VALUE, Consts.CHANGELOG_MAX_TIMEOUTS);
 
 		}
 
