@@ -3,16 +3,18 @@ package dodgy_tests;
 import graph_cluster_utils.change_log.ChangeOp;
 import graph_cluster_utils.logger.Logger;
 import graph_cluster_utils.logger.LoggerBase;
+import graph_cluster_utils.migrator.Migrator;
+import graph_cluster_utils.migrator.MigratorBase;
 import graph_cluster_utils.ptn_alg.PtnAlg;
-import graph_cluster_utils.ptn_alg.config.ConfDiDiC;
-import graph_cluster_utils.ptn_alg.config.ConfEvoPartition;
 import graph_cluster_utils.ptn_alg.didic.PtnAlgDiDiCBal;
 import graph_cluster_utils.ptn_alg.didic.PtnAlgDiDiCBase;
 import graph_cluster_utils.ptn_alg.didic.PtnAlgDiDiCFix;
 import graph_cluster_utils.ptn_alg.didic.PtnAlgDiDiCPaper;
 import graph_cluster_utils.ptn_alg.didic.PtnAlgDiDiCSync;
+import graph_cluster_utils.ptn_alg.didic.config.ConfDiDiC;
 import graph_cluster_utils.ptn_alg.esp.PtnAlgEvoPartitionBase;
 import graph_cluster_utils.ptn_alg.esp.PtnAlgEvoPartitionExp;
+import graph_cluster_utils.ptn_alg.esp.config.ConfEvoPartition;
 import graph_gen_utils.NeoFromFile;
 import graph_gen_utils.NeoFromFile.ChacoType;
 import graph_gen_utils.general.DirUtils;
@@ -137,8 +139,10 @@ public class Examples {
 		Logger logger = new LoggerBase(SNAPSHOT_PERIOD, LONG_SNAPSHOT_PERIOD,
 				inputGraph, metDir);
 
+		Migrator migrator = new MigratorBase(null, Integer.MAX_VALUE);
+
 		PtnAlg didic = new PtnAlgDiDiCBase(transNeo, logger,
-				new LinkedBlockingQueue<ChangeOp>());
+				new LinkedBlockingQueue<ChangeOp>(), migrator);
 
 		ConfDiDiC config = new ConfDiDiC(clusterCount);
 		config.setAllocType(ConfDiDiC.AllocType.OPT);
@@ -179,8 +183,10 @@ public class Examples {
 		Logger logger = new LoggerBase(SNAPSHOT_PERIOD, LONG_SNAPSHOT_PERIOD,
 				inputGraph, metDir);
 
+		Migrator migrator = new MigratorBase(null, Integer.MAX_VALUE);
+
 		PtnAlg didic = new PtnAlgDiDiCBase(memGraph, logger,
-				new LinkedBlockingQueue<ChangeOp>());
+				new LinkedBlockingQueue<ChangeOp>(), migrator);
 
 		ConfDiDiC config = new ConfDiDiC(clusterCount);
 		config.setAllocType(ConfDiDiC.AllocType.OPT);
@@ -221,8 +227,10 @@ public class Examples {
 		Logger logger = new LoggerBase(SNAPSHOT_PERIOD, LONG_SNAPSHOT_PERIOD,
 				inputGraph, metDir);
 
+		Migrator migrator = new MigratorBase(null, Integer.MAX_VALUE);
+
 		PtnAlg didic = new PtnAlgDiDiCBal(memGraph, logger,
-				new LinkedBlockingQueue<ChangeOp>());
+				new LinkedBlockingQueue<ChangeOp>(), migrator);
 
 		ConfDiDiC config = new ConfDiDiC(clusterCount);
 		config.setAllocType(ConfDiDiC.AllocType.OPT);
@@ -265,8 +273,10 @@ public class Examples {
 		Logger logger = new LoggerBase(SNAPSHOT_PERIOD, LONG_SNAPSHOT_PERIOD,
 				inputGraph, metDir);
 
+		Migrator migrator = new MigratorBase(null, Integer.MAX_VALUE);
+
 		PtnAlg didic = new PtnAlgDiDiCBal(memGraph, logger,
-				new LinkedBlockingQueue<ChangeOp>());
+				new LinkedBlockingQueue<ChangeOp>(), migrator);
 
 		ConfDiDiC config = new ConfDiDiC(clusterCount);
 		config.setAllocType(ConfDiDiC.AllocType.OPT);
@@ -309,8 +319,10 @@ public class Examples {
 		Logger logger = new LoggerBase(SNAPSHOT_PERIOD, LONG_SNAPSHOT_PERIOD,
 				inputGraph, metDir);
 
+		Migrator migrator = new MigratorBase(null, Integer.MAX_VALUE);
+
 		PtnAlg didic = new PtnAlgDiDiCBase(memGraph, logger,
-				new LinkedBlockingQueue<ChangeOp>());
+				new LinkedBlockingQueue<ChangeOp>(), migrator);
 
 		ConfDiDiC config = new ConfDiDiC(clusterCount);
 		config.setAllocType(ConfDiDiC.AllocType.OPT);
@@ -351,8 +363,10 @@ public class Examples {
 		Logger logger = new LoggerBase(SNAPSHOT_PERIOD, LONG_SNAPSHOT_PERIOD,
 				inputGraph, metDir);
 
+		Migrator migrator = new MigratorBase(null, Integer.MAX_VALUE);
+
 		PtnAlg didic = new PtnAlgDiDiCBase(memGraph, logger,
-				new LinkedBlockingQueue<ChangeOp>());
+				new LinkedBlockingQueue<ChangeOp>(), migrator);
 
 		ConfDiDiC config = new ConfDiDiC(clusterCount);
 		config.setAllocType(ConfDiDiC.AllocType.OPT);
@@ -387,8 +401,10 @@ public class Examples {
 		Logger logger = new LoggerBase(SNAPSHOT_PERIOD, LONG_SNAPSHOT_PERIOD,
 				inputGraph, metDir);
 
+		Migrator migrator = new MigratorBase(null, Integer.MAX_VALUE);
+
 		PtnAlg esp = new PtnAlgEvoPartitionBase(transNeo, logger,
-				new LinkedBlockingQueue<ChangeOp>());
+				new LinkedBlockingQueue<ChangeOp>(), migrator);
 
 		ConfEvoPartition config = new ConfEvoPartition();
 		config.setP(0.9);
@@ -425,8 +441,10 @@ public class Examples {
 		Logger logger = new LoggerBase(SNAPSHOT_PERIOD, LONG_SNAPSHOT_PERIOD,
 				inputGraph, metDir);
 
+		Migrator migrator = new MigratorBase(null, Integer.MAX_VALUE);
+
 		PtnAlg esp = new PtnAlgEvoPartitionExp(transNeo, logger,
-				new LinkedBlockingQueue<ChangeOp>());
+				new LinkedBlockingQueue<ChangeOp>(), migrator);
 
 		ConfEvoPartition config = new ConfEvoPartition();
 		config.setP(0.9);
@@ -462,8 +480,10 @@ public class Examples {
 		Logger logger = new LoggerBase(SNAPSHOT_PERIOD, LONG_SNAPSHOT_PERIOD,
 				inputGraph, metDir);
 
+		Migrator migrator = new MigratorBase(null, Integer.MAX_VALUE);
+
 		PtnAlg esp = new PtnAlgEvoPartitionExp(transNeo, logger,
-				new LinkedBlockingQueue<ChangeOp>());
+				new LinkedBlockingQueue<ChangeOp>(), migrator);
 
 		ConfEvoPartition config = new ConfEvoPartition();
 		config.setP(0.9);
@@ -504,8 +524,10 @@ public class Examples {
 		Logger logger = new LoggerBase(SNAPSHOT_PERIOD, LONG_SNAPSHOT_PERIOD,
 				inputGraph, metDir);
 
+		Migrator migrator = new MigratorBase(null, Integer.MAX_VALUE);
+
 		PtnAlg didic = new PtnAlgDiDiCBal(memGraph, logger,
-				new LinkedBlockingQueue<ChangeOp>());
+				new LinkedBlockingQueue<ChangeOp>(), migrator);
 
 		ConfDiDiC config = new ConfDiDiC(clusterCount);
 		config.setAllocType(ConfDiDiC.AllocType.OPT);
@@ -548,8 +570,10 @@ public class Examples {
 		Logger logger = new LoggerBase(SNAPSHOT_PERIOD, LONG_SNAPSHOT_PERIOD,
 				inputGraph, metDir);
 
+		Migrator migrator = new MigratorBase(null, Integer.MAX_VALUE);
+
 		PtnAlg didic = new PtnAlgDiDiCBal(memGraph, logger,
-				new LinkedBlockingQueue<ChangeOp>());
+				new LinkedBlockingQueue<ChangeOp>(), migrator);
 
 		ConfDiDiC config = new ConfDiDiC(clusterCount);
 		config.setAllocType(ConfDiDiC.AllocType.OPT);
@@ -592,8 +616,10 @@ public class Examples {
 		Logger logger = new LoggerBase(SNAPSHOT_PERIOD, LONG_SNAPSHOT_PERIOD,
 				inputGraph, metDir);
 
+		Migrator migrator = new MigratorBase(null, Integer.MAX_VALUE);
+
 		PtnAlg didic = new PtnAlgDiDiCBase(memGraph, logger,
-				new LinkedBlockingQueue<ChangeOp>());
+				new LinkedBlockingQueue<ChangeOp>(), migrator);
 
 		ConfDiDiC config = new ConfDiDiC(clusterCount);
 		config.setAllocType(ConfDiDiC.AllocType.OPT);
@@ -634,8 +660,10 @@ public class Examples {
 		Logger logger = new LoggerBase(SNAPSHOT_PERIOD, LONG_SNAPSHOT_PERIOD,
 				inputGraph, metDir);
 
+		Migrator migrator = new MigratorBase(null, Integer.MAX_VALUE);
+
 		PtnAlg didic = new PtnAlgDiDiCBase(memGraph, logger,
-				new LinkedBlockingQueue<ChangeOp>());
+				new LinkedBlockingQueue<ChangeOp>(), migrator);
 
 		ConfDiDiC config = new ConfDiDiC(clusterCount);
 		config.setAllocType(ConfDiDiC.AllocType.OPT);
@@ -676,8 +704,10 @@ public class Examples {
 		Logger logger = new LoggerBase(SNAPSHOT_PERIOD, LONG_SNAPSHOT_PERIOD,
 				inputGraph, metDir);
 
+		Migrator migrator = new MigratorBase(null, Integer.MAX_VALUE);
+
 		PtnAlg didic = new PtnAlgDiDiCBase(memGraph, logger,
-				new LinkedBlockingQueue<ChangeOp>());
+				new LinkedBlockingQueue<ChangeOp>(), migrator);
 
 		ConfDiDiC config = new ConfDiDiC(clusterCount);
 		config.setAllocType(ConfDiDiC.AllocType.OPT);
@@ -718,8 +748,10 @@ public class Examples {
 		Logger logger = new LoggerBase(SNAPSHOT_PERIOD, LONG_SNAPSHOT_PERIOD,
 				inputGraph, metDir);
 
+		Migrator migrator = new MigratorBase(null, Integer.MAX_VALUE);
+
 		PtnAlg didic = new PtnAlgDiDiCFix(memGraph, logger,
-				new LinkedBlockingQueue<ChangeOp>());
+				new LinkedBlockingQueue<ChangeOp>(), migrator);
 
 		ConfDiDiC config = new ConfDiDiC(clusterCount);
 		config.setAllocType(ConfDiDiC.AllocType.OPT);
@@ -760,8 +792,10 @@ public class Examples {
 		Logger logger = new LoggerBase(SNAPSHOT_PERIOD, LONG_SNAPSHOT_PERIOD,
 				inputGraph, metDir);
 
+		Migrator migrator = new MigratorBase(null, Integer.MAX_VALUE);
+
 		PtnAlg didic = new PtnAlgDiDiCSync(memGraph, logger,
-				new LinkedBlockingQueue<ChangeOp>());
+				new LinkedBlockingQueue<ChangeOp>(), migrator);
 
 		ConfDiDiC config = new ConfDiDiC(clusterCount);
 		config.setAllocType(ConfDiDiC.AllocType.OPT);
@@ -790,8 +824,10 @@ public class Examples {
 
 		Logger logger = new LoggerBase(1, 5, "romania", metDir);
 
+		Migrator migrator = new MigratorBase(null, Integer.MAX_VALUE);
+
 		PtnAlg didic = new PtnAlgDiDiCSync(memGraph, logger,
-				new LinkedBlockingQueue<ChangeOp>());
+				new LinkedBlockingQueue<ChangeOp>(), migrator);
 
 		ConfDiDiC config = new ConfDiDiC(clusterCount);
 		config.setAllocType(ConfDiDiC.AllocType.OPT);
@@ -834,8 +870,10 @@ public class Examples {
 		Logger logger = new LoggerBase(SNAPSHOT_PERIOD, LONG_SNAPSHOT_PERIOD,
 				inputGraph, metDir);
 
+		Migrator migrator = new MigratorBase(null, Integer.MAX_VALUE);
+
 		PtnAlg didic = new PtnAlgDiDiCPaper(memGraph, logger,
-				new LinkedBlockingQueue<ChangeOp>());
+				new LinkedBlockingQueue<ChangeOp>(), migrator);
 
 		ConfDiDiC config = new ConfDiDiC(clusterCount);
 		config.setAllocType(ConfDiDiC.AllocType.OPT);
@@ -878,8 +916,10 @@ public class Examples {
 		Logger logger = new LoggerBase(SNAPSHOT_PERIOD, LONG_SNAPSHOT_PERIOD,
 				inputGraph, metDir);
 
+		Migrator migrator = new MigratorBase(null, Integer.MAX_VALUE);
+
 		PtnAlg didic = new PtnAlgDiDiCPaper(memGraph, logger,
-				new LinkedBlockingQueue<ChangeOp>());
+				new LinkedBlockingQueue<ChangeOp>(), migrator);
 
 		ConfDiDiC config = new ConfDiDiC(clusterCount);
 		config.setAllocType(ConfDiDiC.AllocType.OPT);
@@ -925,15 +965,16 @@ public class Examples {
 		// MemGraph memGraph = NeoFromFile.readMemGraph(transNeoSingle);
 		transNeoSingle.shutdown();
 
-		PGraphDatabaseService transNeoPart = new PGraphDatabaseServiceImpl(
-				paraDatabaseDir, 1);
-		transNeoPart.createDistribution(singleDatabaseDir);
+		PGraphDatabaseService transNeoPart = NeoFromFile.writePNeoFromNeo(
+				paraDatabaseDir, transNeoSingle);
 
 		Logger logger = new LoggerBase(SNAPSHOT_PERIOD, LONG_SNAPSHOT_PERIOD,
 				inputGraph, metDir);
 
+		Migrator migrator = new MigratorBase(null, Integer.MAX_VALUE);
+
 		PtnAlg didic = new PtnAlgDiDiCBase(transNeoPart, logger,
-				new LinkedBlockingQueue<ChangeOp>());
+				new LinkedBlockingQueue<ChangeOp>(), migrator);
 
 		ConfDiDiC config = new ConfDiDiC(clusterCount);
 		config.setAllocType(ConfDiDiC.AllocType.OPT);

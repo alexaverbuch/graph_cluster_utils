@@ -1,4 +1,6 @@
-package graph_cluster_utils.ptn_alg.config;
+package graph_cluster_utils.ptn_alg.didic.config;
+
+import graph_cluster_utils.config.Conf;
 
 /**
  * Inherits from {@link Conf}. Contains configuration parameters for the DiDiC

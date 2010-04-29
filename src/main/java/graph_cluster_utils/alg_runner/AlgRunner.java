@@ -1,7 +1,7 @@
 package graph_cluster_utils.alg_runner;
 
+import graph_cluster_utils.config.Conf;
 import graph_cluster_utils.ptn_alg.PtnAlg;
-import graph_cluster_utils.ptn_alg.config.Conf;
 
 public class AlgRunner extends Thread {
 

@@ -5,8 +5,9 @@ import java.util.Queue;
 import org.neo4j.graphdb.GraphDatabaseService;
 
 import graph_cluster_utils.change_log.ChangeOp;
+import graph_cluster_utils.config.Conf;
 import graph_cluster_utils.logger.Logger;
-import graph_cluster_utils.ptn_alg.config.Conf;
+import graph_cluster_utils.migrator.Migrator;
 
 /**
  * Base class for all clustering/partitioning algorithms.
@@ -16,15 +17,17 @@ import graph_cluster_utils.ptn_alg.config.Conf;
  */
 public abstract class PtnAlg {
 
-	protected Logger logger = null;
 	protected GraphDatabaseService transNeo = null;
+	protected Logger logger = null;
+	protected Migrator migrator = null;
 	protected Queue<ChangeOp> changeLog = null;
 
 	public PtnAlg(GraphDatabaseService transNeo, Logger logger,
-			Queue<ChangeOp> changeLog) {
+			Queue<ChangeOp> changeLog, Migrator migrator) {
 		this.transNeo = transNeo;
 		this.logger = logger;
 		this.changeLog = changeLog;
+		this.migrator = migrator;
 	}
 
 	/**

@@ -26,8 +26,9 @@ import graph_cluster_utils.change_log.ChangeOpDeleteNode;
 import graph_cluster_utils.change_log.ChangeOpDeleteRelationship;
 import graph_cluster_utils.change_log.ChangeOpEnd;
 import graph_cluster_utils.logger.Logger;
+import graph_cluster_utils.migrator.Migrator;
 import graph_cluster_utils.ptn_alg.PtnAlg;
-import graph_cluster_utils.ptn_alg.config.ConfDiDiC;
+import graph_cluster_utils.ptn_alg.didic.config.ConfDiDiC;
 import graph_gen_utils.general.Consts;
 import graph_gen_utils.memory_graph.MemGraph;
 import graph_gen_utils.memory_graph.MemNode;
@@ -48,8 +49,8 @@ public abstract class PtnAlgDiDiC extends PtnAlg {
 	protected ConfDiDiC config = null;
 
 	public PtnAlgDiDiC(GraphDatabaseService transNeo, Logger logger,
-			LinkedBlockingQueue<ChangeOp> changeLog) {
-		super(transNeo, logger, changeLog);
+			LinkedBlockingQueue<ChangeOp> changeLog, Migrator migrator) {
+		super(transNeo, logger, changeLog, migrator);
 
 		this.w = new LinkedHashMap<Long, ArrayList<Double>>();
 		this.l = new LinkedHashMap<Long, ArrayList<Double>>();
@@ -179,8 +180,7 @@ public abstract class PtnAlgDiDiC extends PtnAlg {
 			ChangeOpAddRelationship changeOp) {
 		Node startNode = transNeo.getNodeById(changeOp.getStartNodeId());
 		Node endNode = transNeo.getNodeById(changeOp.getEndNodeId());
-		RelationshipType relType = DynamicRelationshipType
-				.withName(Consts.DEFAULT_REL_TYPE_STR);
+		RelationshipType relType = Consts.RelationshipTypes.DEFAULT;
 
 		if (startNode instanceof MemNode)
 			((MemNode) startNode).setNextRelId(changeOp.getId());
@@ -499,7 +499,7 @@ public abstract class PtnAlgDiDiC extends PtnAlg {
 		return result;
 	}
 
-	protected String getLoadVectorAllStr() {
+	protected String getVectorAllStr() {
 		String result = "";
 
 		for (Long vId : w.keySet()) {

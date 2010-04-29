@@ -25,9 +25,4 @@ public class ChangeOpAddNode extends ChangeOp {
 		return color;
 	}
 
-	@Override
-	public String getChangeOpId() {
-		return this.getClass().getName();
-	}
-
 }

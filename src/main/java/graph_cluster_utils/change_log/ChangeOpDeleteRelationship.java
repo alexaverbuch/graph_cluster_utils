@@ -12,9 +12,4 @@ public class ChangeOpDeleteRelationship extends ChangeOp {
 		return id;
 	}
 
-	@Override
-	public String getChangeOpId() {
-		return this.getClass().getName();
-	}
-
 }

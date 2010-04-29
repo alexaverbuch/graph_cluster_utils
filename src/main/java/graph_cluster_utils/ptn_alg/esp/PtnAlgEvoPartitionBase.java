@@ -1,9 +1,10 @@
 package graph_cluster_utils.ptn_alg.esp;
 
 import graph_cluster_utils.change_log.ChangeOp;
+import graph_cluster_utils.config.Conf;
 import graph_cluster_utils.logger.Logger;
-import graph_cluster_utils.ptn_alg.config.Conf;
-import graph_cluster_utils.ptn_alg.config.ConfEvoPartition;
+import graph_cluster_utils.migrator.Migrator;
+import graph_cluster_utils.ptn_alg.esp.config.ConfEvoPartition;
 
 import java.util.HashMap;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -32,22 +33,22 @@ import org.neo4j.graphdb.Transaction;
 public class PtnAlgEvoPartitionBase extends PtnAlgEvoPartition {
 
 	public PtnAlgEvoPartitionBase(GraphDatabaseService transNeo, Logger logger,
-			LinkedBlockingQueue<ChangeOp> changeLog) {
-		super(transNeo, logger, changeLog);
+			LinkedBlockingQueue<ChangeOp> changeLog, Migrator migrator) {
+		super(transNeo, logger, changeLog, migrator);
 	}
 
 	@Override
-	public void doPartition(Conf config) {
-		this.config = (ConfEvoPartition) config;
+	public void doPartition(Conf baseConfig) {
+		config = (ConfEvoPartition) baseConfig;
 
-		this.logger.doInitialSnapshot(transNeo, -1);
+		this.logger.doInitialSnapshot(transNeo, config);
 
 		this.nodes = getNodeDegrees();
 
 		// evoPartitionOld(config.getTheta(), config.getP());
-		evoPartition(this.config.getConductance(), this.config.getP());
+		evoPartition(config.getConductance(), config.getP());
 
-		this.logger.doFinalSnapshot(transNeo, -1);
+		this.logger.doFinalSnapshot(transNeo, config);
 	}
 
 	// p is used to find jMax. Smaller p -> larger jMax

@@ -18,8 +18,9 @@ import org.uncommons.maths.random.MersenneTwisterRNG;
 
 import graph_cluster_utils.change_log.ChangeOp;
 import graph_cluster_utils.logger.Logger;
+import graph_cluster_utils.migrator.Migrator;
 import graph_cluster_utils.ptn_alg.PtnAlg;
-import graph_cluster_utils.ptn_alg.config.ConfEvoPartition;
+import graph_cluster_utils.ptn_alg.esp.config.ConfEvoPartition;
 import graph_gen_utils.general.Consts;
 
 /**
@@ -44,8 +45,8 @@ public abstract class PtnAlgEvoPartition extends PtnAlg {
 	protected byte clusterColor = -1;
 
 	public PtnAlgEvoPartition(GraphDatabaseService transNeo, Logger logger,
-			LinkedBlockingQueue<ChangeOp> changeLog) {
-		super(transNeo, logger, changeLog);
+			LinkedBlockingQueue<ChangeOp> changeLog, Migrator migrator) {
+		super(transNeo, logger, changeLog, migrator);
 
 		// this.rng = new Random(); // Slow & poor randomness
 		this.rng = new MersenneTwisterRNG(); // Fast & good randomness

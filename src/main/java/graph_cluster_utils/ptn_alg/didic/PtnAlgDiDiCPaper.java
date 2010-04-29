@@ -10,9 +10,10 @@ import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 
 import graph_cluster_utils.change_log.ChangeOp;
+import graph_cluster_utils.config.Conf;
 import graph_cluster_utils.logger.Logger;
-import graph_cluster_utils.ptn_alg.config.Conf;
-import graph_cluster_utils.ptn_alg.config.ConfDiDiC;
+import graph_cluster_utils.migrator.Migrator;
+import graph_cluster_utils.ptn_alg.didic.config.ConfDiDiC;
 import graph_gen_utils.general.Consts;
 
 /**
@@ -39,21 +40,21 @@ public class PtnAlgDiDiCPaper extends PtnAlgDiDiC {
 	private LinkedHashMap<Long, ArrayList<Double>> l_prev = null;
 
 	public PtnAlgDiDiCPaper(GraphDatabaseService transNeo, Logger logger,
-			LinkedBlockingQueue<ChangeOp> changeLog) {
-		super(transNeo, logger, changeLog);
+			LinkedBlockingQueue<ChangeOp> changeLog, Migrator migrator) {
+		super(transNeo, logger, changeLog, migrator);
 		this.w_prev = new LinkedHashMap<Long, ArrayList<Double>>();
 		this.l_prev = new LinkedHashMap<Long, ArrayList<Double>>();
 	}
 
 	@Override
-	public void doPartition(Conf config) {
+	public void doPartition(Conf baseConfig) {
 
-		this.config = (ConfDiDiC) config;
+		config = (ConfDiDiC) baseConfig;
 
 		// PRINTOUT
 		System.out.println("\n*********DiDiC***********");
 
-		logger.doInitialSnapshot(transNeo, this.config.getClusterCount());
+		logger.doInitialSnapshot(transNeo, config);
 
 		initLoadVectorsAll();
 
@@ -62,7 +63,7 @@ public class PtnAlgDiDiCPaper extends PtnAlgDiDiC {
 		// PRINTOUT
 		System.out.println(getConfigStr());
 
-		for (int timeStep = 0; timeStep < this.config.getMaxIterations(); timeStep++) {
+		for (int timeStep = 0; timeStep < config.getMaxIterations(); timeStep++) {
 
 			long timeStepTime = System.currentTimeMillis();
 
@@ -73,7 +74,7 @@ public class PtnAlgDiDiCPaper extends PtnAlgDiDiC {
 			System.out.printf("\tFOS/T [TimeStep:%d, All Nodes]...", timeStep);
 
 			// For Every "Cluster System"
-			for (byte c = 0; c < this.config.getClusterCount(); c++) {
+			for (byte c = 0; c < config.getClusterCount(); c++) {
 
 				// FOS/T Primary Diffusion Algorithm
 				doFOST(c);
@@ -84,16 +85,16 @@ public class PtnAlgDiDiCPaper extends PtnAlgDiDiC {
 			System.out.printf("DiDiC Complete - Time Taken: %s",
 					getTimeStr(System.currentTimeMillis() - timeStepTime));
 
-			updateClusterAllocationAll(timeStep, this.config.getAllocType());
+			updateClusterAllocationAll(timeStep, config.getAllocType());
 
-			logger.doPeriodicSnapshot(transNeo, timeStep, this.config
-					.getClusterCount());
+			logger.doPeriodicSnapshot(transNeo, timeStep, config);
 
 			applyChangeLog(Integer.MAX_VALUE, Consts.CHANGELOG_MAX_TIMEOUTS);
 
+			migrator.doMigrateNow(transNeo, timeStep);
 		}
 
-		logger.doFinalSnapshot(transNeo, this.config.getClusterCount());
+		logger.doFinalSnapshot(transNeo, config);
 
 		// PRINTOUT
 		System.out.printf("%s", getTimeStr(System.currentTimeMillis() - time));

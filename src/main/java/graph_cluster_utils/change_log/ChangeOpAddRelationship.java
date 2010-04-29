@@ -31,9 +31,4 @@ public class ChangeOpAddRelationship extends ChangeOp {
 		return endNodeId;
 	}
 
-	@Override
-	public String getChangeOpId() {
-		return this.getClass().getName();
-	}
-
 }

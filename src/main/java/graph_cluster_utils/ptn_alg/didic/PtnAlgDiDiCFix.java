@@ -9,9 +9,10 @@ import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 
 import graph_cluster_utils.change_log.ChangeOp;
+import graph_cluster_utils.config.Conf;
 import graph_cluster_utils.logger.Logger;
-import graph_cluster_utils.ptn_alg.config.Conf;
-import graph_cluster_utils.ptn_alg.config.ConfDiDiC;
+import graph_cluster_utils.migrator.Migrator;
+import graph_cluster_utils.ptn_alg.didic.config.ConfDiDiC;
 import graph_gen_utils.general.Consts;
 
 /**
@@ -41,18 +42,18 @@ public class PtnAlgDiDiCFix extends PtnAlgDiDiC {
 	private double timeStepWeight = 1.0;
 
 	public PtnAlgDiDiCFix(GraphDatabaseService transNeo, Logger logger,
-			LinkedBlockingQueue<ChangeOp> changeLog) {
-		super(transNeo, logger, changeLog);
+			LinkedBlockingQueue<ChangeOp> changeLog, Migrator migrator) {
+		super(transNeo, logger, changeLog, migrator);
 	}
 
 	@Override
-	public void doPartition(Conf config) {
-		this.config = (ConfDiDiC) config;
+	public void doPartition(Conf baseConfig) {
+		config = (ConfDiDiC) baseConfig;
 
 		// PRINTOUT
 		System.out.println("\n*********DiDiC***********");
 
-		logger.doInitialSnapshot(transNeo, this.config.getClusterCount());
+		logger.doInitialSnapshot(transNeo, config);
 
 		initLoadVectorsAll();
 
@@ -61,7 +62,7 @@ public class PtnAlgDiDiCFix extends PtnAlgDiDiC {
 		// PRINTOUT
 		System.out.println(getConfigStr());
 
-		for (int timeStep = 0; timeStep < this.config.getMaxIterations(); timeStep++) {
+		for (int timeStep = 0; timeStep < config.getMaxIterations(); timeStep++) {
 
 			// NOTE Experimental!
 			timeStepWeight = 1.0 + (0.5 * timeStep);
@@ -69,8 +70,8 @@ public class PtnAlgDiDiCFix extends PtnAlgDiDiC {
 			// TODO For debugging only. Remove later
 			// PRINTOUT
 			System.out.printf("\nBefore FOST\n");
-			System.out.println(getVectorStr(new Long[] { (long) 1,
-					(long) 100, (long) 500 }));
+			System.out.println(getVectorStr(new Long[] { (long) 1, (long) 100,
+					(long) 500 }));
 
 			long timeStepTime = System.currentTimeMillis();
 
@@ -78,7 +79,7 @@ public class PtnAlgDiDiCFix extends PtnAlgDiDiC {
 			System.out.printf("\tFOS/T [TimeStep:%d, All Nodes]...", timeStep);
 
 			// For Every "Cluster System"
-			for (byte c = 0; c < this.config.getClusterCount(); c++) {
+			for (byte c = 0; c < config.getClusterCount(); c++) {
 
 				// FOS/T Primary Diffusion Algorithm
 				doFOST(c);
@@ -92,19 +93,19 @@ public class PtnAlgDiDiCFix extends PtnAlgDiDiC {
 			// TODO For debugging only. Remove later
 			// PRINTOUT
 			System.out.printf("\nAfter FOST\n");
-			System.out.println(getVectorStr(new Long[] { (long) 1,
-					(long) 100, (long) 500 }));
+			System.out.println(getVectorStr(new Long[] { (long) 1, (long) 100,
+					(long) 500 }));
 
-			updateClusterAllocationAll(timeStep, this.config.getAllocType());
+			updateClusterAllocationAll(timeStep, config.getAllocType());
 
-			logger.doPeriodicSnapshot(transNeo, timeStep, this.config
-					.getClusterCount());
+			logger.doPeriodicSnapshot(transNeo, timeStep, config);
 
 			applyChangeLog(Integer.MAX_VALUE, Consts.CHANGELOG_MAX_TIMEOUTS);
 
+			migrator.doMigrateNow(transNeo, timeStep);
 		}
 
-		logger.doFinalSnapshot(transNeo, this.config.getClusterCount());
+		logger.doFinalSnapshot(transNeo, config);
 
 		// PRINTOUT
 		System.out.printf("%s", getTimeStr(System.currentTimeMillis() - time));

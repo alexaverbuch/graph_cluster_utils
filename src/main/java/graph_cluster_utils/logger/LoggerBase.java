@@ -2,6 +2,8 @@ package graph_cluster_utils.logger;
 
 import org.neo4j.graphdb.GraphDatabaseService;
 
+import graph_cluster_utils.config.Conf;
+import graph_cluster_utils.ptn_alg.didic.config.ConfDiDiC;
 import graph_gen_utils.NeoFromFile;
 import graph_gen_utils.NeoFromFile.ChacoType;
 
@@ -36,8 +38,9 @@ public class LoggerBase extends Logger {
 	}
 
 	@Override
-	public void doInitialSnapshot(GraphDatabaseService transNeo,
-			int clusterCount) {
+	public void doInitialSnapshot(GraphDatabaseService transNeo, Conf baseConfig) {
+
+		ConfDiDiC config = (ConfDiDiC) baseConfig;
 
 		if (isInitialSnapshot() == false)
 			return;
@@ -45,13 +48,13 @@ public class LoggerBase extends Logger {
 		try {
 
 			String outMetrics = String.format("%s%s.%d.met", resultsDir,
-					graphName, clusterCount);
+					graphName, config.getClusterCount());
 
 			String outGraph = String
 					.format("%s%s.graph", resultsDir, graphName);
 
 			String outPtn = String.format("%s%s.%d.ptn", resultsDir, graphName,
-					clusterCount);
+					config.getClusterCount());
 
 			// Write graph metrics to file
 			NeoFromFile.writeMetricsCSV(transNeo, outMetrics);
@@ -68,13 +71,17 @@ public class LoggerBase extends Logger {
 	}
 
 	@Override
-	protected boolean isPeriodicSnapshot(long timeStep) {
+	protected boolean isPeriodicSnapshot(Object variant) {
+		long timeStep = (Long) variant;
 		return (timeStep % snapshotPeriod) == 0;
 	}
 
 	@Override
 	public void doPeriodicSnapshot(GraphDatabaseService transNeo,
-			long timeStep, int clusterCount) {
+			Object variant, Conf baseConfig) {
+
+		ConfDiDiC config = (ConfDiDiC) baseConfig;
+		long timeStep = (Long) variant;
 
 		if (isPeriodicSnapshot(timeStep) == false)
 			return;
@@ -82,13 +89,13 @@ public class LoggerBase extends Logger {
 		try {
 
 			String outMetrics = String.format("%s%s.%d.met", resultsDir,
-					graphName, clusterCount);
+					graphName, config.getClusterCount());
 
 			// Write graph metrics to file
 			NeoFromFile.appendMetricsCSV(transNeo, outMetrics, timeStep);
 
 			String outGml = String.format("%s%s.%d.%d.gml", resultsDir,
-					graphName, clusterCount, timeStep);
+					graphName, config.getClusterCount(), timeStep);
 
 			if ((timeStep % longSnapshotPeriod) == 0)
 				NeoFromFile.writeGMLBasic(transNeo, outGml);
@@ -105,7 +112,9 @@ public class LoggerBase extends Logger {
 	}
 
 	@Override
-	public void doFinalSnapshot(GraphDatabaseService transNeo, int clusterCount) {
+	public void doFinalSnapshot(GraphDatabaseService transNeo, Conf baseConfig) {
+
+		ConfDiDiC config = (ConfDiDiC) baseConfig;
 
 		if (isFinalSnapshot() == false)
 			return;
@@ -113,13 +122,13 @@ public class LoggerBase extends Logger {
 		try {
 
 			String outMetrics = String.format("%s%s.%d.met", resultsDir,
-					graphName, clusterCount);
+					graphName, config.getClusterCount());
 
 			// Write graph metrics to file
 			NeoFromFile.appendMetricsCSV(transNeo, outMetrics, null);
 
 			String outGml = String.format("%s%s.%d.gml", resultsDir, graphName,
-					clusterCount);
+					config.getClusterCount());
 
 			NeoFromFile.writeGMLBasic(transNeo, outGml);
 

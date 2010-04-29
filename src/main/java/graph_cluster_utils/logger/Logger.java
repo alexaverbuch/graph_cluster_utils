@@ -1,5 +1,6 @@
 package graph_cluster_utils.logger;
 
+import graph_cluster_utils.config.Conf;
 import graph_cluster_utils.ptn_alg.PtnAlg;
 
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -28,21 +29,22 @@ public abstract class Logger {
 	 *            {@link GraphDatabaseService} implementation to be read from
 	 *            during logging
 	 * 
-	 * @param clusterCount
-	 *            number of clusters the algorithm is either trying to find, or
-	 *            has found so far (depending on use)
+	 * @param config
+	 *            {@link Conf} instance used to configure the {@link PtnAlg}
+	 *            algorithm
 	 * 
 	 */
 	public abstract void doInitialSnapshot(GraphDatabaseService transNeo,
-			int clusterCount);
+			Conf config);
 
 	/**
 	 * Checks if logging/snapshot should be performed at this time step.
 	 * 
-	 * @param timeStep
-	 *            represents the algorithms current iteration
+	 * @param variant
+	 *            state used to decide if a snapshot should be performed
+	 * 
 	 */
-	protected abstract boolean isPeriodicSnapshot(long timeStep);
+	protected abstract boolean isPeriodicSnapshot(Object variant);
 
 	/**
 	 * Perform logging/snapshot of the state of the current Neo4j instance. This
@@ -52,16 +54,16 @@ public abstract class Logger {
 	 *            {@link GraphDatabaseService} implementation to be read from
 	 *            during logging
 	 * 
-	 * @param timeStep
-	 *            represents the algorithms current iteration
+	 * @param variant
+	 *            state used to decide if a snapshot should be performed
 	 * 
-	 * @param clusterCount
-	 *            number of clusters the algorithm is either trying to find, or
-	 *            has found so far (depending on use)
+	 * @param config
+	 *            {@link Conf} instance used to configure the {@link PtnAlg}
+	 *            algorithm
 	 * 
 	 */
 	public abstract void doPeriodicSnapshot(GraphDatabaseService transNeo,
-			long timeStep, int clusterCount);
+			Object variant, Conf config);
 
 	/**
 	 * Checks if final logging/snapshot should be performed.
@@ -76,11 +78,11 @@ public abstract class Logger {
 	 *            {@link GraphDatabaseService} implementation to be read from
 	 *            during logging
 	 * 
-	 * @param clusterCount
-	 *            number of clusters the algorithm is either trying to find, or
-	 *            has found so far (depending on use)
+	 * @param config
+	 *            {@link Conf} instance used to configure the {@link PtnAlg}
+	 *            algorithm
 	 * 
 	 */
 	public abstract void doFinalSnapshot(GraphDatabaseService transNeo,
-			int clusterCount);
+			Conf config);
 }
