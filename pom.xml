@@ -29,13 +29,9 @@
 		<dependency>
 			<groupId>org.neo4j</groupId>
 			<artifactId>neo4j-apoc</artifactId>
-			<version>0.5</version>
+			<version>1.1-SNAPSHOT</version>
 			<type>pom</type>
-		</dependency>
-		<dependency>
-			<groupId>org.neo4j</groupId>
-			<artifactId>neo4j-graph-algo</artifactId>
-			<version>0.3-SNAPSHOT</version>
+			<scope>compile</scope>
 		</dependency>
 	</dependencies>
 </project>
