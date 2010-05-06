@@ -95,7 +95,9 @@ public class PtnAlgDiDiCSync extends PtnAlgDiDiC {
 		logger.doFinalSnapshot(transNeo, config);
 
 		// PRINTOUT
-		System.out.printf("%s", getTimeStr(System.currentTimeMillis() - time));
+		System.out.printf("\nRunning Time %s", getTimeStr(System
+				.currentTimeMillis()
+				- time));
 
 		System.out.println("*********DiDiC***********\n");
 	}
@@ -104,12 +106,12 @@ public class PtnAlgDiDiCSync extends PtnAlgDiDiC {
 
 		for (int fostIter = 0; fostIter < config.getFOSTIterations(); fostIter++) {
 
-			// FOS/B (Secondary/Drain) Diffusion Algorithm
-			doFOSB(c);
-
 			Transaction tx = transNeo.beginTx();
 
 			try {
+
+				// FOS/B (Secondary/Drain) Diffusion Algorithm
+				doFOSB(c);
 
 				// For Every Node: FOS/T Primary Diffusion Algorithm
 				for (Node v : transNeo.getAllNodes()) {

@@ -109,41 +109,51 @@ public class PtnAlgDiDiCPaper extends PtnAlgDiDiC {
 		// PRINTOUT
 		System.out.printf("Initialising Load Vectors...");
 
-		for (Node v : transNeo.getAllNodes()) {
+		Transaction tx = transNeo.beginTx();
 
-			byte vColor = (Byte) v.getProperty(Consts.COLOR);
+		try {
 
-			ArrayList<Double> wV_prev = new ArrayList<Double>();
-			ArrayList<Double> lV_prev = new ArrayList<Double>();
+			for (Node v : transNeo.getAllNodes()) {
 
-			ArrayList<Double> wV = new ArrayList<Double>();
-			ArrayList<Double> lV = new ArrayList<Double>();
+				byte vColor = (Byte) v.getProperty(Consts.COLOR);
 
-			for (byte c = 0; c < config.getClusterCount(); c++) {
+				ArrayList<Double> wV_prev = new ArrayList<Double>();
+				ArrayList<Double> lV_prev = new ArrayList<Double>();
 
-				if (vColor == c) {
-					wV_prev.add(new Double(config.getDefClusterVal()));
-					lV_prev.add(new Double(config.getDefClusterVal()));
+				ArrayList<Double> wV = new ArrayList<Double>();
+				ArrayList<Double> lV = new ArrayList<Double>();
 
-					wV.add(new Double(config.getDefClusterVal()));
-					lV.add(new Double(config.getDefClusterVal()));
+				for (byte c = 0; c < config.getClusterCount(); c++) {
 
-					continue;
+					if (vColor == c) {
+						wV_prev.add(new Double(config.getDefClusterVal()));
+						lV_prev.add(new Double(config.getDefClusterVal()));
+
+						wV.add(new Double(config.getDefClusterVal()));
+						lV.add(new Double(config.getDefClusterVal()));
+
+						continue;
+					}
+
+					wV_prev.add(new Double(0));
+					lV_prev.add(new Double(0));
+
+					wV.add(new Double(0));
+					lV.add(new Double(0));
 				}
 
-				wV_prev.add(new Double(0));
-				lV_prev.add(new Double(0));
+				w_prev.put(v.getId(), wV_prev);
+				l_prev.put(v.getId(), lV_prev);
 
-				wV.add(new Double(0));
-				lV.add(new Double(0));
+				w.put(v.getId(), wV);
+				l.put(v.getId(), lV);
+
 			}
 
-			w_prev.put(v.getId(), wV_prev);
-			l_prev.put(v.getId(), lV_prev);
-
-			w.put(v.getId(), wV);
-			l.put(v.getId(), lV);
-
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			tx.finish();
 		}
 
 		// PRINTOUT

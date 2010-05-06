@@ -72,7 +72,7 @@ public class LoggerBase extends Logger {
 
 	@Override
 	protected boolean isPeriodicSnapshot(Object variant) {
-		long timeStep = (Long) variant;
+		int timeStep = (Integer) variant;
 		return (timeStep % snapshotPeriod) == 0;
 	}
 
@@ -81,7 +81,7 @@ public class LoggerBase extends Logger {
 			Object variant, Conf baseConfig) {
 
 		ConfDiDiC config = (ConfDiDiC) baseConfig;
-		long timeStep = (Long) variant;
+		int timeStep = (Integer) variant;
 
 		if (isPeriodicSnapshot(timeStep) == false)
 			return;
@@ -92,7 +92,7 @@ public class LoggerBase extends Logger {
 					graphName, config.getClusterCount());
 
 			// Write graph metrics to file
-			NeoFromFile.appendMetricsCSV(transNeo, outMetrics, timeStep);
+			NeoFromFile.appendMetricsCSV(transNeo, outMetrics, (long) timeStep);
 
 			String outGml = String.format("%s%s.%d.%d.gml", resultsDir,
 					graphName, config.getClusterCount(), timeStep);
