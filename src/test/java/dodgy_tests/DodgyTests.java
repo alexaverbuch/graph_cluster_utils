@@ -41,11 +41,100 @@ import org.neo4j.kernel.EmbeddedGraphDatabase;
 
 import p_graph_service.PGraphDatabaseService;
 import p_graph_service.core.PGraphDatabaseServiceImpl;
+import p_graph_service.sim.PGraphDatabaseServiceSIM;
 
 public class DodgyTests {
 
 	public static void main(String[] args) {
-		db_service_comparison();
+		// partition_tree();
+		GraphDatabaseService db = new EmbeddedGraphDatabase(
+				"/home/alex/workspace/graph_cluster_utils/var/fs-tree/fs-tree-db");
+		NeoFromFile
+				.writeMetricsCSV(db,
+						"/home/alex/workspace/graph_cluster_utils/var/fs-tree/PARTITIONED.met");
+		db.shutdown();
+	}
+
+	private static void partition_tree() {
+		String treeDir = "/home/alex/workspace/graph_cluster_utils/var/fs-tree/";
+		String dbName = treeDir + "fs-tree-db";
+
+		PGraphDatabaseServiceSIM treeDb = new PGraphDatabaseServiceSIM(dbName,
+				0);
+
+		MemGraph memTreeDb = NeoFromFile.readMemGraph(treeDb);
+
+		int snapshotPeriod = 50;
+		int longSnapshotPeriod = 50;
+		Logger logger = new LoggerBase(snapshotPeriod, longSnapshotPeriod,
+				"fs-tree", treeDir);
+
+		LinkedBlockingQueue<ChangeOp> changeLog = new LinkedBlockingQueue<ChangeOp>();
+
+		int migrationPeriod = 50;
+		Migrator migrator = new MigratorBase(treeDb, migrationPeriod);
+
+		PtnAlg ptnAlg = new PtnAlgDiDiCSync(memTreeDb, logger, changeLog,
+				migrator);
+
+		int maxIterations = 101;
+		ConfDiDiC config = new ConfDiDiC((byte) 2);
+		config.setMaxIterations(maxIterations);
+
+		ptnAlg.doPartition(config);
+
+		treeDb.shutdown();
+	}
+
+	private static void test_migrator() {
+		String testDir = "/home/alex/workspace/graph_cluster_utils/var/migrator test/";
+
+		String dbName = testDir + "migrator_test_db";
+		DirUtils.cleanDir(dbName);
+
+		GraphDatabaseService db = new EmbeddedGraphDatabase(dbName);
+
+		String chacoName = testDir + "input/migrator_test-IN.graph";
+		String ptnName = testDir + "input/migrator_test-IN.2.ptn";
+		NeoFromFile.writeNeoFromChacoAndPtn(db, chacoName, ptnName);
+		db.shutdown();
+
+		PGraphDatabaseServiceSIM userDb = new PGraphDatabaseServiceSIM(dbName,
+				0);
+
+		String userDbGmlNameBefore = "userDbGmlBefore.gml";
+		NeoFromFile.writeGMLBasic(userDb, testDir + userDbGmlNameBefore);
+
+		MemGraph memDb = NeoFromFile.readMemGraph(userDb);
+
+		String memDbGmlNameBefore = "memDbGmlBefore.gml";
+		NeoFromFile.writeGMLBasic(memDb, testDir + memDbGmlNameBefore);
+
+		int snapshotPeriod = 50;
+		int longSnapshotPeriod = 50;
+		Logger logger = new LoggerBase(snapshotPeriod, longSnapshotPeriod,
+				"migrator_test", testDir);
+
+		LinkedBlockingQueue<ChangeOp> changeLog = new LinkedBlockingQueue<ChangeOp>();
+
+		int migrationPeriod = 50;
+		Migrator migrator = new MigratorBase(userDb, migrationPeriod);
+
+		PtnAlg ptnAlg = new PtnAlgDiDiCSync(memDb, logger, changeLog, migrator);
+
+		int maxIterations = 51;
+		ConfDiDiC config = new ConfDiDiC((byte) 2);
+		config.setMaxIterations(maxIterations);
+
+		ptnAlg.doPartition(config);
+
+		String userDbGmlNameAfter = "userDbGmlAfter.gml";
+		NeoFromFile.writeGMLBasic(userDb, testDir + userDbGmlNameAfter);
+
+		String memDbGmlNameAfter = "memeDbGmlAfter.gml";
+		NeoFromFile.writeGMLBasic(memDb, testDir + memDbGmlNameAfter);
+
+		userDb.shutdown();
 	}
 
 	private static void run_algorithm() {

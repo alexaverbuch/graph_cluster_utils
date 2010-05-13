@@ -1,6 +1,8 @@
 package graph_cluster_utils.migrator;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map.Entry;
 
 import graph_gen_utils.general.Consts;
 
@@ -27,30 +29,48 @@ public class MigratorBase extends Migrator {
 			return;
 
 		Transaction algTx = algTransNeo.beginTx();
+		Transaction userTx = userTransNeo.beginTx();
 
 		try {
+			int bufferSize = 1000;
+			HashMap<Byte, ArrayList<Node>> nodesBuffer = new HashMap<Byte, ArrayList<Node>>();
+			ArrayList<Node> sameColorNodes = null;
 			for (Node algNode : algTransNeo.getAllNodes()) {
 
-				Transaction userTx = userTransNeo.beginTx();
+				Node userNode = userTransNeo.getNodeById(algNode.getId());
+				Byte algNodeColor = (Byte) algNode.getProperty(Consts.COLOR);
 
-				try {
+				sameColorNodes = nodesBuffer.get(algNodeColor);
+				if (sameColorNodes == null) {
+					sameColorNodes = new ArrayList<Node>();
+					nodesBuffer.put(algNodeColor, sameColorNodes);
+				}
+				sameColorNodes.add(userNode);
 
-					Long algNodeId = (Long) algNode
-							.getProperty(Consts.NODE_GID);
-					Node userNode = userTransNeo.getNodeById(algNodeId);
+				if (sameColorNodes.size() % bufferSize == 0) {
+					userTransNeo.moveNodes(sameColorNodes, algNodeColor);
 
-					ArrayList<Node> nodes = new ArrayList<Node>();
-					nodes.add(userNode);
-
-					userTransNeo.moveNodes(nodes, (Long) algNode
-							.getProperty(Consts.COLOR));
+					sameColorNodes.clear();
 
 					userTx.success();
-
-				} catch (Exception e) {
-					e.printStackTrace();
-				} finally {
 					userTx.finish();
+					userTx = userTransNeo.beginTx();
+				}
+
+			}
+
+			for (Entry<Byte, ArrayList<Node>> sameColorNodesEntry : nodesBuffer
+					.entrySet()) {
+
+				if (sameColorNodesEntry.getValue().size() > 0) {
+					userTransNeo.moveNodes(sameColorNodesEntry.getValue(),
+							sameColorNodesEntry.getKey());
+
+					sameColorNodesEntry.getValue().clear();
+
+					userTx.success();
+					userTx.finish();
+					userTx = userTransNeo.beginTx();
 				}
 
 			}
@@ -59,12 +79,14 @@ public class MigratorBase extends Migrator {
 			e.printStackTrace();
 		} finally {
 			algTx.finish();
+			if (userTx != null)
+				userTx.finish();
 		}
 	}
 
 	@Override
 	protected boolean isMigrateNow(Object variant) {
-		long timeStep = (Long) variant;
+		long timeStep = (Integer) variant;
 		return (timeStep % migrationPeriod) == 0;
 	}
 

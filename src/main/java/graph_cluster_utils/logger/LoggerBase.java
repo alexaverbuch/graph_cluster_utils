@@ -56,6 +56,9 @@ public class LoggerBase extends Logger {
 			String outPtn = String.format("%s%s.%d.ptn", resultsDir, graphName,
 					config.getClusterCount());
 
+			String outGml = String.format("%s%s.INIT.%d.gml", resultsDir,
+					graphName, config.getClusterCount());
+
 			// Write graph metrics to file
 			NeoFromFile.writeMetricsCSV(transNeo, outMetrics);
 
@@ -63,6 +66,9 @@ public class LoggerBase extends Logger {
 			// .ptn file can be used in future simulations for consistency
 			NeoFromFile.writeChacoAndPtn(transNeo, outGraph,
 					ChacoType.UNWEIGHTED, outPtn);
+
+			// Write GML to file
+			NeoFromFile.writeGMLBasic(transNeo, outGml);
 
 		} catch (Exception e) {
 			e.printStackTrace();
