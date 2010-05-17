@@ -10,6 +10,7 @@ import graph_cluster_utils.change_log.ChangeOpEnd;
 import graph_cluster_utils.config.Conf;
 import graph_cluster_utils.logger.Logger;
 import graph_cluster_utils.logger.LoggerBase;
+import graph_cluster_utils.logger.LoggerMetricsMinimal;
 import graph_cluster_utils.migrator.Migrator;
 import graph_cluster_utils.migrator.MigratorBase;
 import graph_cluster_utils.migrator.MigratorDummy;
@@ -140,7 +141,6 @@ public class DodgyTests {
 	private static void run_algorithm() {
 		// This method does the following:
 		// ---> Loads a Neo4j instance
-		// ---> Initialises partitioning
 		// ---> Loads Neo4j into memory
 		// ---> Creates and configures metrics Logger
 		// ---> Creates change log
@@ -153,50 +153,43 @@ public class DodgyTests {
 			// TODO Implement E.g. "var/tree-graph/"
 			String dbDirectory = "PUT YOUR DB DIRECTORY HERE";
 
-			GraphDatabaseService db = new EmbeddedGraphDatabase(dbDirectory);
-
-			// Initialise partitioning
-			byte numberOfPartitions = 2;
-			Partitioner partitioner = new PartitionerAsRandom(
-					numberOfPartitions);
-			NeoFromFile.applyPtnToNeo(db, partitioner);
-
-			// Convert Neo4j to partitioned Neo4j
-			// TODO Uncomment if necessary E.g. "var/partitioned-tree-graph/"
-			// String pdbDirectory = "PUT YOUR PDB DIRECTORY HERE";
-			// GraphDatabaseService pdb = NeoFromFile.writePNeoFromNeo(
-			// pdbDirectory, db);
+			PGraphDatabaseServiceSIM db = new PGraphDatabaseServiceSIM(
+					dbDirectory, 0);
 
 			MemGraph memGraph = NeoFromFile.readMemGraph(db);
 
-			int shortSnapshotPeriod = Integer.MAX_VALUE; // Never log
-			int longSnapshotPeriod = Integer.MAX_VALUE; // Never log
-			String graphName = "tree";
+			// Name that will prepend metrics file names
+			String graphName = "fs-tree";
 
-			// This is where Logger saves .gml, .chaco, .ptn files etc
+			// Directory where metrics files will be written
 			// TODO Implement E.g. "var/tree-graph-logs/"
 			String resultsDirectory = "PUT YOUR RESULTS DIRECTORY HERE";
-			// Clean directory
-			// TODO Uncomment if necessary
-			// DirUtils.cleanDir(resultsDirectory);
 
-			Logger logger = new LoggerBase(shortSnapshotPeriod,
-					longSnapshotPeriod, graphName, resultsDirectory);
+			// Deletes all files in Results directory
+			DirUtils.cleanDir(resultsDirectory);
+
+			Logger logger = new LoggerMetricsMinimal(graphName,
+					resultsDirectory);
 
 			// Change log, in this case it's always empty
 			LinkedBlockingQueue<ChangeOp> changeLog = new LinkedBlockingQueue<ChangeOp>();
 
-			// Empty implementation of Migrator, does nothing
-			Migrator migrator = new MigratorDummy();
+			// Push changes to the original PGraphDatabaseService
+			// TODO Define how often changes are pushed to PGraphDatabaseService
+			int migrationPeriod = 100;
+			Migrator migrator = new MigratorBase(db, migrationPeriod);
 
 			PtnAlg ptnAlg = new PtnAlgDiDiCSync(memGraph, logger, changeLog,
 					migrator);
 
 			// This contains the algorithm parameters
+			// TODO Number of partitions
+			byte numberOfPartitions = 2;
 			Conf config = new ConfDiDiC(numberOfPartitions);
 
 			// Number of algorithm iterations
-			int maxIterations = 50;
+			// TODO Define max algorithm iterations
+			int maxIterations = 101;
 			((ConfDiDiC) config).setMaxIterations(maxIterations);
 
 			ptnAlg.doPartition(config);
