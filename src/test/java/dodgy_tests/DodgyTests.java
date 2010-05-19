@@ -47,13 +47,72 @@ import p_graph_service.sim.PGraphDatabaseServiceSIM;
 public class DodgyTests {
 
 	public static void main(String[] args) {
-		// partition_tree();
-		GraphDatabaseService db = new EmbeddedGraphDatabase(
-				"/home/alex/workspace/graph_cluster_utils/var/fs-tree/fs-tree-db");
-		NeoFromFile
-				.writeMetricsCSV(db,
-						"/home/alex/workspace/graph_cluster_utils/var/fs-tree/PARTITIONED.met");
-		db.shutdown();
+		// This method does the following:
+		// ---> Loads a Neo4j instance
+		// ---> Loads Neo4j into memory
+		// ---> Creates and configures metrics Logger
+		// ---> Creates change log
+		// ---> Creates Migrator
+		// ---> Creates and configures partitioning algorithm (PtnAlg)
+		// ---> Runs PtnAlg
+
+		if (args[0].equals("help")) {
+			System.out.println("Params - " + "GraphName:Str "
+					+ "Partitions:Byte " + "AlgIters:Int " + "DBDirectory:Str "
+					+ "ResultsDir:Str " + "DBSyncPeriod:Int");
+		}
+
+		try {
+
+			// Name that will prepend metrics file names
+			String graphName = args[0]; // "fs-tree"
+
+			// Algorithm parameter: partition count
+			byte numberOfPartitions = Byte.parseByte(args[1]);
+
+			// Algorithm parameter: Max iterations
+			int maxIterations = Integer.parseInt(args[2]);
+
+			// This is where Neo4j instance is located
+			String dbDirectory = args[3]; // "var/tree-graph/"
+
+			// Directory where metrics files will be written
+			String resultsDirectory = args[4]; // "var/tree-graph-logs/"
+
+			// How often changes are pushed to PGraphDatabaseService
+			int migrationPeriod = Integer.parseInt(args[5]);
+
+			// *************
+
+			PGraphDatabaseServiceSIM db = new PGraphDatabaseServiceSIM(
+					dbDirectory, 0);
+
+			MemGraph memGraph = NeoFromFile.readMemGraph(db);
+
+			// Deletes all files in Results directory
+			DirUtils.cleanDir(resultsDirectory);
+
+			Logger logger = new LoggerMetricsMinimal(graphName,
+					resultsDirectory);
+
+			// Change log, in this case it's always empty
+			LinkedBlockingQueue<ChangeOp> changeLog = new LinkedBlockingQueue<ChangeOp>();
+
+			// Push changes to the original PGraphDatabaseService
+			Migrator migrator = new MigratorBase(db, migrationPeriod);
+
+			PtnAlg ptnAlg = new PtnAlgDiDiCSync(memGraph, logger, changeLog,
+					migrator);
+
+			Conf config = new ConfDiDiC(numberOfPartitions);
+
+			// Number of algorithm iterations
+			((ConfDiDiC) config).setMaxIterations(maxIterations);
+
+			ptnAlg.doPartition(config);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 
 	private static void partition_tree() {
