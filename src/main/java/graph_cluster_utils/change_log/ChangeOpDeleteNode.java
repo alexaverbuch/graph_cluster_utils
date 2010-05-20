@@ -2,14 +2,19 @@ package graph_cluster_utils.change_log;
 
 public class ChangeOpDeleteNode extends ChangeOp {
 
-	private long nodeId = 0;
+	private long id = 0;
 
-	public ChangeOpDeleteNode(long nodeId) {
-		this.nodeId = nodeId;
+	public ChangeOpDeleteNode(long id) {
+		this.id = id;
 	}
 
 	public long getNodeId() {
-		return nodeId;
+		return id;
+	}
+
+	@Override
+	public String toString() {
+		return String.format("%s ID[%d]", getChangeOpId(), id);
 	}
 
 }

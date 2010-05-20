@@ -12,4 +12,9 @@ public class ChangeOpDeleteRelationship extends ChangeOp {
 		return id;
 	}
 
+	@Override
+	public String toString() {
+		return String.format("%s ID[%d]", getChangeOpId(), id);
+	}
+
 }

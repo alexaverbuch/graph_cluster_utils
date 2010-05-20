@@ -31,4 +31,10 @@ public class ChangeOpAddRelationship extends ChangeOp {
 		return endNodeId;
 	}
 
+	@Override
+	public String toString() {
+		return String.format("%s ID[%d] StartID[%d] EndID[%d]",
+				getChangeOpId(), id, startNodeId, endNodeId);
+	}
+
 }
