@@ -37,6 +37,8 @@ public class PtnAlgRunner {
 					+ "ResultsDir:Str " + "DBSyncPeriod:Int");
 		}
 
+		PGraphDatabaseServiceSIM db = null;
+
 		try {
 
 			// Name that will prepend metrics file names
@@ -59,8 +61,7 @@ public class PtnAlgRunner {
 
 			// *************
 
-			PGraphDatabaseServiceSIM db = new PGraphDatabaseServiceSIM(
-					dbDirectory, 0);
+			db = new PGraphDatabaseServiceSIM(dbDirectory, 0);
 
 			MemGraph memGraph = NeoFromFile.readMemGraph(db);
 
@@ -84,7 +85,9 @@ public class PtnAlgRunner {
 			ptnAlg.doPartition(config);
 		} catch (Exception e) {
 			e.printStackTrace();
+		} finally {
+			if (db != null)
+				db.shutdown();
 		}
 	}
-
 }
