@@ -48,7 +48,7 @@ import p_graph_service.sim.PGraphDatabaseServiceSIM;
 public class DodgyTests {
 
 	public static void main(String[] args) {
-		File changeOpLogFile = new File("path.....");
+		File changeOpLogFile = new File("/home/alex/changeOpLog");
 		LogReaderChangeOp logReader = new LogReaderChangeOp(changeOpLogFile);
 		for (ChangeOp changeOp : logReader.getChangeOps()) {
 			System.out.println(changeOp.toString());
