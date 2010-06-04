@@ -17,7 +17,7 @@ import graph_cluster_utils.ptn_alg.esp.PtnAlgEvoPartitionExp;
 import graph_cluster_utils.ptn_alg.esp.config.ConfEvoPartition;
 import graph_gen_utils.NeoFromFile;
 import graph_gen_utils.NeoFromFile.ChacoType;
-import graph_gen_utils.general.DirUtils;
+import graph_gen_utils.general.Utils;
 import graph_gen_utils.memory_graph.MemGraph;
 import graph_gen_utils.memory_graph.MemNode;
 import graph_gen_utils.memory_graph.MemRel;
@@ -130,7 +130,7 @@ public class Examples {
 		String inputPtnPath = String.format("%s%s.%d.ptn", ptnDir, inputPtn,
 				clusterCount);
 
-		DirUtils.cleanDir(databaseDir);
+		Utils.cleanDir(databaseDir);
 		GraphDatabaseService transNeo = new EmbeddedGraphDatabase(databaseDir);
 
 		NeoFromFile.writeNeoFromChacoAndPtn(transNeo, inputGraphPath,
@@ -172,7 +172,7 @@ public class Examples {
 		String inputPtnPath = String.format("%s%s.%d.ptn", ptnDir, inputPtn,
 				clusterCount);
 
-		DirUtils.cleanDir(databaseDir);
+		Utils.cleanDir(databaseDir);
 		GraphDatabaseService transNeo = new EmbeddedGraphDatabase(databaseDir);
 
 		NeoFromFile.writeNeoFromChacoAndPtn(transNeo, inputGraphPath,
@@ -216,7 +216,7 @@ public class Examples {
 		String inputPtnPath = String.format("%s%s.%d.ptn", ptnDir, inputPtn,
 				clusterCount);
 
-		DirUtils.cleanDir(databaseDir);
+		Utils.cleanDir(databaseDir);
 		GraphDatabaseService transNeo = new EmbeddedGraphDatabase(databaseDir);
 
 		NeoFromFile.writeNeoFromChacoAndPtn(transNeo, inputGraphPath,
@@ -262,7 +262,7 @@ public class Examples {
 		String inputPtnPath = String.format("%s%s.%d.ptn", ptnDir, inputPtn,
 				clusterCount);
 
-		DirUtils.cleanDir(databaseDir);
+		Utils.cleanDir(databaseDir);
 		GraphDatabaseService transNeo = new EmbeddedGraphDatabase(databaseDir);
 
 		NeoFromFile.writeNeoFromChacoAndPtn(transNeo, inputGraphPath,
@@ -308,7 +308,7 @@ public class Examples {
 		String inputPtnPath = String.format("%s%s.%d.ptn", ptnDir, inputPtn,
 				clusterCount);
 
-		DirUtils.cleanDir(databaseDir);
+		Utils.cleanDir(databaseDir);
 		GraphDatabaseService transNeo = new EmbeddedGraphDatabase(databaseDir);
 
 		NeoFromFile.writeNeoFromChacoAndPtn(transNeo, inputGraphPath,
@@ -352,7 +352,7 @@ public class Examples {
 		String inputPtnPath = String.format("%s%s.%d.ptn", ptnDir, inputPtn,
 				clusterCount);
 
-		DirUtils.cleanDir(databaseDir);
+		Utils.cleanDir(databaseDir);
 		GraphDatabaseService transNeo = new EmbeddedGraphDatabase(databaseDir);
 
 		NeoFromFile.writeNeoFromChacoAndPtn(transNeo, inputGraphPath,
@@ -391,7 +391,7 @@ public class Examples {
 		String inputGraphPath = String.format("%s%s.graph", graphDir,
 				inputGraph);
 
-		DirUtils.cleanDir(databaseDir);
+		Utils.cleanDir(databaseDir);
 		GraphDatabaseService transNeo = new EmbeddedGraphDatabase(databaseDir);
 
 		Partitioner partitioner = new PartitionerAsSingle((byte) -1);
@@ -427,8 +427,8 @@ public class Examples {
 		String inputGraphPath = String.format("%s%s.graph", graphDir,
 				inputGraph);
 
-		DirUtils.cleanDir(databaseDir);
-		DirUtils.cleanDir(metDir);
+		Utils.cleanDir(databaseDir);
+		Utils.cleanDir(metDir);
 
 		GraphDatabaseService transNeo = new EmbeddedGraphDatabase(databaseDir);
 
@@ -468,8 +468,8 @@ public class Examples {
 		String inputGraphPath = String.format("%s%s.graph", graphDir,
 				inputGraph);
 
-		DirUtils.cleanDir(databaseDir);
-		DirUtils.cleanDir(metDir);
+		Utils.cleanDir(databaseDir);
+		Utils.cleanDir(metDir);
 
 		GraphDatabaseService transNeo = new EmbeddedGraphDatabase(databaseDir);
 
@@ -513,7 +513,7 @@ public class Examples {
 		String inputPtnPath = String.format("%s%s.%d.ptn", ptnDir, inputPtn,
 				clusterCount);
 
-		DirUtils.cleanDir(databaseDir);
+		Utils.cleanDir(databaseDir);
 		GraphDatabaseService transNeo = new EmbeddedGraphDatabase(databaseDir);
 
 		NeoFromFile.writeNeoFromChacoAndPtn(transNeo, inputGraphPath,
@@ -559,7 +559,7 @@ public class Examples {
 		String inputPtnPath = String.format("%s%s.%d.ptn", ptnDir, inputPtn,
 				clusterCount);
 
-		DirUtils.cleanDir(databaseDir);
+		Utils.cleanDir(databaseDir);
 		GraphDatabaseService transNeo = new EmbeddedGraphDatabase(databaseDir);
 
 		NeoFromFile.writeNeoFromChacoAndPtn(transNeo, inputGraphPath,
@@ -605,7 +605,7 @@ public class Examples {
 		String inputPtnPath = String.format("%s%s.%d.ptn", ptnDir, inputPtn,
 				clusterCount);
 
-		DirUtils.cleanDir(databaseDir);
+		Utils.cleanDir(databaseDir);
 		GraphDatabaseService transNeo = new EmbeddedGraphDatabase(databaseDir);
 
 		NeoFromFile.writeNeoFromChacoAndPtn(transNeo, inputGraphPath,
@@ -649,7 +649,7 @@ public class Examples {
 		String inputPtnPath = String.format("%s%s.%d.ptn", ptnDir, inputPtn,
 				clusterCount);
 
-		DirUtils.cleanDir(databaseDir);
+		Utils.cleanDir(databaseDir);
 		GraphDatabaseService transNeo = new EmbeddedGraphDatabase(databaseDir);
 
 		NeoFromFile.writeNeoFromChacoAndPtn(transNeo, inputGraphPath,
@@ -693,7 +693,7 @@ public class Examples {
 		// String inputPtnPath = String.format("%s%s.%d.ptn", ptnDir, inputPtn,
 		// clusterCount);
 
-		DirUtils.cleanDir(databaseDir);
+		Utils.cleanDir(databaseDir);
 		GraphDatabaseService transNeo = new EmbeddedGraphDatabase(databaseDir);
 
 		// NeoFromFile.writeNeoFromChaco(transNeo, inputGraphPath,
@@ -737,7 +737,7 @@ public class Examples {
 		String inputPtnPath = String.format("%s%s.%d.ptn", ptnDir, inputPtn,
 				clusterCount);
 
-		DirUtils.cleanDir(databaseDir);
+		Utils.cleanDir(databaseDir);
 		GraphDatabaseService transNeo = new EmbeddedGraphDatabase(databaseDir);
 
 		NeoFromFile.writeNeoFromChacoAndPtn(transNeo, inputGraphPath,
@@ -781,7 +781,7 @@ public class Examples {
 		String inputPtnPath = String.format("%s%s.%d.ptn", ptnDir, inputPtn,
 				clusterCount);
 
-		DirUtils.cleanDir(databaseDir);
+		Utils.cleanDir(databaseDir);
 		GraphDatabaseService transNeo = new EmbeddedGraphDatabase(databaseDir);
 
 		NeoFromFile.writeNeoFromChacoAndPtn(transNeo, inputGraphPath,
@@ -857,8 +857,8 @@ public class Examples {
 		String inputPtnPath = String.format("%s%s.%d.ptn", ptnDir, inputPtn,
 				clusterCount);
 
-		DirUtils.cleanDir(databaseDir);
-		DirUtils.cleanDir(metDir);
+		Utils.cleanDir(databaseDir);
+		Utils.cleanDir(metDir);
 
 		GraphDatabaseService transNeo = new EmbeddedGraphDatabase(databaseDir);
 
@@ -903,8 +903,8 @@ public class Examples {
 		String inputPtnPath = String.format("%s%s.%d.ptn", ptnDir, inputPtn,
 				clusterCount);
 
-		DirUtils.cleanDir(databaseDir);
-		DirUtils.cleanDir(metDir);
+		Utils.cleanDir(databaseDir);
+		Utils.cleanDir(metDir);
 
 		GraphDatabaseService transNeo = new EmbeddedGraphDatabase(databaseDir);
 
@@ -951,9 +951,9 @@ public class Examples {
 		String inputPtnPath = String.format("%s%s.%d.ptn", ptnDir, inputPtn,
 				clusterCount);
 
-		DirUtils.cleanDir(singleDatabaseDir);
-		DirUtils.cleanDir(paraDatabaseDir);
-		DirUtils.cleanDir(metDir);
+		Utils.cleanDir(singleDatabaseDir);
+		Utils.cleanDir(paraDatabaseDir);
+		Utils.cleanDir(metDir);
 
 		GraphDatabaseService transNeoSingle = new EmbeddedGraphDatabase(
 				singleDatabaseDir);
