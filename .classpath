@@ -7,5 +7,6 @@
 	<classpathentry kind="lib" path="libraries/uncommons-maths-1.2.1.jar"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/graph_gen_utils"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/neo4j_partitioned_api"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/neo4j_access_simulator"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>

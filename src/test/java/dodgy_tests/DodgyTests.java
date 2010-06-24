@@ -15,30 +15,35 @@ import graph_cluster_utils.logger.LoggerMetricsMinimal;
 import graph_cluster_utils.migrator.Migrator;
 import graph_cluster_utils.migrator.MigratorBase;
 import graph_cluster_utils.migrator.MigratorDummy;
+import graph_cluster_utils.migrator.MigratorGISSim;
 import graph_cluster_utils.ptn_alg.PtnAlg;
-import graph_cluster_utils.ptn_alg.didic.PtnAlgDiDiCBal;
-import graph_cluster_utils.ptn_alg.didic.PtnAlgDiDiCBase;
-import graph_cluster_utils.ptn_alg.didic.PtnAlgDiDiCFix;
-import graph_cluster_utils.ptn_alg.didic.PtnAlgDiDiCPaper;
 import graph_cluster_utils.ptn_alg.didic.PtnAlgDiDiCSync;
 import graph_cluster_utils.ptn_alg.didic.config.ConfDiDiC;
 import graph_gen_utils.NeoFromFile;
+import graph_gen_utils.general.Consts;
 import graph_gen_utils.general.Utils;
 import graph_gen_utils.memory_graph.MemGraph;
 import graph_gen_utils.partitioner.Partitioner;
 import graph_gen_utils.partitioner.PartitionerAsBalanced;
+import graph_gen_utils.partitioner.PartitionerAsDefault;
 import graph_gen_utils.partitioner.PartitionerAsFile;
 import graph_gen_utils.partitioner.PartitionerAsRandom;
+import graph_gen_utils.partitioner.PartitionerAsSingle;
 
 import java.io.File;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryPoolMXBean;
 import java.lang.management.MemoryUsage;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.Transaction;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 
 import p_graph_service.PGraphDatabaseService;
@@ -48,11 +53,167 @@ import p_graph_service.sim.PGraphDatabaseServiceSIM;
 public class DodgyTests {
 
 	public static void main(String[] args) {
-		File changeOpLogFile = new File("/home/alex/changeOpLog");
+		// String origFileName = "/home/something/a-b-c/name_asdfad.txt.txt";
+		//
+		// int slashEndIndex = (origFileName.lastIndexOf("/") == -1) ? 0
+		// : origFileName.lastIndexOf("/");
+		// String newSlashFileName = origFileName.substring(slashEndIndex + 1,
+		// origFileName.length() - 1);
+		// System.out.println(newSlashFileName);
+		//
+		// String slashFileDir = origFileName.substring(0, slashEndIndex);
+		// System.out.println(slashFileDir);
+		//
+		// int dotEndIndex = (origFileName.indexOf(".") == -1) ? origFileName
+		// .length() - 1 : origFileName.indexOf(".");
+		// String newDotFileName = origFileName.substring(0, dotEndIndex);
+		//
+		// System.out.println(origFileName);
+		// System.out.printf("%s_%d.txt\n", newDotFileName, System
+		// .currentTimeMillis());
+
+		test_migrator_sim();
+	}
+
+	private static void test_migrator_sim() {
+		String testDir = "/home/alex/Desktop/Test/";
+		String changeOpLogName = testDir + "changeOpLog.txt";
+		String gmlAfterName = testDir + "small_gis_after.gml";
+		String dbDir = testDir + "DB_Empty/";
+		String graphName = "/home/alex/workspace/graph_cluster_utils/graphs/test-cluster.gml";
+
+		Utils.cleanDir(testDir);
+		Utils.cleanDir(dbDir);
+
+		GraphDatabaseService db = new EmbeddedGraphDatabase(dbDir);
+		Partitioner partitioner = new PartitionerAsDefault();
+		NeoFromFile.writeNeoFromGMLAndPtn(db, graphName, partitioner);
+
+		NeoFromFile.writeGMLFull(db, testDir + "test-cluster.gml");
+
+		db.shutdown();
+
+		PGraphDatabaseService pdb = new PGraphDatabaseServiceSIM(dbDir, 0);
+		pdb.setDBChangeLog(changeOpLogName);
+
+		Transaction tx = pdb.beginTx();
+		try {
+			// 17,18,20,21,22,23,24,26,27
+			Node n17 = pdb.getNodeById(17);
+			Node n18 = pdb.getNodeById(18);
+			Node n20 = pdb.getNodeById(20);
+			Node n21 = pdb.getNodeById(21);
+			Node n22 = pdb.getNodeById(22);
+			Node n23 = pdb.getNodeById(23);
+			Node n24 = pdb.getNodeById(24);
+			Node n26 = pdb.getNodeById(26);
+			Node n27 = pdb.getNodeById(27);
+
+			ArrayList<Node> nodes = new ArrayList<Node>();
+			nodes.add(n17);
+			nodes.add(n18);
+			nodes.add(n20);
+			nodes.add(n21);
+			nodes.add(n22);
+			nodes.add(n23);
+			nodes.add(n24);
+			nodes.add(n26);
+			nodes.add(n27);
+
+			System.out.println("a");
+			pdb.moveNodes(nodes, 0);
+
+			System.out.println("b");
+			pdb.moveNodes(nodes, 0);
+
+			tx.success();
+		} catch (Exception e) {
+			tx.failure();
+			e.printStackTrace();
+		} finally {
+			tx.finish();
+		}
+		NeoFromFile.writeGMLFull(pdb, testDir + "test-cluster-moved.gml");
+
+		MemGraph memDb = NeoFromFile.readMemGraph(pdb);
+
+		int snapshotPeriod = 5;
+		int longSnapshotPeriod = 5;
+		Logger logger = new LoggerBase(snapshotPeriod, longSnapshotPeriod,
+				"migrator_gis_test", testDir);
+
+		LinkedBlockingQueue<ChangeOp> changeLog = new LinkedBlockingQueue<ChangeOp>();
+
+		int migrationPeriod = 10;
+		Migrator migrator = new MigratorGISSim(pdb, migrationPeriod, changeLog,
+				testDir);
+
+		PtnAlg ptnAlg = new PtnAlgDiDiCSync(memDb, logger, changeLog, migrator);
+
+		int maxIterations = 50;
+		ConfDiDiC config = new ConfDiDiC((byte) 2);
+		config.setMaxIterations(maxIterations);
+
+		ptnAlg.doPartition(config);
+
+		NeoFromFile.writeGMLBasic(pdb, gmlAfterName);
+
+		pdb.shutdown();
+	}
+
+	private static void test_change_op_reader() {
+		String testDir = "/home/alex/Desktop/Test/";
+		String dbDir = testDir + "DB_Empty/";
+		String pdbDir = testDir + "PDB_ChangeOpTest/";
+		String graphName = "/home/alex/workspace/graph_cluster_utils/graphs/test0.graph";
+		String changeOpLogName = dbDir + "changeOpLog.txt";
+
+		Utils.cleanDir(testDir);
+		Utils.cleanDir(dbDir);
+		Utils.cleanDir(pdbDir);
+
+		System.out.println(testDir);
+		System.out.println(dbDir);
+		System.out.println(pdbDir);
+
+		GraphDatabaseService db = new EmbeddedGraphDatabase(dbDir);
+		NeoFromFile.writeNeoFromChaco(db, graphName);
+
+		// PGraphDatabaseService pdb = NeoFromFile.writePNeoFromNeo(pdbDir, db);
+		db.shutdown();
+		PGraphDatabaseService pdb = new PGraphDatabaseServiceSIM(dbDir, 0);
+
+		System.out.println(pdb.getDBChangeLog());
+
+		Transaction tx = pdb.beginTx();
+		try {
+			Node node1 = pdb.createNode();
+			Node node2 = pdb.createNode();
+			Relationship rel1 = node1.createRelationshipTo(node2,
+					Consts.RelationshipTypes.DEFAULT);
+			rel1.delete();
+			node1.delete();
+			tx.success();
+		} catch (Exception e) {
+			tx.failure();
+			e.printStackTrace();
+		} finally {
+			tx.finish();
+		}
+
+		System.out.println(pdb.getDBChangeLog());
+
+		File changeOpLogFile = new File(changeOpLogName);
 		LogReaderChangeOp logReader = new LogReaderChangeOp(changeOpLogFile);
+
+		System.out.println("Reading ChangeOp Log...");
 		for (ChangeOp changeOp : logReader.getChangeOps()) {
 			System.out.println(changeOp.toString());
 		}
+
+		// db.shutdown();
+		pdb.shutdown();
+
 	}
 
 	private static void partition_tree() {

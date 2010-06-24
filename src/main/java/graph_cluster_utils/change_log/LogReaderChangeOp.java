@@ -30,6 +30,7 @@ public class LogReaderChangeOp {
 
 		private ChangeOp nextChangeOp = null;
 		private Scanner changeOpScanner = null;
+		private boolean eof = false;
 
 		public ChangeOpIterator(File changeOpLogFile)
 				throws FileNotFoundException {
@@ -48,11 +49,39 @@ public class LogReaderChangeOp {
 
 			nextChangeOp = getNextChangeOp();
 
-			return (nextChangeOp != null);
+			// NOTE Old Code
+			// return (nextChangeOp != null);
+
+			// nextChangeOp == null && eof == false
+			// ---> eof = true
+			// ---> return true
+			if (nextChangeOp == null && eof == false) {
+				eof = true;
+				return true;
+			}
+
+			// nextChangeOp != null && eof == false
+			// ---> return true
+			if (nextChangeOp != null && eof == false) {
+				return true;
+			}
+
+			// nextChangeOp == null && eof == true
+			// ---> return false
+			if (nextChangeOp == null && eof == true) {
+				return false;
+			}
+
+			// nextChangeOp != null && eof == true
+			// ---> throw Exception
+			throw new NoSuchElementException();
 		}
 
 		@Override
 		public ChangeOp next() {
+			if (eof == true)
+				return new ChangeOpEnd();
+
 			ChangeOp changeOp = null;
 
 			if (nextChangeOp != null) {
