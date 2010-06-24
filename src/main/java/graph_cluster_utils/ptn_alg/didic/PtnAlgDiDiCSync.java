@@ -123,13 +123,17 @@ public class PtnAlgDiDiCSync extends PtnAlgDiDiC {
 
 					int vDeg = getDeg(v);
 
+					Node u = null;
+					ArrayList<Double> wU = null;
+					double diff = 0;
+
 					for (Relationship e : v.getRelationships()) {
 
-						Node u = e.getOtherNode(v);
+						u = e.getOtherNode(v);
 
-						ArrayList<Double> wU = w.get(u.getId());
+						wU = w.get(u.getId());
 
-						double diff = alphaE(u, vDeg)
+						diff = alphaE(u, vDeg)
 								* (Double) e.getProperty(Consts.WEIGHT)
 								* (wVC - wU.get(c));
 
@@ -169,13 +173,17 @@ public class PtnAlgDiDiCSync extends PtnAlgDiDiC {
 
 				double bV = benefit(v, c);
 
+				Node u = null;
+				ArrayList<Double> lU = null;
+				double diff = 0;
+
 				for (Relationship e : v.getRelationships()) {
 
-					Node u = e.getOtherNode(v);
+					u = e.getOtherNode(v);
 
-					ArrayList<Double> lU = l.get(u.getId());
+					lU = l.get(u.getId());
 
-					double diff = alphaE(u, vDeg)
+					diff = alphaE(u, vDeg)
 							* (Double) e.getProperty(Consts.WEIGHT)
 							* ((lVC / bV) - (lU.get(c) / benefit(u, c)));
 

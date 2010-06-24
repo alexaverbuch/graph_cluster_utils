@@ -7,6 +7,7 @@ import graph_cluster_utils.change_log.ChangeOpAddRelationship;
 import graph_cluster_utils.change_log.ChangeOpDeleteNode;
 import graph_cluster_utils.change_log.ChangeOpDeleteRelationship;
 import graph_cluster_utils.change_log.ChangeOpEnd;
+import graph_cluster_utils.change_log.LogReaderChangeOp;
 import graph_cluster_utils.config.Conf;
 import graph_cluster_utils.logger.Logger;
 import graph_cluster_utils.logger.LoggerBase;
@@ -22,7 +23,7 @@ import graph_cluster_utils.ptn_alg.didic.PtnAlgDiDiCPaper;
 import graph_cluster_utils.ptn_alg.didic.PtnAlgDiDiCSync;
 import graph_cluster_utils.ptn_alg.didic.config.ConfDiDiC;
 import graph_gen_utils.NeoFromFile;
-import graph_gen_utils.general.DirUtils;
+import graph_gen_utils.general.Utils;
 import graph_gen_utils.memory_graph.MemGraph;
 import graph_gen_utils.partitioner.Partitioner;
 import graph_gen_utils.partitioner.PartitionerAsBalanced;
@@ -47,15 +48,11 @@ import p_graph_service.sim.PGraphDatabaseServiceSIM;
 public class DodgyTests {
 
 	public static void main(String[] args) {
-//		// partition_tree();
-//		GraphDatabaseService db = new EmbeddedGraphDatabase(
-//				"/home/alex/workspace/graph_cluster_utils/var/fs-tree/fs-tree-db");
-//		NeoFromFile
-//				.writeMetricsCSV(db,
-//						"/home/alex/workspace/graph_cluster_utils/var/fs-tree/PARTITIONED.met");
-//		db.shutdown();
-		
-		run_algorithm();
+		File changeOpLogFile = new File("/home/alex/changeOpLog");
+		LogReaderChangeOp logReader = new LogReaderChangeOp(changeOpLogFile);
+		for (ChangeOp changeOp : logReader.getChangeOps()) {
+			System.out.println(changeOp.toString());
+		}
 	}
 
 	private static void partition_tree() {
@@ -93,7 +90,7 @@ public class DodgyTests {
 		String testDir = "/home/alex/workspace/graph_cluster_utils/var/migrator test/";
 
 		String dbName = testDir + "migrator_test_db";
-		DirUtils.cleanDir(dbName);
+		Utils.cleanDir(dbName);
 
 		GraphDatabaseService db = new EmbeddedGraphDatabase(dbName);
 
@@ -153,8 +150,7 @@ public class DodgyTests {
 		try {
 			// This is where Neo4j instance is located
 			// TODO Implement E.g. "var/tree-graph/"
-//			String dbDirectory = "PUT YOUR DB DIRECTORY HERE";
-			String dbDirectory = "SampleDB/rand2_700kNodes_1300Relas";
+			String dbDirectory = "PUT YOUR DB DIRECTORY HERE";
 
 			PGraphDatabaseServiceSIM db = new PGraphDatabaseServiceSIM(
 					dbDirectory, 0);
@@ -167,11 +163,10 @@ public class DodgyTests {
 
 			// Directory where metrics files will be written
 			// TODO Implement E.g. "var/tree-graph-logs/"
-//			String resultsDirectory = "PUT YOUR RESULTS DIRECTORY HERE";
-			String resultsDirectory = "SampleDB/tree-graph-logs/";
+			String resultsDirectory = "PUT YOUR RESULTS DIRECTORY HERE";
 
 			// Deletes all files in Results directory
-			DirUtils.cleanDir(resultsDirectory);
+			Utils.cleanDir(resultsDirectory);
 
 			Logger logger = new LoggerMetricsMinimal(graphName,
 					resultsDirectory);
@@ -194,7 +189,7 @@ public class DodgyTests {
 
 			// Number of algorithm iterations
 			// TODO Define max algorithm iterations
-			int maxIterations = 100;
+			int maxIterations = 101;
 			((ConfDiDiC) config).setMaxIterations(maxIterations);
 
 			ptnAlg.doPartition(config);
@@ -224,8 +219,8 @@ public class DodgyTests {
 		String normNeoDir = "var/normal-neo/";
 		String normNeoResultsDir = "var/normal-neo-results/";
 
-		DirUtils.cleanDir(normNeoDir);
-		DirUtils.cleanDir(normNeoResultsDir);
+		Utils.cleanDir(normNeoDir);
+		Utils.cleanDir(normNeoResultsDir);
 
 		GraphDatabaseService normNeo = new EmbeddedGraphDatabase(normNeoDir);
 		Partitioner partitioner = new PartitionerAsBalanced((byte) 2);
@@ -269,8 +264,8 @@ public class DodgyTests {
 		String normNeoDir = "var/normal-neo/";
 		String memNeoResultsDir = "var/mem-neo-results/";
 
-		DirUtils.cleanDir(normNeoDir);
-		DirUtils.cleanDir(memNeoResultsDir);
+		Utils.cleanDir(normNeoDir);
+		Utils.cleanDir(memNeoResultsDir);
 
 		GraphDatabaseService normNeo = new EmbeddedGraphDatabase(normNeoDir);
 		Partitioner partitioner = new PartitionerAsBalanced((byte) 2);
@@ -323,9 +318,9 @@ public class DodgyTests {
 		String partNeoDir = "var/partitioned-neo/";
 		String partNeoResultsDir = "var/partitioned-neo-results/";
 
-		DirUtils.cleanDir(normNeoDir);
-		DirUtils.cleanDir(partNeoDir);
-		DirUtils.cleanDir(partNeoResultsDir);
+		Utils.cleanDir(normNeoDir);
+		Utils.cleanDir(partNeoDir);
+		Utils.cleanDir(partNeoResultsDir);
 
 		GraphDatabaseService normNeo = new EmbeddedGraphDatabase(normNeoDir);
 		Partitioner partitioner = new PartitionerAsBalanced((byte) 2);
@@ -364,10 +359,10 @@ public class DodgyTests {
 
 	private static void run_in_thread() {
 		try {
-			DirUtils.cleanDir("var");
-			DirUtils.cleanDir("var/algNeo");
-			DirUtils.cleanDir("var/userNeo");
-			DirUtils.cleanDir("var/algNeo-results");
+			Utils.cleanDir("var");
+			Utils.cleanDir("var/algNeo");
+			Utils.cleanDir("var/userNeo");
+			Utils.cleanDir("var/algNeo-results");
 
 			GraphDatabaseService transNeo = new EmbeddedGraphDatabase(
 					"var/algNeo");
