@@ -47,13 +47,15 @@ import p_graph_service.sim.PGraphDatabaseServiceSIM;
 public class DodgyTests {
 
 	public static void main(String[] args) {
-		// partition_tree();
-		GraphDatabaseService db = new EmbeddedGraphDatabase(
-				"/home/alex/workspace/graph_cluster_utils/var/fs-tree/fs-tree-db");
-		NeoFromFile
-				.writeMetricsCSV(db,
-						"/home/alex/workspace/graph_cluster_utils/var/fs-tree/PARTITIONED.met");
-		db.shutdown();
+//		// partition_tree();
+//		GraphDatabaseService db = new EmbeddedGraphDatabase(
+//				"/home/alex/workspace/graph_cluster_utils/var/fs-tree/fs-tree-db");
+//		NeoFromFile
+//				.writeMetricsCSV(db,
+//						"/home/alex/workspace/graph_cluster_utils/var/fs-tree/PARTITIONED.met");
+//		db.shutdown();
+		
+		run_algorithm();
 	}
 
 	private static void partition_tree() {
@@ -151,10 +153,12 @@ public class DodgyTests {
 		try {
 			// This is where Neo4j instance is located
 			// TODO Implement E.g. "var/tree-graph/"
-			String dbDirectory = "PUT YOUR DB DIRECTORY HERE";
+//			String dbDirectory = "PUT YOUR DB DIRECTORY HERE";
+			String dbDirectory = "SampleDB/rand2_700kNodes_1300Relas";
 
 			PGraphDatabaseServiceSIM db = new PGraphDatabaseServiceSIM(
 					dbDirectory, 0);
+			
 
 			MemGraph memGraph = NeoFromFile.readMemGraph(db);
 
@@ -163,7 +167,8 @@ public class DodgyTests {
 
 			// Directory where metrics files will be written
 			// TODO Implement E.g. "var/tree-graph-logs/"
-			String resultsDirectory = "PUT YOUR RESULTS DIRECTORY HERE";
+//			String resultsDirectory = "PUT YOUR RESULTS DIRECTORY HERE";
+			String resultsDirectory = "SampleDB/tree-graph-logs/";
 
 			// Deletes all files in Results directory
 			DirUtils.cleanDir(resultsDirectory);
@@ -189,7 +194,7 @@ public class DodgyTests {
 
 			// Number of algorithm iterations
 			// TODO Define max algorithm iterations
-			int maxIterations = 101;
+			int maxIterations = 100;
 			((ConfDiDiC) config).setMaxIterations(maxIterations);
 
 			ptnAlg.doPartition(config);
