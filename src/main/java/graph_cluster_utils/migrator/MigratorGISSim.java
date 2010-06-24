@@ -59,7 +59,7 @@ public class MigratorGISSim extends Migrator {
 		String operationLogName = String.format("%s/operation_log_%d.csv",
 				operationLogDir.getAbsolutePath(), System.currentTimeMillis());
 		GISGenerateOperations.start(operationLogName, userTransNeo, 0.5d, 0.5d,
-				0d, 0d, 0d, 10l);
+				0d, 0d, 0d, 5l);
 
 		// Read new ChangeOpLog into ChangeOpQueue for DiDiC
 		File churnChangeOpFile = new File(churnChangeOpFileStr);
@@ -92,7 +92,12 @@ public class MigratorGISSim extends Migrator {
 			ArrayList<Node> sameColorNodes = null;
 			for (Node algNode : algTransNeo.getAllNodes()) {
 
-				Node userNode = userTransNeo.getNodeById(algNode.getId());
+				// FIXME Test this
+				// GID can be set. userNode & algNode must have matching IDs
+				long nodeId = algNode.getId();
+				// long nodeId = (Long) algNode.getProperty(Consts.NODE_GID);
+				Node userNode = userTransNeo.getNodeById(nodeId);
+
 				Byte algNodeColor = (Byte) algNode.getProperty(Consts.COLOR);
 
 				sameColorNodes = nodesBuffer.get(algNodeColor);

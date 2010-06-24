@@ -1,6 +1,7 @@
 package graph_cluster_utils.ptn_alg.didic;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Random;
@@ -73,7 +74,12 @@ public abstract class PtnAlgDiDiC extends PtnAlg {
 
 			int timeouts = 0;
 			int changes = 0;
-			ArrayList<Node> deletedNodes = new ArrayList<Node>();
+
+			// NOTE OLD
+			// ArrayList<Node> deletedNodes = new ArrayList<Node>();
+			// NOTE NEW
+			HashSet<Long> deletedNodeIds = new HashSet<Long>();
+			HashSet<Long> deletedRelIds = new HashSet<Long>();
 
 			while (changes < maxChanges) {
 				ChangeOp changeOp = blockingChangeLog.poll(
@@ -102,8 +108,12 @@ public abstract class PtnAlgDiDiC extends PtnAlg {
 				if (changeOp.getClass().getName().equals(
 						ChangeOpDeleteNode.class.getName())) {
 
+					// NOTE OLD
+					// processChangeOpDeleteNode((ChangeOpDeleteNode) changeOp,
+					// deletedNodes);
+					// NOTE NEW
 					processChangeOpDeleteNode((ChangeOpDeleteNode) changeOp,
-							deletedNodes);
+							deletedNodeIds, deletedRelIds);
 					continue;
 				}
 
@@ -117,7 +127,13 @@ public abstract class PtnAlgDiDiC extends PtnAlg {
 				if (changeOp.getClass().getName().equals(
 						ChangeOpDeleteRelationship.class.getName())) {
 
-					processChangeOpDeleteRelationship((ChangeOpDeleteRelationship) changeOp);
+					// NOTE OLD
+					// processChangeOpDeleteRelationship((ChangeOpDeleteRelationship)
+					// changeOp);
+					// NOTE NEW
+					processChangeOpDeleteRelationship(
+							(ChangeOpDeleteRelationship) changeOp,
+							deletedRelIds);
 					continue;
 				}
 
@@ -131,19 +147,30 @@ public abstract class PtnAlgDiDiC extends PtnAlg {
 
 			}
 
-			Iterator<Node> deletedNodesIter = deletedNodes.iterator();
-			while (deletedNodesIter.hasNext()) {
-				Node node = deletedNodesIter.next();
-
-				System.out.printf("\nDeleting relationships for Node[%d]\n",
-						node.getId());
-				for (Relationship rel : node.getRelationships()) {
-					rel.delete();
-					System.out.printf("\n***\n");
-				}
-
+			for (Long relId : deletedRelIds) {
+				System.out.printf("\nDeleting Relationship [%d]\n", relId);
+				Relationship rel = transNeo.getRelationshipById(relId);
+				rel.delete();
+			}
+			for (Long nodeId : deletedNodeIds) {
+				System.out.printf("\nDeleting Node [%d]\n", nodeId);
+				Node node = transNeo.getNodeById(nodeId);
 				node.delete();
 			}
+			// TODO replace with HashSet IDs code
+			// Iterator<Node> deletedNodesIter = deletedNodes.iterator();
+			// while (deletedNodesIter.hasNext()) {
+			// Node node = deletedNodesIter.next();
+			//
+			// System.out.printf("\nDeleting relationships for Node[%d]\n",
+			// node.getId());
+			// for (Relationship rel : node.getRelationships()) {
+			// rel.delete();
+			// System.out.printf("\n***\n");
+			// }
+			//
+			// node.delete();
+			// }
 
 			tx.success();
 
@@ -162,15 +189,26 @@ public abstract class PtnAlgDiDiC extends PtnAlg {
 			((MemGraph) transNeo).setNextNodeId(changeOp.getNodeId());
 
 		Node node = transNeo.createNode();
+		node.setProperty(Consts.NODE_GID, node.getId());
 		node.setProperty(Consts.COLOR, changeOp.getColor());
 		initLoadVectors(node);
 	}
 
+	// NOTE OLD
+	// protected Node processChangeOpDeleteNode(ChangeOpDeleteNode changeOp,
+	// ArrayList<Node> deletedNodes) {
+	// NOTE NEW
 	protected Node processChangeOpDeleteNode(ChangeOpDeleteNode changeOp,
-			ArrayList<Node> deletedNodes) {
+			HashSet<Long> deletedNodeIds, HashSet<Long> deletedRelIds) {
 		Node node = transNeo.getNodeById(changeOp.getNodeId());
-		deletedNodes.add(node);
-		diffuseLoadToNeighbours(node, deletedNodes);
+
+		// NOTE OLD
+		// deletedNodes.add(node);
+		// diffuseLoadToNeighbours(node, deletedNodes);
+		// NOTE NEW
+		deletedNodeIds.add(node.getId());
+		diffuseLoadToNeighbours(node, deletedNodeIds, deletedRelIds);
+
 		l.remove(node.getId());
 		w.remove(node.getId());
 		return node;
@@ -185,22 +223,43 @@ public abstract class PtnAlgDiDiC extends PtnAlg {
 		if (startNode instanceof MemNode)
 			((MemNode) startNode).setNextRelId(changeOp.getId());
 
-		startNode.createRelationshipTo(endNode, relType);
+		Relationship rel = startNode.createRelationshipTo(endNode, relType);
+		// TODO Take as parameter in future
+		rel.setProperty(Consts.WEIGHT, 1.0);
 	}
 
 	protected void processChangeOpDeleteRelationship(
-			ChangeOpDeleteRelationship changeOp) {
+			ChangeOpDeleteRelationship changeOp, HashSet<Long> deletedRelIds) {
 		Relationship rel = transNeo.getRelationshipById(changeOp.getId());
-		rel.delete();
+
+		// NOTE OLD
+		// rel.delete();
+		// NOTE NEW
+		deletedRelIds.add(rel.getId());
 	}
 
 	// NOTE Currently load is diffused EQUALLY (ignores edge weights)
+	// NOTE OLD
+	// protected void diffuseLoadToNeighbours(Node node,
+	// ArrayList<Node> deletedNodes) {
+	// NOTE NEW
 	protected void diffuseLoadToNeighbours(Node node,
-			ArrayList<Node> deletedNodes) {
+			HashSet<Long> deletedNodeIds, HashSet<Long> deletedRelIds) {
+
 		int neighbourCount = 0;
 		for (Relationship rel : node.getRelationships()) {
-			if (deletedNodes.contains(rel.getOtherNode(node)))
+
+			// NOTE NEW
+			if (deletedRelIds.contains(rel.getId()))
 				continue;
+
+			// NOTE OLD
+			// if (deletedNodes.contains(rel.getOtherNode(node)))
+			// continue;
+			// NOTE NEW
+			if (deletedNodeIds.contains(rel.getOtherNode(node).getId()))
+				continue;
+
 			neighbourCount++;
 		}
 
@@ -212,9 +271,20 @@ public abstract class PtnAlgDiDiC extends PtnAlg {
 			double wVPerNeighbour = wV.get(i) / neighbourCount;
 
 			for (Relationship rel : node.getRelationships()) {
-				Node otherNode = rel.getOtherNode(node);
-				if (deletedNodes.contains(otherNode))
+
+				// NOTE NEW
+				if (deletedRelIds.contains(rel.getId()))
 					continue;
+
+				Node otherNode = rel.getOtherNode(node);
+
+				// NOTE OLD
+				// if (deletedNodes.contains(otherNode))
+				// continue;
+				// NOTE NEW
+				if (deletedNodeIds.contains(otherNode.getId()))
+					continue;
+
 				ArrayList<Double> lVOther = l.get(otherNode.getId());
 				ArrayList<Double> wVOther = w.get(otherNode.getId());
 

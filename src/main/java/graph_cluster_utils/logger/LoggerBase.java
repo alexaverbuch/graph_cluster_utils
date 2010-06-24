@@ -1,6 +1,7 @@
 package graph_cluster_utils.logger;
 
 import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Node;
 
 import graph_cluster_utils.config.Conf;
 import graph_cluster_utils.ptn_alg.didic.config.ConfDiDiC;
@@ -91,6 +92,11 @@ public class LoggerBase extends Logger {
 
 		if (isPeriodicSnapshot(timeStep) == false)
 			return;
+
+		int nodeCount = 0;
+		for (Node node : transNeo.getAllNodes()) {
+			nodeCount++;
+		}
 
 		try {
 

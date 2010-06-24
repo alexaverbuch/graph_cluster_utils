@@ -77,16 +77,16 @@ public class DodgyTests {
 
 	private static void test_migrator_sim() {
 		String testDir = "/home/alex/Desktop/Test/";
-		String changeOpLogName = testDir + "changeOpLog.txt";
 		String gmlAfterName = testDir + "small_gis_after.gml";
-		String dbDir = testDir + "DB_Empty/";
+		String dbDir = testDir + "var/";
 		String graphName = "/home/alex/workspace/graph_cluster_utils/graphs/test-cluster.gml";
 
 		Utils.cleanDir(testDir);
 		Utils.cleanDir(dbDir);
 
 		GraphDatabaseService db = new EmbeddedGraphDatabase(dbDir);
-		Partitioner partitioner = new PartitionerAsDefault();
+		// Partitioner partitioner = new PartitionerAsDefault();
+		Partitioner partitioner = new PartitionerAsBalanced((byte) 2);
 		NeoFromFile.writeNeoFromGMLAndPtn(db, graphName, partitioner);
 
 		NeoFromFile.writeGMLFull(db, testDir + "test-cluster.gml");
@@ -94,57 +94,19 @@ public class DodgyTests {
 		db.shutdown();
 
 		PGraphDatabaseService pdb = new PGraphDatabaseServiceSIM(dbDir, 0);
-		pdb.setDBChangeLog(changeOpLogName);
-
-		Transaction tx = pdb.beginTx();
-		try {
-			// 17,18,20,21,22,23,24,26,27
-			Node n17 = pdb.getNodeById(17);
-			Node n18 = pdb.getNodeById(18);
-			Node n20 = pdb.getNodeById(20);
-			Node n21 = pdb.getNodeById(21);
-			Node n22 = pdb.getNodeById(22);
-			Node n23 = pdb.getNodeById(23);
-			Node n24 = pdb.getNodeById(24);
-			Node n26 = pdb.getNodeById(26);
-			Node n27 = pdb.getNodeById(27);
-
-			ArrayList<Node> nodes = new ArrayList<Node>();
-			nodes.add(n17);
-			nodes.add(n18);
-			nodes.add(n20);
-			nodes.add(n21);
-			nodes.add(n22);
-			nodes.add(n23);
-			nodes.add(n24);
-			nodes.add(n26);
-			nodes.add(n27);
-
-			System.out.println("a");
-			pdb.moveNodes(nodes, 0);
-
-			System.out.println("b");
-			pdb.moveNodes(nodes, 0);
-
-			tx.success();
-		} catch (Exception e) {
-			tx.failure();
-			e.printStackTrace();
-		} finally {
-			tx.finish();
-		}
-		NeoFromFile.writeGMLFull(pdb, testDir + "test-cluster-moved.gml");
+		pdb.setDBChangeLog(String.format("%schange_op_log_%d.txt", testDir,
+				System.currentTimeMillis()));
 
 		MemGraph memDb = NeoFromFile.readMemGraph(pdb);
 
-		int snapshotPeriod = 5;
-		int longSnapshotPeriod = 5;
+		int snapshotPeriod = 10;
+		int longSnapshotPeriod = 10;
 		Logger logger = new LoggerBase(snapshotPeriod, longSnapshotPeriod,
 				"migrator_gis_test", testDir);
 
 		LinkedBlockingQueue<ChangeOp> changeLog = new LinkedBlockingQueue<ChangeOp>();
 
-		int migrationPeriod = 10;
+		int migrationPeriod = 25;
 		Migrator migrator = new MigratorGISSim(pdb, migrationPeriod, changeLog,
 				testDir);
 
@@ -315,7 +277,6 @@ public class DodgyTests {
 
 			PGraphDatabaseServiceSIM db = new PGraphDatabaseServiceSIM(
 					dbDirectory, 0);
-			
 
 			MemGraph memGraph = NeoFromFile.readMemGraph(db);
 
