@@ -7,6 +7,8 @@ import java.util.Queue;
 import java.util.Map.Entry;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import jobs.SimJob;
+
 import graph_cluster_utils.change_log.ChangeOp;
 import graph_cluster_utils.change_log.LogReaderChangeOp;
 import graph_gen_utils.general.Consts;
@@ -15,23 +17,23 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 
-import p_graph_service.PGraphDatabaseService;
-import sim_tst.GISGenerateOperations;
+import applications.GISGenerateOperations;
 
-public class MigratorGISSim extends Migrator {
+import p_graph_service.PGraphDatabaseService;
+
+public class MigratorSim extends Migrator {
 
 	private PGraphDatabaseService userTransNeo = null;
 	private int migrationPeriod = 0;
 	private LinkedBlockingQueue<ChangeOp> changeOpLog = null;
-	private File operationLogDir = null;
+	private SimJob simJob = null;
 
-	public MigratorGISSim(PGraphDatabaseService userTransNeo,
-			int migrationPeriod, Queue<ChangeOp> changeLog,
-			String operationLogDir) {
+	public MigratorSim(PGraphDatabaseService userTransNeo, int migrationPeriod,
+			Queue<ChangeOp> changeLog, SimJob simJob) {
 		this.migrationPeriod = migrationPeriod;
 		this.userTransNeo = userTransNeo;
 		this.changeOpLog = (LinkedBlockingQueue<ChangeOp>) changeLog;
-		this.operationLogDir = new File(operationLogDir);
+		this.simJob = simJob;
 	}
 
 	@Override
@@ -56,10 +58,11 @@ public class MigratorGISSim extends Migrator {
 				.setDBChangeLog(churnChangeOpFileStr);
 
 		// Perform churn operations on PDBSim
-		String operationLogName = String.format("%s/operation_log_%d.csv",
-				operationLogDir.getAbsolutePath(), System.currentTimeMillis());
-		GISGenerateOperations.start(operationLogName, userTransNeo, 0.5d, 0.5d,
-				0d, 0d, 0d, 5l);
+		try {
+			simJob.start();
+		} catch (Exception e1) {
+			e1.printStackTrace();
+		}
 
 		// Read new ChangeOpLog into ChangeOpQueue for DiDiC
 		File churnChangeOpFile = new File(churnChangeOpFileStr);
@@ -92,10 +95,8 @@ public class MigratorGISSim extends Migrator {
 			ArrayList<Node> sameColorNodes = null;
 			for (Node algNode : algTransNeo.getAllNodes()) {
 
-				// FIXME Test this
-				// GID can be set. userNode & algNode must have matching IDs
+				// NOTE
 				long nodeId = algNode.getId();
-				// long nodeId = (Long) algNode.getProperty(Consts.NODE_GID);
 				Node userNode = userTransNeo.getNodeById(nodeId);
 
 				Byte algNodeColor = (Byte) algNode.getProperty(Consts.COLOR);

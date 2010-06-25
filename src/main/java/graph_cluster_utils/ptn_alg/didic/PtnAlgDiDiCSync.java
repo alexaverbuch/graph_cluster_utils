@@ -84,9 +84,9 @@ public class PtnAlgDiDiCSync extends PtnAlgDiDiC {
 
 			updateClusterAllocationAll(timeStep, config.getAllocType());
 
-			logger.doPeriodicSnapshot(transNeo, timeStep, config);
-
 			applyChangeLog(Integer.MAX_VALUE, Consts.CHANGELOG_MAX_TIMEOUTS);
+
+			logger.doPeriodicSnapshot(transNeo, timeStep, config);
 
 			migrator.doMigrateNow(transNeo, timeStep);
 

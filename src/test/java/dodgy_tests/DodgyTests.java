@@ -15,8 +15,10 @@ import graph_cluster_utils.logger.LoggerMetricsMinimal;
 import graph_cluster_utils.migrator.Migrator;
 import graph_cluster_utils.migrator.MigratorBase;
 import graph_cluster_utils.migrator.MigratorDummy;
-import graph_cluster_utils.migrator.MigratorGISSim;
+import graph_cluster_utils.migrator.MigratorSim;
 import graph_cluster_utils.ptn_alg.PtnAlg;
+import graph_cluster_utils.ptn_alg.didic.PtnAlgDiDiCBase;
+import graph_cluster_utils.ptn_alg.didic.PtnAlgDiDiCPaper;
 import graph_cluster_utils.ptn_alg.didic.PtnAlgDiDiCSync;
 import graph_cluster_utils.ptn_alg.didic.config.ConfDiDiC;
 import graph_gen_utils.NeoFromFile;
@@ -39,6 +41,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import jobs.SimJob;
+import jobs.SimJobGenerateOpsGIS;
+
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -49,29 +54,12 @@ import org.neo4j.kernel.EmbeddedGraphDatabase;
 import p_graph_service.PGraphDatabaseService;
 import p_graph_service.core.PGraphDatabaseServiceImpl;
 import p_graph_service.sim.PGraphDatabaseServiceSIM;
+import simulator.gis.OperationFactoryGISConfig;
+import simulator.gis.OperationGISDummy;
 
 public class DodgyTests {
 
 	public static void main(String[] args) {
-		// String origFileName = "/home/something/a-b-c/name_asdfad.txt.txt";
-		//
-		// int slashEndIndex = (origFileName.lastIndexOf("/") == -1) ? 0
-		// : origFileName.lastIndexOf("/");
-		// String newSlashFileName = origFileName.substring(slashEndIndex + 1,
-		// origFileName.length() - 1);
-		// System.out.println(newSlashFileName);
-		//
-		// String slashFileDir = origFileName.substring(0, slashEndIndex);
-		// System.out.println(slashFileDir);
-		//
-		// int dotEndIndex = (origFileName.indexOf(".") == -1) ? origFileName
-		// .length() - 1 : origFileName.indexOf(".");
-		// String newDotFileName = origFileName.substring(0, dotEndIndex);
-		//
-		// System.out.println(origFileName);
-		// System.out.printf("%s_%d.txt\n", newDotFileName, System
-		// .currentTimeMillis());
-
 		test_migrator_sim();
 	}
 
@@ -99,20 +87,42 @@ public class DodgyTests {
 
 		MemGraph memDb = NeoFromFile.readMemGraph(pdb);
 
-		int snapshotPeriod = 10;
-		int longSnapshotPeriod = 10;
+		int snapshotPeriod = 1;
+		int longSnapshotPeriod = 1;
 		Logger logger = new LoggerBase(snapshotPeriod, longSnapshotPeriod,
 				"migrator_gis_test", testDir);
 
 		LinkedBlockingQueue<ChangeOp> changeLog = new LinkedBlockingQueue<ChangeOp>();
 
+		OperationFactoryGISConfig opFactoryGISConfig1 = new OperationFactoryGISConfig(
+				0.5d, 0.0d, 0d, 0d, 0d, 20l, testDir
+						+ "/operation_log_out1.txt");
+		OperationFactoryGISConfig opFactoryGISConfig2 = new OperationFactoryGISConfig(
+				0.5d, 0.0d, 0d, 0d, 0d, 20l, testDir
+						+ "/operation_log_out2.txt");
+		OperationFactoryGISConfig opFactoryGISConfig3 = new OperationFactoryGISConfig(
+				0.5d, 0.0d, 0d, 0d, 0d, 20l, testDir
+						+ "/operation_log_out3.txt");
+		OperationFactoryGISConfig opFactoryGISConfig4 = new OperationFactoryGISConfig(
+				0.5d, 0.0d, 0d, 0d, 0d, 20l, testDir
+						+ "/operation_log_out4.txt");
+
+		SimJob simJob = new SimJobGenerateOpsGIS(
+				new OperationFactoryGISConfig[] { opFactoryGISConfig1,
+						opFactoryGISConfig2, opFactoryGISConfig3,
+						opFactoryGISConfig4 }, pdb);
+		// SimJob simJob = new SimJobGenerateOpsGIS(
+		// new OperationFactoryGISConfig[] {}, pdb);
+
 		int migrationPeriod = 25;
-		Migrator migrator = new MigratorGISSim(pdb, migrationPeriod, changeLog,
-				testDir);
+		Migrator migrator = new MigratorSim(pdb, migrationPeriod, changeLog,
+				simJob);
 
-		PtnAlg ptnAlg = new PtnAlgDiDiCSync(memDb, logger, changeLog, migrator);
+		// PtnAlg ptnAlg = new PtnAlgDiDiCSync(memDb, logger, changeLog,
+		// migrator);
+		PtnAlg ptnAlg = new PtnAlgDiDiCBase(memDb, logger, changeLog, migrator);
 
-		int maxIterations = 50;
+		int maxIterations = 100;
 		ConfDiDiC config = new ConfDiDiC((byte) 2);
 		config.setMaxIterations(maxIterations);
 

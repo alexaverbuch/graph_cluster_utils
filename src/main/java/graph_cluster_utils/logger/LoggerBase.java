@@ -139,8 +139,8 @@ public class LoggerBase extends Logger {
 			// Write graph metrics to file
 			NeoFromFile.appendMetricsCSV(transNeo, outMetrics, null);
 
-			String outGml = String.format("%s%s.%d.gml", resultsDir, graphName,
-					config.getClusterCount());
+			String outGml = String.format("%s%s.%d.FINAL.gml", resultsDir,
+					graphName, config.getClusterCount());
 
 			NeoFromFile.writeGMLBasic(transNeo, outGml);
 
