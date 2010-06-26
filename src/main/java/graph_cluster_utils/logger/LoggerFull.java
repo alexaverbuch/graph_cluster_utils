@@ -6,6 +6,7 @@ import org.neo4j.graphdb.Node;
 import graph_cluster_utils.config.Conf;
 import graph_cluster_utils.ptn_alg.didic.config.ConfDiDiC;
 import graph_gen_utils.NeoFromFile;
+import graph_gen_utils.NeoFromFile.ChacoType;
 
 /**
  * Generic implementation of {@link Logger}.
@@ -16,15 +17,18 @@ import graph_gen_utils.NeoFromFile;
  * @author Alex Averbuch
  * @since 2010-04-01
  */
-public class LoggerBase extends Logger {
+public class LoggerFull extends Logger {
 
 	private int snapshotPeriod = -1;
+	private int longSnapshotPeriod = -1;
 	private String graphName = "";
 	private String resultsDir = "";
 
-	public LoggerBase(int snapshotPeriod, String graphName, String resultsDir) {
+	public LoggerFull(int snapshotPeriod, int longSnapshotPeriod,
+			String graphName, String resultsDir) {
 		super();
 		this.snapshotPeriod = snapshotPeriod;
+		this.longSnapshotPeriod = longSnapshotPeriod;
 		this.graphName = graphName;
 		this.resultsDir = resultsDir;
 	}
@@ -42,11 +46,28 @@ public class LoggerBase extends Logger {
 		if (isInitialSnapshot() == false)
 			return;
 
-		String outMetrics = String.format("%s%s.%d.INIT.met", resultsDir,
+		String outMetrics = String.format("%s%s.%d.met", resultsDir, graphName,
+				config.getClusterCount());
+
+		String outGraph = String.format("%s%s.graph", resultsDir, graphName);
+
+		String outPtn = String.format("%s%s.%d.ptn", resultsDir, graphName,
+				config.getClusterCount());
+
+		String outGml = String.format("%s%s.INIT.%d.gml", resultsDir,
 				graphName, config.getClusterCount());
 
 		// Write graph metrics to file
 		NeoFromFile.writeMetricsCSV(transNeo, outMetrics);
+
+		// Write chaco file and initial partitioning to file
+		// .ptn file can be used in future simulations for consistency
+		NeoFromFile.writeChacoAndPtn(transNeo, outGraph, ChacoType.UNWEIGHTED,
+				outPtn);
+
+		// Write GML to file
+		NeoFromFile.writeGMLBasic(transNeo, outGml);
+
 	}
 
 	@Override
@@ -71,6 +92,12 @@ public class LoggerBase extends Logger {
 		// Write graph metrics to file
 		NeoFromFile.appendMetricsCSV(transNeo, outMetrics, (long) timeStep);
 
+		String outGml = String.format("%s%s.%d.%d.gml", resultsDir, graphName,
+				config.getClusterCount(), timeStep);
+
+		if ((timeStep % longSnapshotPeriod) == 0)
+			NeoFromFile.writeGMLBasic(transNeo, outGml);
+
 	}
 
 	@Override
@@ -86,11 +113,23 @@ public class LoggerBase extends Logger {
 		if (isFinalSnapshot() == false)
 			return;
 
-		String outMetrics = String.format("%s%s.%d.FINAL.met", resultsDir,
-				graphName, config.getClusterCount());
+		try {
 
-		// Write graph metrics to file
-		NeoFromFile.appendMetricsCSV(transNeo, outMetrics, null);
+			String outMetrics = String.format("%s%s.%d.met", resultsDir,
+					graphName, config.getClusterCount());
+
+			// Write graph metrics to file
+			NeoFromFile.appendMetricsCSV(transNeo, outMetrics, null);
+
+			String outGml = String.format("%s%s.%d.FINAL.gml", resultsDir,
+					graphName, config.getClusterCount());
+
+			NeoFromFile.writeGMLBasic(transNeo, outGml);
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
 	}
 
 }

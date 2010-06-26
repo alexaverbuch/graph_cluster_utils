@@ -15,12 +15,12 @@ import graph_gen_utils.NeoFromFile;
  * @author Alex Averbuch
  * @since 2010-04-01
  */
-public class LoggerMetricsMinimal extends Logger {
+public class LoggerMinimal extends Logger {
 
 	private String graphName = "";
 	private String resultsDir = "";
 
-	public LoggerMetricsMinimal(String graphName, String resultsDir) {
+	public LoggerMinimal(String graphName, String resultsDir) {
 		super();
 		this.graphName = graphName;
 		this.resultsDir = resultsDir;
@@ -39,18 +39,11 @@ public class LoggerMetricsMinimal extends Logger {
 		if (isInitialSnapshot() == false)
 			return;
 
-		try {
+		String outMetrics = String.format("%s%s.%d.INIT.met", resultsDir,
+				graphName, config.getClusterCount());
 
-			String outMetrics = String.format("%s%s.%d.INIT.met", resultsDir,
-					graphName, config.getClusterCount());
-
-			// Write graph metrics to file
-			NeoFromFile.writeMetricsCSV(transNeo, outMetrics);
-
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-
+		// Write graph metrics to file
+		NeoFromFile.writeMetricsCSV(transNeo, outMetrics);
 	}
 
 	@Override
@@ -76,18 +69,11 @@ public class LoggerMetricsMinimal extends Logger {
 		if (isFinalSnapshot() == false)
 			return;
 
-		try {
+		String outMetrics = String.format("%s%s.%d.met", resultsDir, graphName,
+				config.getClusterCount());
 
-			String outMetrics = String.format("%s%s.%d.met", resultsDir,
-					graphName, config.getClusterCount());
-
-			// Write graph metrics to file
-			NeoFromFile.appendMetricsCSV(transNeo, outMetrics, null);
-
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-
+		// Write graph metrics to file
+		NeoFromFile.appendMetricsCSV(transNeo, outMetrics, null);
 	}
 
 }

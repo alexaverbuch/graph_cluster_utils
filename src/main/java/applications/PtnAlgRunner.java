@@ -3,7 +3,7 @@ package applications;
 import graph_cluster_utils.change_log.ChangeOp;
 import graph_cluster_utils.config.Conf;
 import graph_cluster_utils.logger.Logger;
-import graph_cluster_utils.logger.LoggerMetricsMinimal;
+import graph_cluster_utils.logger.LoggerMinimal;
 import graph_cluster_utils.migrator.Migrator;
 import graph_cluster_utils.migrator.MigratorBase;
 import graph_cluster_utils.ptn_alg.PtnAlg;
@@ -71,7 +71,7 @@ public class PtnAlgRunner {
 
 			MemGraph memGraph = NeoFromFile.readMemGraph(db);
 
-			Logger logger = new LoggerMetricsMinimal(graphName,
+			Logger logger = new LoggerMinimal(graphName,
 					resultsDirectory);
 
 			// Change log, in this case it's always empty

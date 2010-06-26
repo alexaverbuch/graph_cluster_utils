@@ -2,7 +2,7 @@ package dodgy_tests;
 
 import graph_cluster_utils.change_log.ChangeOp;
 import graph_cluster_utils.logger.Logger;
-import graph_cluster_utils.logger.LoggerBase;
+import graph_cluster_utils.logger.LoggerFull;
 import graph_cluster_utils.migrator.Migrator;
 import graph_cluster_utils.migrator.MigratorBase;
 import graph_cluster_utils.ptn_alg.PtnAlg;
@@ -136,7 +136,7 @@ public class Examples {
 		NeoFromFile.writeNeoFromChacoAndPtn(transNeo, inputGraphPath,
 				inputPtnPath);
 
-		Logger logger = new LoggerBase(SNAPSHOT_PERIOD, LONG_SNAPSHOT_PERIOD,
+		Logger logger = new LoggerFull(SNAPSHOT_PERIOD, LONG_SNAPSHOT_PERIOD,
 				inputGraph, metDir);
 
 		Migrator migrator = new MigratorBase(null, Integer.MAX_VALUE);
@@ -180,7 +180,7 @@ public class Examples {
 
 		MemGraph memGraph = NeoFromFile.readMemGraph(transNeo);
 
-		Logger logger = new LoggerBase(SNAPSHOT_PERIOD, LONG_SNAPSHOT_PERIOD,
+		Logger logger = new LoggerFull(SNAPSHOT_PERIOD, LONG_SNAPSHOT_PERIOD,
 				inputGraph, metDir);
 
 		Migrator migrator = new MigratorBase(null, Integer.MAX_VALUE);
@@ -224,7 +224,7 @@ public class Examples {
 
 		MemGraph memGraph = NeoFromFile.readMemGraph(transNeo);
 
-		Logger logger = new LoggerBase(SNAPSHOT_PERIOD, LONG_SNAPSHOT_PERIOD,
+		Logger logger = new LoggerFull(SNAPSHOT_PERIOD, LONG_SNAPSHOT_PERIOD,
 				inputGraph, metDir);
 
 		Migrator migrator = new MigratorBase(null, Integer.MAX_VALUE);
@@ -270,7 +270,7 @@ public class Examples {
 
 		MemGraph memGraph = NeoFromFile.readMemGraph(transNeo);
 
-		Logger logger = new LoggerBase(SNAPSHOT_PERIOD, LONG_SNAPSHOT_PERIOD,
+		Logger logger = new LoggerFull(SNAPSHOT_PERIOD, LONG_SNAPSHOT_PERIOD,
 				inputGraph, metDir);
 
 		Migrator migrator = new MigratorBase(null, Integer.MAX_VALUE);
@@ -316,7 +316,7 @@ public class Examples {
 
 		MemGraph memGraph = NeoFromFile.readMemGraph(transNeo);
 
-		Logger logger = new LoggerBase(SNAPSHOT_PERIOD, LONG_SNAPSHOT_PERIOD,
+		Logger logger = new LoggerFull(SNAPSHOT_PERIOD, LONG_SNAPSHOT_PERIOD,
 				inputGraph, metDir);
 
 		Migrator migrator = new MigratorBase(null, Integer.MAX_VALUE);
@@ -360,7 +360,7 @@ public class Examples {
 
 		MemGraph memGraph = NeoFromFile.readMemGraph(transNeo);
 
-		Logger logger = new LoggerBase(SNAPSHOT_PERIOD, LONG_SNAPSHOT_PERIOD,
+		Logger logger = new LoggerFull(SNAPSHOT_PERIOD, LONG_SNAPSHOT_PERIOD,
 				inputGraph, metDir);
 
 		Migrator migrator = new MigratorBase(null, Integer.MAX_VALUE);
@@ -398,7 +398,7 @@ public class Examples {
 		NeoFromFile.writeNeoFromChacoAndPtn(transNeo, inputGraphPath,
 				partitioner);
 
-		Logger logger = new LoggerBase(SNAPSHOT_PERIOD, LONG_SNAPSHOT_PERIOD,
+		Logger logger = new LoggerFull(SNAPSHOT_PERIOD, LONG_SNAPSHOT_PERIOD,
 				inputGraph, metDir);
 
 		Migrator migrator = new MigratorBase(null, Integer.MAX_VALUE);
@@ -438,7 +438,7 @@ public class Examples {
 		// NeoFromFile
 		// .writeNeoFromGML(transNeo,"/home/alex/workspace/graph_cluster_utils/graphs/esp.gml");
 
-		Logger logger = new LoggerBase(SNAPSHOT_PERIOD, LONG_SNAPSHOT_PERIOD,
+		Logger logger = new LoggerFull(SNAPSHOT_PERIOD, LONG_SNAPSHOT_PERIOD,
 				inputGraph, metDir);
 
 		Migrator migrator = new MigratorBase(null, Integer.MAX_VALUE);
@@ -477,7 +477,7 @@ public class Examples {
 		NeoFromFile.writeNeoFromChacoAndPtn(transNeo, inputGraphPath,
 				partitioner);
 
-		Logger logger = new LoggerBase(SNAPSHOT_PERIOD, LONG_SNAPSHOT_PERIOD,
+		Logger logger = new LoggerFull(SNAPSHOT_PERIOD, LONG_SNAPSHOT_PERIOD,
 				inputGraph, metDir);
 
 		Migrator migrator = new MigratorBase(null, Integer.MAX_VALUE);
@@ -521,7 +521,7 @@ public class Examples {
 
 		MemGraph memGraph = NeoFromFile.readMemGraph(transNeo);
 
-		Logger logger = new LoggerBase(SNAPSHOT_PERIOD, LONG_SNAPSHOT_PERIOD,
+		Logger logger = new LoggerFull(SNAPSHOT_PERIOD, LONG_SNAPSHOT_PERIOD,
 				inputGraph, metDir);
 
 		Migrator migrator = new MigratorBase(null, Integer.MAX_VALUE);
@@ -567,7 +567,7 @@ public class Examples {
 
 		MemGraph memGraph = NeoFromFile.readMemGraph(transNeo);
 
-		Logger logger = new LoggerBase(SNAPSHOT_PERIOD, LONG_SNAPSHOT_PERIOD,
+		Logger logger = new LoggerFull(SNAPSHOT_PERIOD, LONG_SNAPSHOT_PERIOD,
 				inputGraph, metDir);
 
 		Migrator migrator = new MigratorBase(null, Integer.MAX_VALUE);
@@ -613,7 +613,7 @@ public class Examples {
 
 		MemGraph memGraph = NeoFromFile.readMemGraph(transNeo);
 
-		Logger logger = new LoggerBase(SNAPSHOT_PERIOD, LONG_SNAPSHOT_PERIOD,
+		Logger logger = new LoggerFull(SNAPSHOT_PERIOD, LONG_SNAPSHOT_PERIOD,
 				inputGraph, metDir);
 
 		Migrator migrator = new MigratorBase(null, Integer.MAX_VALUE);
@@ -657,7 +657,7 @@ public class Examples {
 
 		MemGraph memGraph = NeoFromFile.readMemGraph(transNeo);
 
-		Logger logger = new LoggerBase(SNAPSHOT_PERIOD, LONG_SNAPSHOT_PERIOD,
+		Logger logger = new LoggerFull(SNAPSHOT_PERIOD, LONG_SNAPSHOT_PERIOD,
 				inputGraph, metDir);
 
 		Migrator migrator = new MigratorBase(null, Integer.MAX_VALUE);
@@ -701,7 +701,7 @@ public class Examples {
 
 		MemGraph memGraph = NeoFromFile.readMemGraph(transNeo);
 
-		Logger logger = new LoggerBase(SNAPSHOT_PERIOD, LONG_SNAPSHOT_PERIOD,
+		Logger logger = new LoggerFull(SNAPSHOT_PERIOD, LONG_SNAPSHOT_PERIOD,
 				inputGraph, metDir);
 
 		Migrator migrator = new MigratorBase(null, Integer.MAX_VALUE);
@@ -745,7 +745,7 @@ public class Examples {
 
 		MemGraph memGraph = NeoFromFile.readMemGraph(transNeo);
 
-		Logger logger = new LoggerBase(SNAPSHOT_PERIOD, LONG_SNAPSHOT_PERIOD,
+		Logger logger = new LoggerFull(SNAPSHOT_PERIOD, LONG_SNAPSHOT_PERIOD,
 				inputGraph, metDir);
 
 		Migrator migrator = new MigratorBase(null, Integer.MAX_VALUE);
@@ -789,7 +789,7 @@ public class Examples {
 
 		MemGraph memGraph = NeoFromFile.readMemGraph(transNeo);
 
-		Logger logger = new LoggerBase(SNAPSHOT_PERIOD, LONG_SNAPSHOT_PERIOD,
+		Logger logger = new LoggerFull(SNAPSHOT_PERIOD, LONG_SNAPSHOT_PERIOD,
 				inputGraph, metDir);
 
 		Migrator migrator = new MigratorBase(null, Integer.MAX_VALUE);
@@ -822,7 +822,7 @@ public class Examples {
 
 		MemGraph memGraph = NeoFromFile.readMemGraph(transNeo);
 
-		Logger logger = new LoggerBase(1, 5, "romania", metDir);
+		Logger logger = new LoggerFull(1, 5, "romania", metDir);
 
 		Migrator migrator = new MigratorBase(null, Integer.MAX_VALUE);
 
@@ -867,7 +867,7 @@ public class Examples {
 
 		MemGraph memGraph = NeoFromFile.readMemGraph(transNeo);
 
-		Logger logger = new LoggerBase(SNAPSHOT_PERIOD, LONG_SNAPSHOT_PERIOD,
+		Logger logger = new LoggerFull(SNAPSHOT_PERIOD, LONG_SNAPSHOT_PERIOD,
 				inputGraph, metDir);
 
 		Migrator migrator = new MigratorBase(null, Integer.MAX_VALUE);
@@ -913,7 +913,7 @@ public class Examples {
 
 		MemGraph memGraph = NeoFromFile.readMemGraph(transNeo);
 
-		Logger logger = new LoggerBase(SNAPSHOT_PERIOD, LONG_SNAPSHOT_PERIOD,
+		Logger logger = new LoggerFull(SNAPSHOT_PERIOD, LONG_SNAPSHOT_PERIOD,
 				inputGraph, metDir);
 
 		Migrator migrator = new MigratorBase(null, Integer.MAX_VALUE);
@@ -968,7 +968,7 @@ public class Examples {
 		PGraphDatabaseService transNeoPart = NeoFromFile.writePNeoFromNeo(
 				paraDatabaseDir, transNeoSingle);
 
-		Logger logger = new LoggerBase(SNAPSHOT_PERIOD, LONG_SNAPSHOT_PERIOD,
+		Logger logger = new LoggerFull(SNAPSHOT_PERIOD, LONG_SNAPSHOT_PERIOD,
 				inputGraph, metDir);
 
 		Migrator migrator = new MigratorBase(null, Integer.MAX_VALUE);

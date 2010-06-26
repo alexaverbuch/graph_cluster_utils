@@ -10,15 +10,14 @@ import graph_cluster_utils.change_log.ChangeOpEnd;
 import graph_cluster_utils.change_log.LogReaderChangeOp;
 import graph_cluster_utils.config.Conf;
 import graph_cluster_utils.logger.Logger;
-import graph_cluster_utils.logger.LoggerBase;
-import graph_cluster_utils.logger.LoggerMetricsMinimal;
+import graph_cluster_utils.logger.LoggerFull;
+import graph_cluster_utils.logger.LoggerMinimal;
 import graph_cluster_utils.migrator.Migrator;
 import graph_cluster_utils.migrator.MigratorBase;
 import graph_cluster_utils.migrator.MigratorDummy;
 import graph_cluster_utils.migrator.MigratorSim;
 import graph_cluster_utils.ptn_alg.PtnAlg;
 import graph_cluster_utils.ptn_alg.didic.PtnAlgDiDiCBase;
-import graph_cluster_utils.ptn_alg.didic.PtnAlgDiDiCPaper;
 import graph_cluster_utils.ptn_alg.didic.PtnAlgDiDiCSync;
 import graph_cluster_utils.ptn_alg.didic.config.ConfDiDiC;
 import graph_gen_utils.NeoFromFile;
@@ -27,16 +26,12 @@ import graph_gen_utils.general.Utils;
 import graph_gen_utils.memory_graph.MemGraph;
 import graph_gen_utils.partitioner.Partitioner;
 import graph_gen_utils.partitioner.PartitionerAsBalanced;
-import graph_gen_utils.partitioner.PartitionerAsDefault;
 import graph_gen_utils.partitioner.PartitionerAsFile;
-import graph_gen_utils.partitioner.PartitionerAsRandom;
-import graph_gen_utils.partitioner.PartitionerAsSingle;
 
 import java.io.File;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryPoolMXBean;
 import java.lang.management.MemoryUsage;
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -44,7 +39,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 import jobs.SimJob;
 import jobs.SimJobGenerateOpsGIS;
 
-import org.neo4j.graphdb.Direction;
+
+
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
@@ -55,7 +51,6 @@ import p_graph_service.PGraphDatabaseService;
 import p_graph_service.core.PGraphDatabaseServiceImpl;
 import p_graph_service.sim.PGraphDatabaseServiceSIM;
 import simulator.gis.OperationFactoryGISConfig;
-import simulator.gis.OperationGISDummy;
 
 public class DodgyTests {
 
@@ -76,9 +71,6 @@ public class DodgyTests {
 		// Partitioner partitioner = new PartitionerAsDefault();
 		Partitioner partitioner = new PartitionerAsBalanced((byte) 2);
 		NeoFromFile.writeNeoFromGMLAndPtn(db, graphName, partitioner);
-
-		NeoFromFile.writeGMLFull(db, testDir + "test-cluster.gml");
-
 		db.shutdown();
 
 		PGraphDatabaseService pdb = new PGraphDatabaseServiceSIM(dbDir, 0);
@@ -89,7 +81,7 @@ public class DodgyTests {
 
 		int snapshotPeriod = 1;
 		int longSnapshotPeriod = 1;
-		Logger logger = new LoggerBase(snapshotPeriod, longSnapshotPeriod,
+		Logger logger = new LoggerFull(snapshotPeriod, longSnapshotPeriod,
 				"migrator_gis_test", testDir);
 
 		LinkedBlockingQueue<ChangeOp> changeLog = new LinkedBlockingQueue<ChangeOp>();
@@ -199,7 +191,7 @@ public class DodgyTests {
 
 		int snapshotPeriod = 50;
 		int longSnapshotPeriod = 50;
-		Logger logger = new LoggerBase(snapshotPeriod, longSnapshotPeriod,
+		Logger logger = new LoggerFull(snapshotPeriod, longSnapshotPeriod,
 				"fs-tree", treeDir);
 
 		LinkedBlockingQueue<ChangeOp> changeLog = new LinkedBlockingQueue<ChangeOp>();
@@ -245,7 +237,7 @@ public class DodgyTests {
 
 		int snapshotPeriod = 50;
 		int longSnapshotPeriod = 50;
-		Logger logger = new LoggerBase(snapshotPeriod, longSnapshotPeriod,
+		Logger logger = new LoggerFull(snapshotPeriod, longSnapshotPeriod,
 				"migrator_test", testDir);
 
 		LinkedBlockingQueue<ChangeOp> changeLog = new LinkedBlockingQueue<ChangeOp>();
@@ -300,7 +292,7 @@ public class DodgyTests {
 			// Deletes all files in Results directory
 			Utils.cleanDir(resultsDirectory);
 
-			Logger logger = new LoggerMetricsMinimal(graphName,
+			Logger logger = new LoggerMinimal(graphName,
 					resultsDirectory);
 
 			// Change log, in this case it's always empty
@@ -359,7 +351,7 @@ public class DodgyTests {
 
 		NeoFromFile.writeNeoFromChacoAndPtn(normNeo, graphDir, partitioner);
 
-		Logger logger = new LoggerBase(snapshotPeriod, snapshotPeriod,
+		Logger logger = new LoggerFull(snapshotPeriod, snapshotPeriod,
 				graphName, normNeoResultsDir);
 
 		LinkedBlockingQueue<ChangeOp> changeLog = new LinkedBlockingQueue<ChangeOp>();
@@ -416,7 +408,7 @@ public class DodgyTests {
 		// System.out.println("Usage Mem: "
 		// + memUsageToStr(usageNeoAndMem - usageNeo));
 
-		Logger logger = new LoggerBase(snapshotPeriod, snapshotPeriod,
+		Logger logger = new LoggerFull(snapshotPeriod, snapshotPeriod,
 				graphName, memNeoResultsDir);
 
 		LinkedBlockingQueue<ChangeOp> changeLog = new LinkedBlockingQueue<ChangeOp>();
@@ -462,7 +454,7 @@ public class DodgyTests {
 		PGraphDatabaseService partNeo = NeoFromFile.writePNeoFromNeo(
 				partNeoDir, normNeo);
 
-		Logger logger = new LoggerBase(snapshotPeriod, snapshotPeriod,
+		Logger logger = new LoggerFull(snapshotPeriod, snapshotPeriod,
 				graphName, partNeoResultsDir);
 
 		LinkedBlockingQueue<ChangeOp> changeLog = new LinkedBlockingQueue<ChangeOp>();
@@ -507,7 +499,7 @@ public class DodgyTests {
 
 			MemGraph memGraph = NeoFromFile.readMemGraph(transNeo);
 
-			Logger logger = new LoggerBase(1, 1, "test0", "var/algNeo-results/");
+			Logger logger = new LoggerFull(1, 1, "test0", "var/algNeo-results/");
 
 			LinkedBlockingQueue<ChangeOp> changeLog = new LinkedBlockingQueue<ChangeOp>();
 			changeLog.put(new ChangeOpEnd());
