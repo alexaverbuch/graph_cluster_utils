@@ -16,7 +16,6 @@ import graph_cluster_utils.ptn_alg.esp.PtnAlgEvoPartitionBase;
 import graph_cluster_utils.ptn_alg.esp.PtnAlgEvoPartitionExp;
 import graph_cluster_utils.ptn_alg.esp.config.ConfEvoPartition;
 import graph_gen_utils.NeoFromFile;
-import graph_gen_utils.NeoFromFile.ChacoType;
 import graph_gen_utils.general.Utils;
 import graph_gen_utils.memory_graph.MemGraph;
 import graph_gen_utils.memory_graph.MemNode;

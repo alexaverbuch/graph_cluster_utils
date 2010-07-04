@@ -1,12 +1,11 @@
 package graph_cluster_utils.logger;
 
 import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Node;
 
 import graph_cluster_utils.config.Conf;
 import graph_cluster_utils.ptn_alg.didic.config.ConfDiDiC;
 import graph_gen_utils.NeoFromFile;
-import graph_gen_utils.NeoFromFile.ChacoType;
+import graph_gen_utils.general.ChacoType;
 
 /**
  * Generic implementation of {@link Logger}.
