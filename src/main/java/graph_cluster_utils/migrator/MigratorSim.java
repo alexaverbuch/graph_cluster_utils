@@ -9,8 +9,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 import jobs.SimJob;
 
-
-
 import graph_cluster_utils.change_log.ChangeOp;
 import graph_cluster_utils.change_log.LogReaderChangeOp;
 import graph_gen_utils.general.Consts;
@@ -18,8 +16,6 @@ import graph_gen_utils.general.Consts;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
-
-import applications.GISGenerateOperations;
 
 import p_graph_service.PGraphDatabaseService;
 
@@ -29,13 +25,16 @@ public class MigratorSim extends Migrator {
 	private int migrationPeriod = 0;
 	private LinkedBlockingQueue<ChangeOp> changeOpLog = null;
 	private SimJob simJob = null;
+	private String[] changeOpLogFiles = null;
+	private int changeOpLogFilesIndex = -1;
 
 	public MigratorSim(PGraphDatabaseService userTransNeo, int migrationPeriod,
-			Queue<ChangeOp> changeLog, SimJob simJob) {
+			Queue<ChangeOp> changeLog, SimJob simJob, String[] changeOpLogFiles) {
 		this.migrationPeriod = migrationPeriod;
 		this.userTransNeo = userTransNeo;
 		this.changeOpLog = (LinkedBlockingQueue<ChangeOp>) changeLog;
 		this.simJob = simJob;
+		this.changeOpLogFiles = changeOpLogFiles;
 	}
 
 	@Override
@@ -47,34 +46,30 @@ public class MigratorSim extends Migrator {
 		// Update UserDB with changes that DiDiC made to AlgDB
 		doMigrateNow(algTransNeo);
 
-		// Create new ChangeOpLog location for PDBSim to store churn in
-		String prevChangeOpFileStr = ((PGraphDatabaseService) userTransNeo)
-				.getDBChangeLog();
-		int slashIndex = (prevChangeOpFileStr.lastIndexOf("/") == -1) ? 0
-				: prevChangeOpFileStr.lastIndexOf("/");
-		String prevChangeOpDirStr = prevChangeOpFileStr
-				.substring(0, slashIndex);
-		String churnChangeOpFileStr = String.format("%s/change_op_log_%d.txt",
-				prevChangeOpDirStr, System.currentTimeMillis());
-		((PGraphDatabaseService) userTransNeo)
-				.setDBChangeLog(churnChangeOpFileStr);
-
-		// Perform churn operations on PDBSim
+		// Perform read operations on PDBSim to measure impact of DiDiC & Churn
 		try {
 			simJob.start();
-		} catch (Exception e1) {
-			e1.printStackTrace();
+		} catch (Exception eReadOps) {
+			eReadOps.printStackTrace();
 		}
 
-		// Read new ChangeOpLog into ChangeOpQueue for DiDiC
-		File churnChangeOpFile = new File(churnChangeOpFileStr);
-		LogReaderChangeOp logReader = new LogReaderChangeOp(churnChangeOpFile);
+		if (++changeOpLogFilesIndex >= changeOpLogFiles.length)
+			return;
+
+		// Read ChangeOpLog into ChangeOpQueue for DiDiC
+		String changeOpLogFilePath = changeOpLogFiles[changeOpLogFilesIndex];
+		if (changeOpLogFilePath == null)
+			// Dummy
+			return;
+
+		File changeOpFile = new File(changeOpLogFilePath);
+		LogReaderChangeOp logReader = new LogReaderChangeOp(changeOpFile);
 
 		for (ChangeOp changeOp : logReader.getChangeOps()) {
 			try {
 				changeOpLog.put(changeOp);
-			} catch (Exception e) {
-				e.printStackTrace();
+			} catch (Exception eChangeOps) {
+				eChangeOps.printStackTrace();
 			}
 		}
 	}
@@ -97,7 +92,6 @@ public class MigratorSim extends Migrator {
 			ArrayList<Node> sameColorNodes = null;
 			for (Node algNode : algTransNeo.getAllNodes()) {
 
-				// NOTE
 				long nodeId = algNode.getId();
 				Node userNode = userTransNeo.getNodeById(nodeId);
 

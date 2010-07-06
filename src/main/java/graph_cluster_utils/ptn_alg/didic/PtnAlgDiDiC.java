@@ -75,12 +75,6 @@ public abstract class PtnAlgDiDiC extends PtnAlg {
 			int timeouts = 0;
 			int changes = 0;
 
-			// NOTE OLD
-			// ArrayList<Node> deletedNodes = new ArrayList<Node>();
-			// NOTE NEW
-			HashSet<Long> deletedNodeIds = new HashSet<Long>();
-			HashSet<Long> deletedRelIds = new HashSet<Long>();
-
 			while (changes < maxChanges) {
 				ChangeOp changeOp = blockingChangeLog.poll(
 						Consts.CHANGELOG_TIMEOUT, TimeUnit.MILLISECONDS);
@@ -108,12 +102,7 @@ public abstract class PtnAlgDiDiC extends PtnAlg {
 				if (changeOp.getClass().getName().equals(
 						ChangeOpDeleteNode.class.getName())) {
 
-					// NOTE OLD
-					// processChangeOpDeleteNode((ChangeOpDeleteNode) changeOp,
-					// deletedNodes);
-					// NOTE NEW
-					processChangeOpDeleteNode((ChangeOpDeleteNode) changeOp,
-							deletedNodeIds, deletedRelIds);
+					processChangeOpDeleteNode((ChangeOpDeleteNode) changeOp);
 					continue;
 				}
 
@@ -127,13 +116,7 @@ public abstract class PtnAlgDiDiC extends PtnAlg {
 				if (changeOp.getClass().getName().equals(
 						ChangeOpDeleteRelationship.class.getName())) {
 
-					// NOTE OLD
-					// processChangeOpDeleteRelationship((ChangeOpDeleteRelationship)
-					// changeOp);
-					// NOTE NEW
-					processChangeOpDeleteRelationship(
-							(ChangeOpDeleteRelationship) changeOp,
-							deletedRelIds);
+					processChangeOpDeleteRelationship((ChangeOpDeleteRelationship) changeOp);
 					continue;
 				}
 
@@ -141,36 +124,11 @@ public abstract class PtnAlgDiDiC extends PtnAlg {
 						ChangeOpEnd.class.getName()))
 					break;
 
-				String errStr = String.format("%s not supported", changeOp
+				String errStr = String.format("%s not supported\n", changeOp
 						.getClass().getName());
 				throw new UnsupportedDataTypeException(errStr);
 
 			}
-
-			for (Long relId : deletedRelIds) {
-				System.out.printf("\nDeleting Relationship [%d]\n", relId);
-				Relationship rel = transNeo.getRelationshipById(relId);
-				rel.delete();
-			}
-			for (Long nodeId : deletedNodeIds) {
-				System.out.printf("\nDeleting Node [%d]\n", nodeId);
-				Node node = transNeo.getNodeById(nodeId);
-				node.delete();
-			}
-			// TODO replace with HashSet IDs code
-			// Iterator<Node> deletedNodesIter = deletedNodes.iterator();
-			// while (deletedNodesIter.hasNext()) {
-			// Node node = deletedNodesIter.next();
-			//
-			// System.out.printf("\nDeleting relationships for Node[%d]\n",
-			// node.getId());
-			// for (Relationship rel : node.getRelationships()) {
-			// rel.delete();
-			// System.out.printf("\n***\n");
-			// }
-			//
-			// node.delete();
-			// }
 
 			tx.success();
 
@@ -185,6 +143,7 @@ public abstract class PtnAlgDiDiC extends PtnAlg {
 	}
 
 	protected void processChangeOpAddNode(ChangeOpAddNode changeOp) {
+
 		if (transNeo instanceof MemGraph)
 			((MemGraph) transNeo).setNextNodeId(changeOp.getNodeId());
 
@@ -194,28 +153,20 @@ public abstract class PtnAlgDiDiC extends PtnAlg {
 		initLoadVectors(node);
 	}
 
-	// NOTE OLD
-	// protected Node processChangeOpDeleteNode(ChangeOpDeleteNode changeOp,
-	// ArrayList<Node> deletedNodes) {
-	// NOTE NEW
-	protected Node processChangeOpDeleteNode(ChangeOpDeleteNode changeOp,
-			HashSet<Long> deletedNodeIds, HashSet<Long> deletedRelIds) {
+	protected void processChangeOpDeleteNode(ChangeOpDeleteNode changeOp) {
+
 		Node node = transNeo.getNodeById(changeOp.getNodeId());
 
-		// NOTE OLD
-		// deletedNodes.add(node);
-		// diffuseLoadToNeighbours(node, deletedNodes);
-		// NOTE NEW
-		deletedNodeIds.add(node.getId());
-		diffuseLoadToNeighbours(node, deletedNodeIds, deletedRelIds);
+		diffuseLoadToNeighbours(node);
 
 		l.remove(node.getId());
 		w.remove(node.getId());
-		return node;
+		node.delete();
 	}
 
 	protected void processChangeOpAddRelationship(
 			ChangeOpAddRelationship changeOp) {
+
 		Node startNode = transNeo.getNodeById(changeOp.getStartNodeId());
 		Node endNode = transNeo.getNodeById(changeOp.getEndNodeId());
 		RelationshipType relType = Consts.RelationshipTypes.DEFAULT;
@@ -229,39 +180,23 @@ public abstract class PtnAlgDiDiC extends PtnAlg {
 	}
 
 	protected void processChangeOpDeleteRelationship(
-			ChangeOpDeleteRelationship changeOp, HashSet<Long> deletedRelIds) {
+			ChangeOpDeleteRelationship changeOp) {
+
 		Relationship rel = transNeo.getRelationshipById(changeOp.getId());
 
-		// NOTE OLD
-		// rel.delete();
-		// NOTE NEW
-		deletedRelIds.add(rel.getId());
+		rel.delete();
 	}
 
 	// NOTE Currently load is diffused EQUALLY (ignores edge weights)
-	// NOTE OLD
-	// protected void diffuseLoadToNeighbours(Node node,
-	// ArrayList<Node> deletedNodes) {
-	// NOTE NEW
-	protected void diffuseLoadToNeighbours(Node node,
-			HashSet<Long> deletedNodeIds, HashSet<Long> deletedRelIds) {
+	protected void diffuseLoadToNeighbours(Node node) {
 
 		int neighbourCount = 0;
 		for (Relationship rel : node.getRelationships()) {
-
-			// NOTE NEW
-			if (deletedRelIds.contains(rel.getId()))
-				continue;
-
-			// NOTE OLD
-			// if (deletedNodes.contains(rel.getOtherNode(node)))
-			// continue;
-			// NOTE NEW
-			if (deletedNodeIds.contains(rel.getOtherNode(node).getId()))
-				continue;
-
 			neighbourCount++;
 		}
+
+		if (neighbourCount == 0)
+			return;
 
 		ArrayList<Double> lV = l.get(node.getId());
 		ArrayList<Double> wV = w.get(node.getId());
@@ -272,18 +207,7 @@ public abstract class PtnAlgDiDiC extends PtnAlg {
 
 			for (Relationship rel : node.getRelationships()) {
 
-				// NOTE NEW
-				if (deletedRelIds.contains(rel.getId()))
-					continue;
-
 				Node otherNode = rel.getOtherNode(node);
-
-				// NOTE OLD
-				// if (deletedNodes.contains(otherNode))
-				// continue;
-				// NOTE NEW
-				if (deletedNodeIds.contains(otherNode.getId()))
-					continue;
 
 				ArrayList<Double> lVOther = l.get(otherNode.getId());
 				ArrayList<Double> wVOther = w.get(otherNode.getId());

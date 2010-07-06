@@ -84,10 +84,18 @@ public class PtnAlgDiDiCSync extends PtnAlgDiDiC {
 
 			updateClusterAllocationAll(timeStep, config.getAllocType());
 
-			applyChangeLog(Integer.MAX_VALUE, Consts.CHANGELOG_MAX_TIMEOUTS);
+			// FIXME UNCOMMENT: For Churn Experiment Only
+			// applyChangeLog(Integer.MAX_VALUE, Consts.CHANGELOG_MAX_TIMEOUTS);
+			//
+			// logger.doPeriodicSnapshot(transNeo, timeStep, config);
+			//
+			// migrator.doMigrateNow(transNeo, timeStep);
 
+			// FIXME REMOVE:For Churn Experiment Only
 			logger.doPeriodicSnapshot(transNeo, timeStep, config);
-
+			migrator.doMigrateNow(transNeo, timeStep);
+			applyChangeLog(Integer.MAX_VALUE, Consts.CHANGELOG_MAX_TIMEOUTS);
+			logger.doPeriodicSnapshot(transNeo, timeStep, config);
 			migrator.doMigrateNow(transNeo, timeStep);
 
 		}

@@ -39,8 +39,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import jobs.SimJob;
 import jobs.SimJobGenerateOpsGIS;
 
-
-
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
@@ -55,74 +53,6 @@ import simulator.gis.OperationFactoryGISConfig;
 public class DodgyTests {
 
 	public static void main(String[] args) {
-		test_migrator_sim();
-	}
-
-	private static void test_migrator_sim() {
-		String testDir = "/home/alex/Desktop/Test/";
-		String gmlAfterName = testDir + "small_gis_after.gml";
-		String dbDir = testDir + "var/";
-		String graphName = "/home/alex/workspace/graph_cluster_utils/graphs/test-cluster.gml";
-
-		Utils.cleanDir(testDir);
-		Utils.cleanDir(dbDir);
-
-		GraphDatabaseService db = new EmbeddedGraphDatabase(dbDir);
-		// Partitioner partitioner = new PartitionerAsDefault();
-		Partitioner partitioner = new PartitionerAsBalanced((byte) 2);
-		NeoFromFile.writeNeoFromGMLAndPtn(db, graphName, partitioner);
-		db.shutdown();
-
-		PGraphDatabaseService pdb = new PGraphDatabaseServiceSIM(dbDir, 0);
-		pdb.setDBChangeLog(String.format("%schange_op_log_%d.txt", testDir,
-				System.currentTimeMillis()));
-
-		MemGraph memDb = NeoFromFile.readMemGraph(pdb);
-
-		int snapshotPeriod = 1;
-		int longSnapshotPeriod = 1;
-		Logger logger = new LoggerFull(snapshotPeriod, longSnapshotPeriod,
-				"migrator_gis_test", testDir);
-
-		LinkedBlockingQueue<ChangeOp> changeLog = new LinkedBlockingQueue<ChangeOp>();
-
-		OperationFactoryGISConfig opFactoryGISConfig1 = new OperationFactoryGISConfig(
-				0.5d, 0.0d, 0d, 0d, 0d, 20l, testDir
-						+ "/operation_log_out1.txt");
-		OperationFactoryGISConfig opFactoryGISConfig2 = new OperationFactoryGISConfig(
-				0.5d, 0.0d, 0d, 0d, 0d, 20l, testDir
-						+ "/operation_log_out2.txt");
-		OperationFactoryGISConfig opFactoryGISConfig3 = new OperationFactoryGISConfig(
-				0.5d, 0.0d, 0d, 0d, 0d, 20l, testDir
-						+ "/operation_log_out3.txt");
-		OperationFactoryGISConfig opFactoryGISConfig4 = new OperationFactoryGISConfig(
-				0.5d, 0.0d, 0d, 0d, 0d, 20l, testDir
-						+ "/operation_log_out4.txt");
-
-		SimJob simJob = new SimJobGenerateOpsGIS(
-				new OperationFactoryGISConfig[] { opFactoryGISConfig1,
-						opFactoryGISConfig2, opFactoryGISConfig3,
-						opFactoryGISConfig4 }, pdb);
-		// SimJob simJob = new SimJobGenerateOpsGIS(
-		// new OperationFactoryGISConfig[] {}, pdb);
-
-		int migrationPeriod = 25;
-		Migrator migrator = new MigratorSim(pdb, migrationPeriod, changeLog,
-				simJob);
-
-		// PtnAlg ptnAlg = new PtnAlgDiDiCSync(memDb, logger, changeLog,
-		// migrator);
-		PtnAlg ptnAlg = new PtnAlgDiDiCBase(memDb, logger, changeLog, migrator);
-
-		int maxIterations = 100;
-		ConfDiDiC config = new ConfDiDiC((byte) 2);
-		config.setMaxIterations(maxIterations);
-
-		ptnAlg.doPartition(config);
-
-		NeoFromFile.writeGMLBasic(pdb, gmlAfterName);
-
-		pdb.shutdown();
 	}
 
 	private static void test_change_op_reader() {
@@ -292,8 +222,7 @@ public class DodgyTests {
 			// Deletes all files in Results directory
 			Utils.cleanDir(resultsDirectory);
 
-			Logger logger = new LoggerMinimal(graphName,
-					resultsDirectory);
+			Logger logger = new LoggerMinimal(graphName, resultsDirectory);
 
 			// Change log, in this case it's always empty
 			LinkedBlockingQueue<ChangeOp> changeLog = new LinkedBlockingQueue<ChangeOp>();
