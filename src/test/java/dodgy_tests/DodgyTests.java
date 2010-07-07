@@ -55,6 +55,54 @@ public class DodgyTests {
 	public static void main(String[] args) {
 	}
 
+	private static void countOpsInChangeOpLog() {
+		// String changeOpLogPath = "/home/alex/Dropbox/"
+		// + "Neo_Thesis/Notes/evaluation results/"
+		// + "FSTree/Dynamic/changeOpLogs_5-10-15-20-25/"
+		// + "changeOpLog_RAND_15_20_25_FSTree.csv";
+		// // 108981 -> 108981 / 36327
+
+		// String changeOpLogPath = "/home/alex/Dropbox/"
+		// + "Neo_Thesis/Notes/evaluation results/"
+		// + "GIS/Dynamic/changeOpLogs_5-10-15-20-25/"
+		// + "changeOpLog_RAND_15_20_25_GIS.csv";
+		// // 117587 -> 117587 / 39195
+
+		String changeOpLogPath = "/home/alex/Dropbox/"
+				+ "Neo_Thesis/Notes/evaluation results/"
+				+ "Twitter/Dynamic/changeOpLogs_5-10-15-20-25/"
+				+ "changeOpLog_RAND_15_20_25_Twitter.csv";
+		// 91760 -> 91760 / 30586
+
+		File changeOpLogFile = new File(changeOpLogPath);
+
+		LogReaderChangeOp logReader = new LogReaderChangeOp(changeOpLogFile);
+
+		int opCountAddNodeTotal = 0;
+		for (ChangeOp changeOp : logReader.getChangeOps()) {
+			if (changeOp.getClass().getName().equals(
+					ChangeOpAddNode.class.getName()))
+				opCountAddNodeTotal++;
+		}
+
+		System.out.println("opCountAddNodeTotal = " + opCountAddNodeTotal);
+
+		int opCount = 0;
+		int opCountAddNode = 0;
+		for (ChangeOp changeOp : logReader.getChangeOps()) {
+			opCount++;
+
+			if (changeOp.getClass().getName().equals(
+					ChangeOpAddNode.class.getName()))
+				opCountAddNode++;
+
+			if ((opCountAddNode == (opCountAddNodeTotal / 3))
+					|| (opCountAddNode == ((opCountAddNodeTotal / 3) * 2)))
+				System.out.println("Break Point = " + opCount);
+		}
+
+	}
+
 	private static void test_change_op_reader() {
 		String testDir = "/home/alex/Desktop/Test/";
 		String dbDir = testDir + "DB_Empty/";

@@ -123,7 +123,6 @@ public class MigratorSim extends Migrator {
 				for (Node node : sameColorNodesEntry.getValue()) {
 					x += "," + node.getId();
 				}
-				System.out.println(x);
 
 				if (sameColorNodesEntry.getValue().size() > 0) {
 					userTransNeo.moveNodes(sameColorNodesEntry.getValue(),
