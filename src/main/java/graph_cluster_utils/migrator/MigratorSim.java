@@ -17,6 +17,8 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 
+import applications_old.EdgeCutCrawler;
+
 import p_graph_service.PGraphDatabaseService;
 
 public class MigratorSim extends Migrator {
@@ -52,6 +54,11 @@ public class MigratorSim extends Migrator {
 		} catch (Exception eReadOps) {
 			eReadOps.printStackTrace();
 		}
+
+		// Calculate Edgecut, Relationship Balance, Node Balance, etc
+		String edgecutCrawlerFilePath = String.format("edgecutCrawler_%d.csv",
+				System.currentTimeMillis());
+		EdgeCutCrawler.calOnDB(userTransNeo, edgecutCrawlerFilePath, 4);
 
 		if (++changeOpLogFilesIndex >= changeOpLogFiles.length)
 			return;

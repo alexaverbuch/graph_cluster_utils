@@ -14,6 +14,7 @@ import graph_gen_utils.memory_graph.MemGraph;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import jobs.SimJob;
+import jobs.SimJobLoadOpsDummy;
 import jobs.SimJobLoadOpsGIS;
 import jobs.SimJobLoadOpsTree;
 import jobs.SimJobLoadOpsTwitter;
@@ -24,7 +25,7 @@ import p_graph_service.sim.PGraphDatabaseServiceSIM;
 public class ChurnPtnAlgRunner {
 
 	private enum SimType {
-		TWITTER, GIS, FSTREE
+		DUMMY, TWITTER, GIS, FSTREE
 	}
 
 	/**
@@ -49,7 +50,7 @@ public class ChurnPtnAlgRunner {
 					+ "DBSyncPeriod:Int " + "MetricsLogPeriod:Int "
 					+ "InputReadOpsFile:String " + "OutputReadOpsDir:String "
 					+ "ChangeOpLogFiles:Array "
-					+ "SimType:Enum(gis,fstree,twitter) ");
+					+ "SimType:Enum(gis,fstree,twitter,dummy) ");
 
 			return;
 		}
@@ -105,10 +106,13 @@ public class ChurnPtnAlgRunner {
 				simType = SimType.GIS;
 			} else if (simTypeStr.equals("fstree") == true) {
 				simType = SimType.FSTREE;
+			} else if (simTypeStr.equals("dummy") == true) {
+				simType = SimType.DUMMY;
 			} else {
-				String errStr = String.format(
-						"Invalid SimType[%s], must be (twitter,gis,fstree)\n",
-						simTypeStr);
+				String errStr = String
+						.format(
+								"Invalid SimType[%s], must be (twitter,gis,fstree,dummy)\n",
+								simTypeStr);
 				throw new Exception(errStr);
 			}
 
@@ -152,6 +156,9 @@ public class ChurnPtnAlgRunner {
 				simJob = new SimJobLoadOpsTree(
 						new String[] { readOperationLogIn },
 						operationLogsOutDir, pdb, true);
+				break;
+			case DUMMY:
+				simJob = new SimJobLoadOpsDummy();
 				break;
 			}
 
